@@ -45,7 +45,7 @@ rules:
   - "get"
   - "create"
 - apiGroups:
-  - policies.open-cluster-management.io
+  - ""
   resources:
   - configurationpolicies
   verbs:
