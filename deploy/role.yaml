@@ -78,9 +78,9 @@ rules:
   verbs:
   - get
 - apiGroups:
-  - "rbac.authorization.k8s.io"
+  - '*'
   resources:
-  - roles
+  - '*'
   verbs:
   - create
   - delete
