@@ -21,7 +21,6 @@ import (
 
 	"github.com/open-cluster-management/config-policy-controller/pkg/apis"
 	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policies/v1alpha1"
-	sub "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -43,33 +42,6 @@ var samplePolicy = policiesv1alpha1.ConfigurationPolicy{
 			Exclude: []string{"kube-system"},
 		},
 		RemediationAction: "inform",
-		RoleTemplates: []*policiesv1alpha1.RoleTemplate{
-			&policiesv1alpha1.RoleTemplate{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "roletemplate",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "",
-					Name:      "operator-role-policy",
-				},
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"dev": "true",
-					},
-				},
-				ComplianceType: "musthave",
-				Rules: []policiesv1alpha1.PolicyRuleTemplate{
-					policiesv1alpha1.PolicyRuleTemplate{
-						ComplianceType: "musthave",
-						PolicyRule: sub.PolicyRule{
-							APIGroups: []string{"extensions", "apps"},
-							Resources: []string{"deployments"},
-							Verbs:     []string{"get", "list", "watch", "create", "delete", "patch"},
-						},
-					},
-				},
-			},
-		},
 		ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
 			&policiesv1alpha1.ObjectTemplate{
 				ComplianceType:   "musthave",
