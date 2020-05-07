@@ -108,13 +108,9 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 		TypeMeta:   typeMeta,
 		ObjectMeta: objMeta,
 	}
-	var def = map[string]interface{}{
+	var def = map[string]string{
 		"apiDefinition": "v1",
 		"kind":          "Pod",
-		"metadata": metav1.ObjectMeta{
-			Name: "nginx-pod",
-		},
-		"spec": map[string]interface{}{},
 	}
 	defJSON, err := json.Marshal(def)
 	if err != nil {
