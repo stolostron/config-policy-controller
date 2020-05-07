@@ -14,7 +14,6 @@
 package configurationpolicy
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -108,11 +107,15 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 		TypeMeta:   typeMeta,
 		ObjectMeta: objMeta,
 	}
-	var def = map[string]string{
-		"apiDefinition": "v1",
-		"kind":          "Pod",
-	}
-	defJSON, err := json.Marshal(def)
+	// var def = map[string]string{
+	// 	"apiDefinition": "v1",
+	// 	"kind":          "Pod",
+	// }
+	// defJSON, err := json.Marshal(def)
+	defJSON := []byte(`[
+		{"name":"apiDefinition", "value":"v1"},
+		{"name":"kind", "value":"Pod"}
+	]`)
 	if err != nil {
 		t.Log(err)
 	}
