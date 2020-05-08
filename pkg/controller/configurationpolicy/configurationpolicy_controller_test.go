@@ -14,6 +14,7 @@
 package configurationpolicy
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -112,10 +113,10 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 	// 	"kind":          "Pod",
 	// }
 	// defJSON, err := json.Marshal(def)
-	defJSON := []byte(`[
-		{"name":"apiDefinition", "value":"v1"},
-		{"name":"kind", "value":"Pod"}
-	]`)
+	defJSON := []byte(`{
+		"apiVersion":"v1",
+		"kind":"Pod",
+	}`)
 	if err != nil {
 		t.Log(err)
 	}
@@ -175,6 +176,64 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 	err = handleAddingPolicy(&samplePolicy)
 	assert.Nil(t, err)
 	PeriodicallyExecSamplePolicies(1, true)
+}
+
+func TestCompareSpecs(t *testing.T) {
+	var spec1 = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+		},
+	}
+	var spec2 = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+			"test":  "",
+		},
+	}
+	merged, err := compareSpecs(spec1, spec2, "musthave")
+	if err != nil {
+		t.Fatalf("compareSpecs: (%v)", err)
+	}
+	var mergedExpected = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+			"test":  "",
+		},
+	}
+	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
+	spec1 = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+			"test":  "1111",
+		},
+	}
+	spec2 = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+			"test":  "2222",
+		},
+	}
+	merged, err = compareSpecs(spec1, spec2, "musthave")
+	if err != nil {
+		t.Fatalf("compareSpecs: (%v)", err)
+	}
+	mergedExpected = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+			"test":  "1111",
+		},
+	}
+	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
+}
+
+func TestCompareLists(t *testing.T) {
+
 }
 
 func TestCheckUnNamespacedPolicies(t *testing.T) {
