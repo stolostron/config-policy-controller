@@ -18,9 +18,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policies/v1alpha1"
 	"github.com/open-cluster-management/config-policy-controller/pkg/common"
+	"github.com/stretchr/testify/assert"
 	coretypes "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	sub "k8s.io/api/rbac/v1"
@@ -43,20 +42,20 @@ func TestReconcile(t *testing.T) {
 		name      = "foo"
 		namespace = "default"
 	)
-	instance := &policiesv1alpha1.ConfigurationPolicy{
+	instance := &policiesv1.ConfigurationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
 		},
-		Spec: policiesv1alpha1.ConfigurationPolicySpec{
+		Spec: policiesv1.ConfigurationPolicySpec{
 			Severity: "low",
-			NamespaceSelector: policiesv1alpha1.Target{
+			NamespaceSelector: policiesv1.Target{
 				Include: []string{"default", "kube-*"},
 				Exclude: []string{"kube-system"},
 			},
 			RemediationAction: "inform",
-			RoleTemplates: []*policiesv1alpha1.RoleTemplate{
-				&policiesv1alpha1.RoleTemplate{
+			RoleTemplates: []*policiesv1.RoleTemplate{
+				&policiesv1.RoleTemplate{
 					TypeMeta: metav1.TypeMeta{
 						Kind: "roletemplate",
 					},
@@ -70,8 +69,8 @@ func TestReconcile(t *testing.T) {
 						},
 					},
 					ComplianceType: "musthave",
-					Rules: []policiesv1alpha1.PolicyRuleTemplate{
-						policiesv1alpha1.PolicyRuleTemplate{
+					Rules: []policiesv1.PolicyRuleTemplate{
+						policiesv1.PolicyRuleTemplate{
 							ComplianceType: "musthave",
 							PolicyRule: sub.PolicyRule{
 								APIGroups: []string{"extensions", "apps"},
@@ -82,8 +81,8 @@ func TestReconcile(t *testing.T) {
 					},
 				},
 			},
-			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-				&policiesv1alpha1.ObjectTemplate{
+			ObjectTemplates: []*policiesv1.ObjectTemplate{
+				&policiesv1.ObjectTemplate{
 					ComplianceType:   "musthave",
 					ObjectDefinition: runtime.RawExtension{},
 				},
@@ -95,7 +94,7 @@ func TestReconcile(t *testing.T) {
 	objs := []runtime.Object{instance}
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(policiesv1alpha1.SchemeGroupVersion, instance)
+	s.AddKnownTypes(policiesv1.SchemeGroupVersion, instance)
 
 	// Create a fake client to mock API calls.
 	cl := fake.NewFakeClient(objs...)
@@ -156,20 +155,20 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 			Namespace: namespace,
 		},
 	}
-	instance := &policiesv1alpha1.ConfigurationPolicy{
+	instance := &policiesv1.ConfigurationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
 		},
-		Spec: policiesv1alpha1.ConfigurationPolicySpec{
+		Spec: policiesv1.ConfigurationPolicySpec{
 			Severity: "low",
-			NamespaceSelector: policiesv1alpha1.Target{
+			NamespaceSelector: policiesv1.Target{
 				Include: []string{"default", "kube-*"},
 				Exclude: []string{"kube-system"},
 			},
 			RemediationAction: "inform",
-			RoleTemplates: []*policiesv1alpha1.RoleTemplate{
-				&policiesv1alpha1.RoleTemplate{
+			RoleTemplates: []*policiesv1.RoleTemplate{
+				&policiesv1.RoleTemplate{
 					TypeMeta: metav1.TypeMeta{
 						Kind: "roletemplate",
 					},
@@ -183,8 +182,8 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 						},
 					},
 					ComplianceType: "musthave",
-					Rules: []policiesv1alpha1.PolicyRuleTemplate{
-						policiesv1alpha1.PolicyRuleTemplate{
+					Rules: []policiesv1.PolicyRuleTemplate{
+						policiesv1.PolicyRuleTemplate{
 							ComplianceType: "musthave",
 							PolicyRule: sub.PolicyRule{
 								APIGroups: []string{"extensions", "apps"},
@@ -195,8 +194,8 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 					},
 				},
 			},
-			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-				&policiesv1alpha1.ObjectTemplate{
+			ObjectTemplates: []*policiesv1.ObjectTemplate{
+				&policiesv1.ObjectTemplate{
 					ComplianceType: "musthave",
 					ObjectDefinition: runtime.RawExtension{
 						Raw: defJSON,
@@ -210,7 +209,7 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 	objs := []runtime.Object{instance}
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(policiesv1alpha1.SchemeGroupVersion, instance)
+	s.AddKnownTypes(policiesv1.SchemeGroupVersion, instance)
 
 	// Create a fake client to mock API calls.
 	cl := fake.NewFakeClient(objs...)
@@ -235,13 +234,13 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 func TestCheckUnNamespacedPolicies(t *testing.T) {
 	var simpleClient kubernetes.Interface = testclient.NewSimpleClientset()
 	common.Initialize(&simpleClient, nil)
-	var samplePolicy = policiesv1alpha1.ConfigurationPolicy{
+	var samplePolicy = policiesv1.ConfigurationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
 		}}
 
-	var policies = map[string]*policiesv1alpha1.ConfigurationPolicy{}
+	var policies = map[string]*policiesv1.ConfigurationPolicy{}
 	policies["policy1"] = &samplePolicy
 
 	err := checkUnNamespacedPolicies(policies)
@@ -310,7 +309,7 @@ func TestCheckViolationsPerNamespace(t *testing.T) {
 	var roleBindingList = sub.RoleBindingList{
 		Items: items,
 	}
-	var samplePolicySpec = policiesv1alpha1.ConfigurationPolicySpec{
+	var samplePolicySpec = policiesv1.ConfigurationPolicySpec{
 		MaxRoleBindingUsersPerNamespace:  1,
 		MaxRoleBindingGroupsPerNamespace: 1,
 		MaxClusterRoleBindingUsers:       1,
@@ -344,7 +343,7 @@ func TestConvertPolicyStatusToString(t *testing.T) {
 	compliantDetails["a"] = compliantDetail
 	compliantDetails["b"] = compliantDetail
 	compliantDetails["c"] = compliantDetail
-	samplePolicyStatus := policiesv1alpha1.ConfigurationPolicyStatus{
+	samplePolicyStatus := policiesv1.ConfigurationPolicyStatus{
 		ComplianceState:   "Compliant",
 		CompliancyDetails: compliantDetails,
 	}
@@ -473,10 +472,10 @@ func TestDeepCompareRoleTtoRole(t *testing.T) {
 }
 
 func TestFlattenRoleTemplate(t *testing.T) {
-	ruleT := newRuleTemplate("get,watch,list,patch", "apps", "deployments", "", policiesv1alpha1.MustHave)
-	ruleT2 := newRuleTemplate("get,watch,list,patch", "extensions", "deployments", "", policiesv1alpha1.MustNotHave)
-	ruleT3 := newRuleTemplate("get,watch,list,patch", "", "secrets", "", policiesv1alpha1.MustOnlyHave)
-	roleT := newRoleTemplate("dev", "default", policiesv1alpha1.MustHave, ruleT, ruleT2, ruleT3)
+	ruleT := newRuleTemplate("get,watch,list,patch", "apps", "deployments", "", policiesv1.MustHave)
+	ruleT2 := newRuleTemplate("get,watch,list,patch", "extensions", "deployments", "", policiesv1.MustNotHave)
+	ruleT3 := newRuleTemplate("get,watch,list,patch", "", "secrets", "", policiesv1.MustOnlyHave)
+	roleT := newRoleTemplate("dev", "default", policiesv1.MustHave, ruleT, ruleT2, ruleT3)
 	actualResult := flattenRoleTemplate(*roleT)
 
 	expectedResult := map[string]map[string]map[string]bool{
@@ -537,8 +536,8 @@ func newRole(name, namespace string, rules ...rbacv1.PolicyRule) *rbacv1.Role {
 	return &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}, Rules: rules}
 }
 
-func newRuleTemplate(verbs, apiGroups, resources, nonResourceURLs string, complianceT policiesv1alpha1.ComplianceType) policiesv1alpha1.PolicyRuleTemplate {
-	return policiesv1alpha1.PolicyRuleTemplate{
+func newRuleTemplate(verbs, apiGroups, resources, nonResourceURLs string, complianceT policiesv1.ComplianceType) policiesv1.PolicyRuleTemplate {
+	return policiesv1.PolicyRuleTemplate{
 		ComplianceType: complianceT,
 		PolicyRule: rbacv1.PolicyRule{
 			Verbs:           strings.Split(verbs, ","),
@@ -549,8 +548,8 @@ func newRuleTemplate(verbs, apiGroups, resources, nonResourceURLs string, compli
 	}
 }
 
-func newRoleTemplate(name, namespace string, rolecompT policiesv1alpha1.ComplianceType, rulesT ...policiesv1alpha1.PolicyRuleTemplate) *policiesv1alpha1.RoleTemplate {
-	return &policiesv1alpha1.RoleTemplate{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
+func newRoleTemplate(name, namespace string, rolecompT policiesv1.ComplianceType, rulesT ...policiesv1.PolicyRuleTemplate) *policiesv1.RoleTemplate {
+	return &policiesv1.RoleTemplate{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
 		ComplianceType: rolecompT,
 		Rules:          rulesT}
 }

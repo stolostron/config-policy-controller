@@ -25,7 +25,7 @@ It takes seconds for the sample policy controller to fully start. You will get t
 
 To test a sample policy, open another command prompt to deploy the sample policy file
 ```
-kubectl apply -f deploy/crds/policies.open-cluster-management.io_v1alpha1_configurationpolicy_cr.yaml -n default
+kubectl apply -f deploy/crds/policies.open-cluster-management.io_v1_configurationpolicy_cr.yaml -n default
 ```
 The local process outputs the following messages
 ```
@@ -79,7 +79,7 @@ names:
 
 ### Change CR
 
-A sample CR is located at: [deploy/crds/policies.open-cluster-management.io_v1alpha1_samplepolicy_cr.yaml](../deploy/crds/policies.open-cluster-management.io_v1alpha1_samplepolicy_cr.yaml)
+A sample CR is located at: [deploy/crds/policies.open-cluster-management.io_v1_samplepolicy_cr.yaml](../deploy/crds/policies.open-cluster-management.io_v1_samplepolicy_cr.yaml)
 
 Change below section to match the kind you specified in previous step.
 

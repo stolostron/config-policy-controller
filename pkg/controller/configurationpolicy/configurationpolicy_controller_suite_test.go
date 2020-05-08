@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/open-cluster-management/config-policy-controller/pkg/apis"
-	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policies/v1alpha1"
 	sub "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,20 +30,20 @@ import (
 
 var cfg *rest.Config
 
-var samplePolicy = policiesv1alpha1.ConfigurationPolicy{
+var samplePolicy = policiesv1.ConfigurationPolicy{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "foo",
 		Namespace: "default",
 	},
-	Spec: policiesv1alpha1.ConfigurationPolicySpec{
+	Spec: policiesv1.ConfigurationPolicySpec{
 		Severity: "low",
-		NamespaceSelector: policiesv1alpha1.Target{
+		NamespaceSelector: policiesv1.Target{
 			Include: []string{"default", "kube-*"},
 			Exclude: []string{"kube-system"},
 		},
 		RemediationAction: "inform",
-		RoleTemplates: []*policiesv1alpha1.RoleTemplate{
-			&policiesv1alpha1.RoleTemplate{
+		RoleTemplates: []*policiesv1.RoleTemplate{
+			&policiesv1.RoleTemplate{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "roletemplate",
 				},
@@ -58,8 +57,8 @@ var samplePolicy = policiesv1alpha1.ConfigurationPolicy{
 					},
 				},
 				ComplianceType: "musthave",
-				Rules: []policiesv1alpha1.PolicyRuleTemplate{
-					policiesv1alpha1.PolicyRuleTemplate{
+				Rules: []policiesv1.PolicyRuleTemplate{
+					policiesv1.PolicyRuleTemplate{
 						ComplianceType: "musthave",
 						PolicyRule: sub.PolicyRule{
 							APIGroups: []string{"extensions", "apps"},
@@ -70,8 +69,8 @@ var samplePolicy = policiesv1alpha1.ConfigurationPolicy{
 				},
 			},
 		},
-		ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-			&policiesv1alpha1.ObjectTemplate{
+		ObjectTemplates: []*policiesv1.ObjectTemplate{
+			&policiesv1.ObjectTemplate{
 				ComplianceType:   "musthave",
 				ObjectDefinition: runtime.RawExtension{},
 			},
