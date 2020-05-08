@@ -233,7 +233,68 @@ func TestCompareSpecs(t *testing.T) {
 }
 
 func TestCompareLists(t *testing.T) {
-
+	var rules1 = []interface{}{
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
+				"get", "list", "watch", "create", "delete",
+			},
+		},
+	}
+	var rules2 = []interface{}{
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
+				"get", "list",
+			},
+		},
+	}
+	merged, err := compareLists(rules2, rules1, "musthave")
+	if err != nil {
+		t.Fatalf("compareSpecs: (%v)", err)
+	}
+	mergedExpected := []interface{}{
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
+				"get", "list", "watch", "create", "delete",
+			},
+		},
+	}
+	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
+	merged, err = compareLists(rules2, rules1, "mustonlyhave")
+	if err != nil {
+		t.Fatalf("compareSpecs: (%v)", err)
+	}
+	mergedExpected = []interface{}{
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
+				"get", "list",
+			},
+		},
+	}
+	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
 }
 
 func TestCheckUnNamespacedPolicies(t *testing.T) {
