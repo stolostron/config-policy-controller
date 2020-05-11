@@ -14,6 +14,7 @@
 package configurationpolicy
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -93,6 +94,56 @@ func TestReconcile(t *testing.T) {
 	t.Log(res)
 }
 
+// func TestHandleObjectTemplates(t *testing.T) {
+// 	var typeMeta = metav1.TypeMeta{
+// 		Kind: "namespace",
+// 	}
+// 	var objMeta = metav1.ObjectMeta{
+// 		Name: "default",
+// 	}
+// 	var ns = coretypes.Namespace{
+// 		TypeMeta:   typeMeta,
+// 		ObjectMeta: objMeta,
+// 	}
+// 	defJSON := []byte(`{
+// 		"apiVersion": "v1",
+// 		"kind": "Pod"
+// 	}`)
+
+// 	re := runtime.RawExtension{}
+// 	re.Raw = append(re.Raw[0:0], defJSON...)
+
+// 	instance := &policiesv1alpha1.ConfigurationPolicy{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      "foo",
+// 			Namespace: "default",
+// 		},
+// 		Spec: policiesv1alpha1.ConfigurationPolicySpec{
+// 			Severity: "low",
+// 			NamespaceSelector: policiesv1alpha1.Target{
+// 				Include: []string{"default", "kube-*"},
+// 				Exclude: []string{"kube-system"},
+// 			},
+// 			RemediationAction: "inform",
+// 			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
+// 				&policiesv1alpha1.ObjectTemplate{
+// 					ComplianceType:   "musthave",
+// 					ObjectDefinition: re,
+// 				},
+// 			},
+// 		},
+// 	}
+// 	// Register operator types with the runtime scheme.
+// 	s := scheme.Scheme
+// 	s.AddKnownTypes(policiesv1alpha1.SchemeGroupVersion, instance)
+
+// 	var simpleClient kubernetes.Interface = testclient.NewSimpleClientset()
+// 	simpleClient.CoreV1().Namespaces().Create(&ns)
+// 	common.Initialize(&simpleClient, nil)
+
+// 	handleObjectTemplates(*instance)
+// }
+
 func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 	var (
 		name      = "foo"
@@ -108,18 +159,13 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 		TypeMeta:   typeMeta,
 		ObjectMeta: objMeta,
 	}
-	// var def = map[string]string{
-	// 	"apiDefinition": "v1",
-	// 	"kind":          "Pod",
-	// }
-	// defJSON, err := json.Marshal(def)
 	defJSON := []byte(`{
-		"apiVersion":"v1",
-		"kind":"Pod",
+		"apiVersion": "v1",
+		"kind": "Pod"
 	}`)
-	if err != nil {
-		t.Log(err)
-	}
+
+	re := runtime.RawExtension{}
+	re.Raw = append(re.Raw[0:0], defJSON...)
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -143,10 +189,8 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 			RemediationAction: "inform",
 			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
 				&policiesv1alpha1.ObjectTemplate{
-					ComplianceType: "musthave",
-					ObjectDefinition: runtime.RawExtension{
-						Raw: defJSON,
-					},
+					ComplianceType:   "musthave",
+					ObjectDefinition: re,
 				},
 			},
 		},
@@ -188,11 +232,10 @@ func TestCompareSpecs(t *testing.T) {
 	var spec2 = map[string]interface{}{
 		"containers": map[string]string{
 			"image": "nginx1.7.9",
-			"name":  "nginx",
-			"test":  "",
+			"test":  "test",
 		},
 	}
-	merged, err := compareSpecs(spec1, spec2, "musthave")
+	merged, err := compareSpecs(spec1, spec2, "mustonlyhave")
 	if err != nil {
 		t.Fatalf("compareSpecs: (%v)", err)
 	}
@@ -200,14 +243,12 @@ func TestCompareSpecs(t *testing.T) {
 		"containers": map[string]string{
 			"image": "nginx1.7.9",
 			"name":  "nginx",
-			"test":  "",
 		},
 	}
 	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
 	spec1 = map[string]interface{}{
 		"containers": map[string]string{
 			"image": "nginx1.7.9",
-			"name":  "nginx",
 			"test":  "1111",
 		},
 	}
@@ -215,7 +256,6 @@ func TestCompareSpecs(t *testing.T) {
 		"containers": map[string]string{
 			"image": "nginx1.7.9",
 			"name":  "nginx",
-			"test":  "2222",
 		},
 	}
 	merged, err = compareSpecs(spec1, spec2, "musthave")
@@ -229,7 +269,7 @@ func TestCompareSpecs(t *testing.T) {
 			"test":  "1111",
 		},
 	}
-	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
+	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
 func TestCompareLists(t *testing.T) {
@@ -272,11 +312,22 @@ func TestCompareLists(t *testing.T) {
 				"deployments",
 			},
 			"verbs": []string{
+				"get", "list",
+			},
+		},
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
 				"get", "list", "watch", "create", "delete",
 			},
 		},
 	}
-	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
+	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 	merged, err = compareLists(rules2, rules1, "mustonlyhave")
 	if err != nil {
 		t.Fatalf("compareSpecs: (%v)", err)
@@ -294,7 +345,7 @@ func TestCompareLists(t *testing.T) {
 			},
 		},
 	}
-	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
+	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
 func TestCheckUnNamespacedPolicies(t *testing.T) {
