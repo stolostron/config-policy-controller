@@ -142,3 +142,50 @@ build-images:
 ############################################################
 clean::
 	rm -f build/_output/bin/$(IMG)
+
+
+
+############################################################
+# e2e test section
+############################################################
+.PHONY: kind-bootstrap-cluster
+kind-bootstrap-cluster: kind-create-cluster install-crds kind-deploy-controller install-resources
+
+.PHONY: kind-bootstrap-cluster-dev
+kind-bootstrap-cluster-dev: kind-create-cluster install-crds install-resources
+
+check-env:
+ifndef DOCKER_USER
+	$(error DOCKER_USER is undefined)
+endif
+ifndef DOCKER_PASS
+	$(error DOCKER_PASS is undefined)
+endif
+
+kind-deploy-controller: check-env
+	@echo installing policy-propagator
+	kubectl create ns governance
+	kubectl create secret -n governance docker-registry multiclusterhub-operator-pull-secret --docker-server=quay.io --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS}
+	kubectl apply -f deploy/ -n governance
+
+kind-create-cluster:
+	@echo "creating cluster"
+	kind create cluster --name test-hub
+
+kind-delete-cluster:
+	kind delete cluster --name test-hub
+
+install-crds:
+	@echo installing crds
+	kubectl apply -f deploy/crds/policies.open-cluster-management.io_configurationpolicies_crd.yaml
+
+install-resources:
+	@echo creating namespaces
+	kubectl create ns policy-propagator-test
+	kubectl create ns managed
+	@echo creating cluster resources
+	kubectl apply -f test/resources/managed1-cluster.yaml
+	kubectl apply -f test/resources/managed2-cluster.yaml
+
+e2e-test:
+	ginkgo -v --slowSpecThreshold=10 test/e2e
