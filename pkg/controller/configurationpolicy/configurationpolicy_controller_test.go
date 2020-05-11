@@ -14,13 +14,14 @@
 package configurationpolicy
 
 import (
-	"encoding/json"
+	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policies/v1alpha1"
+	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policies/v1"
 	"github.com/open-cluster-management/config-policy-controller/pkg/common"
+	"github.com/stretchr/testify/assert"
 	coretypes "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	sub "k8s.io/api/rbac/v1"
@@ -55,33 +56,6 @@ func TestReconcile(t *testing.T) {
 				Exclude: []string{"kube-system"},
 			},
 			RemediationAction: "inform",
-			RoleTemplates: []*policiesv1alpha1.RoleTemplate{
-				&policiesv1alpha1.RoleTemplate{
-					TypeMeta: metav1.TypeMeta{
-						Kind: "roletemplate",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "",
-						Name:      "operator-role-policy",
-					},
-					Selector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"dev": "true",
-						},
-					},
-					ComplianceType: "musthave",
-					Rules: []policiesv1alpha1.PolicyRuleTemplate{
-						policiesv1alpha1.PolicyRuleTemplate{
-							ComplianceType: "musthave",
-							PolicyRule: sub.PolicyRule{
-								APIGroups: []string{"extensions", "apps"},
-								Resources: []string{"deployments"},
-								Verbs:     []string{"get", "list", "watch", "create", "delete", "patch"},
-							},
-						},
-					},
-				},
-			},
 			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
 				&policiesv1alpha1.ObjectTemplate{
 					ComplianceType:   "musthave",
@@ -120,6 +94,56 @@ func TestReconcile(t *testing.T) {
 	t.Log(res)
 }
 
+// func TestHandleObjectTemplates(t *testing.T) {
+// 	var typeMeta = metav1.TypeMeta{
+// 		Kind: "namespace",
+// 	}
+// 	var objMeta = metav1.ObjectMeta{
+// 		Name: "default",
+// 	}
+// 	var ns = coretypes.Namespace{
+// 		TypeMeta:   typeMeta,
+// 		ObjectMeta: objMeta,
+// 	}
+// 	defJSON := []byte(`{
+// 		"apiVersion": "v1",
+// 		"kind": "Pod"
+// 	}`)
+
+// 	re := runtime.RawExtension{}
+// 	re.Raw = append(re.Raw[0:0], defJSON...)
+
+// 	instance := &policiesv1alpha1.ConfigurationPolicy{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      "foo",
+// 			Namespace: "default",
+// 		},
+// 		Spec: policiesv1alpha1.ConfigurationPolicySpec{
+// 			Severity: "low",
+// 			NamespaceSelector: policiesv1alpha1.Target{
+// 				Include: []string{"default", "kube-*"},
+// 				Exclude: []string{"kube-system"},
+// 			},
+// 			RemediationAction: "inform",
+// 			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
+// 				&policiesv1alpha1.ObjectTemplate{
+// 					ComplianceType:   "musthave",
+// 					ObjectDefinition: re,
+// 				},
+// 			},
+// 		},
+// 	}
+// 	// Register operator types with the runtime scheme.
+// 	s := scheme.Scheme
+// 	s.AddKnownTypes(policiesv1alpha1.SchemeGroupVersion, instance)
+
+// 	var simpleClient kubernetes.Interface = testclient.NewSimpleClientset()
+// 	simpleClient.CoreV1().Namespaces().Create(&ns)
+// 	common.Initialize(&simpleClient, nil)
+
+// 	handleObjectTemplates(*instance)
+// }
+
 func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 	var (
 		name      = "foo"
@@ -135,18 +159,13 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 		TypeMeta:   typeMeta,
 		ObjectMeta: objMeta,
 	}
-	var def = map[string]interface{}{
-		"apiDefinition": "v1",
-		"kind":          "Pod",
-		"metadata": metav1.ObjectMeta{
-			Name: "nginx-pod",
-		},
-		"spec": map[string]interface{}{},
-	}
-	defJSON, err := json.Marshal(def)
-	if err != nil {
-		t.Log(err)
-	}
+	defJSON := []byte(`{
+		"apiVersion": "v1",
+		"kind": "Pod"
+	}`)
+
+	re := runtime.RawExtension{}
+	re.Raw = append(re.Raw[0:0], defJSON...)
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -168,39 +187,10 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 				Exclude: []string{"kube-system"},
 			},
 			RemediationAction: "inform",
-			RoleTemplates: []*policiesv1alpha1.RoleTemplate{
-				&policiesv1alpha1.RoleTemplate{
-					TypeMeta: metav1.TypeMeta{
-						Kind: "roletemplate",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "",
-						Name:      "operator-role-policy",
-					},
-					Selector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"dev": "true",
-						},
-					},
-					ComplianceType: "musthave",
-					Rules: []policiesv1alpha1.PolicyRuleTemplate{
-						policiesv1alpha1.PolicyRuleTemplate{
-							ComplianceType: "musthave",
-							PolicyRule: sub.PolicyRule{
-								APIGroups: []string{"extensions", "apps"},
-								Resources: []string{"deployments"},
-								Verbs:     []string{"get", "list", "watch", "create", "delete", "patch"},
-							},
-						},
-					},
-				},
-			},
 			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
 				&policiesv1alpha1.ObjectTemplate{
-					ComplianceType: "musthave",
-					ObjectDefinition: runtime.RawExtension{
-						Raw: defJSON,
-					},
+					ComplianceType:   "musthave",
+					ObjectDefinition: re,
 				},
 			},
 		},
@@ -230,6 +220,132 @@ func TestPeriodicallyExecSamplePolicies(t *testing.T) {
 	err = handleAddingPolicy(&samplePolicy)
 	assert.Nil(t, err)
 	PeriodicallyExecSamplePolicies(1, true)
+}
+
+func TestCompareSpecs(t *testing.T) {
+	var spec1 = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+		},
+	}
+	var spec2 = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"test":  "test",
+		},
+	}
+	merged, err := compareSpecs(spec1, spec2, "mustonlyhave")
+	if err != nil {
+		t.Fatalf("compareSpecs: (%v)", err)
+	}
+	var mergedExpected = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+		},
+	}
+	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
+	spec1 = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"test":  "1111",
+		},
+	}
+	spec2 = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+		},
+	}
+	merged, err = compareSpecs(spec1, spec2, "musthave")
+	if err != nil {
+		t.Fatalf("compareSpecs: (%v)", err)
+	}
+	mergedExpected = map[string]interface{}{
+		"containers": map[string]string{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+			"test":  "1111",
+		},
+	}
+	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
+}
+
+func TestCompareLists(t *testing.T) {
+	var rules1 = []interface{}{
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
+				"get", "list", "watch", "create", "delete",
+			},
+		},
+	}
+	var rules2 = []interface{}{
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
+				"get", "list",
+			},
+		},
+	}
+	merged, err := compareLists(rules2, rules1, "musthave")
+	if err != nil {
+		t.Fatalf("compareSpecs: (%v)", err)
+	}
+	mergedExpected := []interface{}{
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
+				"get", "list",
+			},
+		},
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
+				"get", "list", "watch", "create", "delete",
+			},
+		},
+	}
+	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
+	merged, err = compareLists(rules2, rules1, "mustonlyhave")
+	if err != nil {
+		t.Fatalf("compareSpecs: (%v)", err)
+	}
+	mergedExpected = []interface{}{
+		map[string]interface{}{
+			"apiGroups": []string{
+				"extensions", "apps",
+			},
+			"resources": []string{
+				"deployments",
+			},
+			"verbs": []string{
+				"get", "list",
+			},
+		},
+	}
+	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
 func TestCheckUnNamespacedPolicies(t *testing.T) {
@@ -334,16 +450,16 @@ func TestCreateParentPolicy(t *testing.T) {
 }
 
 func TestConvertPolicyStatusToString(t *testing.T) {
-	var compliantDetail = map[string][]string{}
-	var compliantDetails = map[string]map[string][]string{}
-	details := []string{}
+	var compliantDetail = policiesv1alpha1.TemplateStatus{
+		ComplianceState: policiesv1alpha1.NonCompliant,
+		Conditions:      []policiesv1alpha1.Condition{},
+	}
+	var compliantDetails = []policiesv1alpha1.TemplateStatus{}
 
-	details = append(details, "detail1", "detail2")
+	for i := 0; i < 3; i++ {
+		compliantDetails = append(compliantDetails, compliantDetail)
+	}
 
-	compliantDetail["w"] = details
-	compliantDetails["a"] = compliantDetail
-	compliantDetails["b"] = compliantDetail
-	compliantDetails["c"] = compliantDetail
 	samplePolicyStatus := policiesv1alpha1.ConfigurationPolicyStatus{
 		ComplianceState:   "Compliant",
 		CompliancyDetails: compliantDetails,
@@ -351,9 +467,6 @@ func TestConvertPolicyStatusToString(t *testing.T) {
 	samplePolicy.Status = samplePolicyStatus
 	var policyInString = convertPolicyStatusToString(&samplePolicy)
 	assert.NotNil(t, policyInString)
-	checkComplianceChangeBasedOnDetails(&samplePolicy)
-	checkComplianceBasedOnDetails(&samplePolicy)
-	addViolationCount(&samplePolicy, 1, 1, "default")
 }
 
 func TestDeleteExternalDependency(t *testing.T) {
@@ -403,127 +516,6 @@ func TestGetContainerID(t *testing.T) {
 	getContainerID(pod, "foo")
 }
 
-func TestFlattenRole(t *testing.T) {
-	rule := newRule("get,watch,list", "apps", "deployments", "")
-	rule2 := newRule("get,watch,list,create,delete,update,patch", "extensions", "deployments", "") //Note: no space between verbs
-	role := newRole("dev", "default", rule, rule2)
-	actualResult := flattenRole(*role)
-
-	expectedResult := map[string]map[string]bool{
-		"deployments.apps": map[string]bool{"get": true, "watch": true, "list": true},
-		"deployments.extensions": map[string]bool{"get": true, "watch": true, "list": true,
-			"create": true, "delete": true, "update": true, "patch": true},
-	}
-
-	match := true
-	if len(expectedResult) != len(actualResult) {
-		match = false
-		t.Fatalf("the expected results and the actual results have different length")
-	}
-	if !match {
-		return
-	}
-
-	for key, resG := range expectedResult {
-		if _, ok := actualResult[key]; ok {
-			// check the lenght of the maps
-			if len(actualResult[key]) > len(resG) {
-				t.Fatalf("The verbs %v in actual results, are MORE than the ones %v in expectedResult ", actualResult[key], resG)
-			} else if len(actualResult[key]) < len(resG) {
-				t.Fatalf("The verbs %v in actual results, are LESS than the ones %v in expectedResult ", actualResult[key], resG)
-			}
-			for keyVerb := range resG {
-				if _, ok := actualResult[key][keyVerb]; ok {
-					// the verb in resG exists in actualresults
-				} else {
-					t.Fatalf("The verb %s is not found in actual results, when looking into key %s", keyVerb, key)
-				}
-			}
-		} else {
-			// the key is not there, we have no match
-			t.Fatalf("The Key %s is not found in actual results", key)
-		}
-	}
-}
-
-func TestDeepCompareRoleTtoRole(t *testing.T) {
-	flatRole := map[string]map[string]bool{
-		"deployments.apps":       map[string]bool{"get": true, "watch": true, "list": true, "patch": true},
-		"deployments.extensions": map[string]bool{"get": true},
-		"secrets.":               map[string]bool{"get": true},
-	}
-
-	flatRoleT := map[string]map[string]map[string]bool{
-		"musthave": map[string]map[string]bool{
-			"deployments.apps":       map[string]bool{"get": true, "patch": true},
-			"deployments.extensions": map[string]bool{"get": true},
-		},
-		"mustnothave": map[string]map[string]bool{
-			"deployments.apps": map[string]bool{"apply": true},
-		},
-		"mustonlyhave": map[string]map[string]bool{
-			"secrets.": map[string]bool{"get": true},
-		},
-	}
-
-	match, res := deepCompareRoleTtoRole(flatRoleT, flatRole)
-	if !match {
-		t.Errorf("no match! \nmissing keys: %v \nmissing verbs: %v \nadditional keys: %v \nadditional verbs: %v\n", res.missingKeys, res.missingVerbs, res.AdditionalKeys, res.AddtionalVerbs)
-	}
-}
-
-func TestFlattenRoleTemplate(t *testing.T) {
-	ruleT := newRuleTemplate("get,watch,list,patch", "apps", "deployments", "", policiesv1alpha1.MustHave)
-	ruleT2 := newRuleTemplate("get,watch,list,patch", "extensions", "deployments", "", policiesv1alpha1.MustNotHave)
-	ruleT3 := newRuleTemplate("get,watch,list,patch", "", "secrets", "", policiesv1alpha1.MustOnlyHave)
-	roleT := newRoleTemplate("dev", "default", policiesv1alpha1.MustHave, ruleT, ruleT2, ruleT3)
-	actualResult := flattenRoleTemplate(*roleT)
-
-	expectedResult := map[string]map[string]map[string]bool{
-		"musthave":     map[string]map[string]bool{"deployments.apps": map[string]bool{"get": true, "patch": true, "watch": true, "list": true}},
-		"mustnothave":  map[string]map[string]bool{"deployments.extensions": map[string]bool{"get": true, "patch": true, "watch": true, "list": true}},
-		"mustonlyhave": map[string]map[string]bool{"secrets.": map[string]bool{"get": true, "patch": true, "watch": true, "list": true}},
-	}
-
-	if len(expectedResult) != len(actualResult) {
-		t.Fatalf("\n actual:   %v \n expected: %v ", actualResult, expectedResult)
-		return
-	}
-
-	for key, resG := range expectedResult {
-		if _, ok := actualResult[key]; ok {
-			// check the lenght of the maps
-			if len(actualResult[key]) > len(resG) {
-				t.Fatalf("The verbs %v in actual results, are MORE than the ones %v in expectedResult ", actualResult[key], resG)
-			} else if len(actualResult[key]) < len(resG) {
-				t.Fatalf("The verbs %v in actual results, are LESS than the ones %v in expectedResult ", actualResult[key], resG)
-			}
-			for keyRes, val := range resG {
-				if len(actualResult[key][keyRes]) != len(val) {
-					t.Fatalf("The keys %v in actual results, are not equal to the ones %v in expectedResult ", actualResult[key], resG)
-				}
-				if _, ok := actualResult[key][keyRes]; ok {
-					// the res.api in resG exists in actualresults
-					for keyVerb := range val {
-						if _, ok := actualResult[key][keyRes][keyVerb]; ok {
-							// the verb in resG exists in actualresults
-						} else {
-							t.Fatalf("The verb %s is not found in actual results, when looking into key %s", keyVerb, key)
-						}
-					}
-				} else {
-					t.Fatalf("The resource %s is not found in actual results, when looking into key %s", keyRes, key)
-				}
-			}
-
-		} else {
-			// the key is not there, we have no match
-			t.Fatalf("The Key %s is not found in actual results", key)
-		}
-	}
-	return
-}
-
 func newRule(verbs, apiGroups, resources, nonResourceURLs string) rbacv1.PolicyRule {
 	return rbacv1.PolicyRule{
 		Verbs:           strings.Split(verbs, ","),
@@ -547,10 +539,4 @@ func newRuleTemplate(verbs, apiGroups, resources, nonResourceURLs string, compli
 			NonResourceURLs: strings.Split(nonResourceURLs, ","),
 		},
 	}
-}
-
-func newRoleTemplate(name, namespace string, rolecompT policiesv1alpha1.ComplianceType, rulesT ...policiesv1alpha1.PolicyRuleTemplate) *policiesv1alpha1.RoleTemplate {
-	return &policiesv1alpha1.RoleTemplate{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
-		ComplianceType: rolecompT,
-		Rules:          rulesT}
 }

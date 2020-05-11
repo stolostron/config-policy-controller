@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package v1alpha1
+package v1
 
 import (
 	"reflect"
@@ -130,16 +130,15 @@ func TestConfigurationPolicyListDeepCopyInto(t *testing.T) {
 }
 
 func TestConfigurationPolicyStatusDeepCopy(t *testing.T) {
-	var compliantDetail = map[string][]string{}
-	var compliantDetails = map[string]map[string][]string{}
-	details := []string{}
+	var compliantDetail = TemplateStatus{
+		ComplianceState: NonCompliant,
+		Conditions:      []Condition{},
+	}
+	var compliantDetails = []TemplateStatus{}
 
-	details = append(details, "detail1", "detail2")
-
-	compliantDetail["w"] = details
-	compliantDetails["a"] = compliantDetail
-	compliantDetails["b"] = compliantDetail
-	compliantDetails["c"] = compliantDetail
+	for i := 0; i < 3; i++ {
+		compliantDetails = append(compliantDetails, compliantDetail)
+	}
 	samplePolicyStatus := ConfigurationPolicyStatus{
 		ComplianceState:   "Compliant",
 		CompliancyDetails: compliantDetails,
@@ -149,16 +148,15 @@ func TestConfigurationPolicyStatusDeepCopy(t *testing.T) {
 }
 
 func TestConfigurationPolicyStatusDeepCopyInto(t *testing.T) {
-	var compliantDetail = map[string][]string{}
-	var compliantDetails = map[string]map[string][]string{}
-	details := []string{}
+	var compliantDetail = TemplateStatus{
+		ComplianceState: NonCompliant,
+		Conditions:      []Condition{},
+	}
+	var compliantDetails = []TemplateStatus{}
 
-	details = append(details, "detail1", "detail2")
-
-	compliantDetail["w"] = details
-	compliantDetails["a"] = compliantDetail
-	compliantDetails["b"] = compliantDetail
-	compliantDetails["c"] = compliantDetail
+	for i := 0; i < 3; i++ {
+		compliantDetails = append(compliantDetails, compliantDetail)
+	}
 	samplePolicyStatus := ConfigurationPolicyStatus{
 		ComplianceState:   "Compliant",
 		CompliancyDetails: compliantDetails,
