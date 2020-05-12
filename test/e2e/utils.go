@@ -10,7 +10,6 @@ import (
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	appsv1 "github.com/open-cluster-management/governance-policy-propagator/pkg/apis/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -19,16 +18,16 @@ import (
 )
 
 // GeneratePlrStatus generate plr status with given clusters
-func GeneratePlrStatus(clusters ...string) *appsv1.PlacementRuleStatus {
-	plrDecision := []appsv1.PlacementDecision{}
-	for _, cluster := range clusters {
-		plrDecision = append(plrDecision, appsv1.PlacementDecision{
-			ClusterName:      cluster,
-			ClusterNamespace: cluster,
-		})
-	}
-	return &appsv1.PlacementRuleStatus{Decisions: plrDecision}
-}
+// func GeneratePlrStatus(clusters ...string) *appsv1.PlacementRuleStatus {
+// 	plrDecision := []appsv1.PlacementDecision{}
+// 	for _, cluster := range clusters {
+// 		plrDecision = append(plrDecision, appsv1.PlacementDecision{
+// 			ClusterName:      cluster,
+// 			ClusterNamespace: cluster,
+// 		})
+// 	}
+// 	return &appsv1.PlacementRuleStatus{Decisions: plrDecision}
+// }
 
 // Pause sleep for given seconds
 func Pause(s uint) {
