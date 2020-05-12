@@ -110,7 +110,7 @@ lint: lint-all
 ############################################################
 
 test:
-	# @go test ${TESTARGS} ./...
+	@go test ${TESTARGS} ./...
 
 ############################################################
 # coverage section
@@ -143,7 +143,11 @@ build-images:
 clean::
 	rm -f build/_output/bin/$(IMG)
 
-
+############################################################
+# check copyright section
+############################################################
+copyright-check:
+	./build/copyright-check.sh $(TRAVIS_BRANCH)
 
 ############################################################
 # e2e test section
