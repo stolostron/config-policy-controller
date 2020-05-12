@@ -19,9 +19,11 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20200121204235-bf4fb3bd569c
 	sigs.k8s.io/controller-runtime v0.5.2
+	// github.com/open-cluster-management/governance-policy-propagator v0.0.0-20200511192636-919b118d8de3
 )
 
 replace (
 	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.3.2+incompatible // Required by OLM
 	k8s.io/client-go => k8s.io/client-go v0.17.4 // Required by prometheus-operator
+	github.com/open-cluster-management/config-policy-controller/test => ./test
 )
