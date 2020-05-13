@@ -67,8 +67,6 @@ var _ = BeforeSuite(func() {
 	gvrConfigPolicy = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "configurationpolicies"}
 	gvrPlacementBinding = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "placementbindings"}
 	gvrPlacementRule = schema.GroupVersionResource{Group: "apps.open-cluster-management.io", Version: "v1", Resource: "placementrules"}
-	clientHub = NewKubeClient("", "", "")
-	clientHubDynamic = NewKubeClientDynamic("", "", "")
 	clientManaged = NewKubeClient("", kubeconfigManaged, "")
 	clientManagedDynamic = NewKubeClientDynamic("", kubeconfigManaged, "")
 	defaultImageRegistry = "quay.io/open-cluster-management"
@@ -76,7 +74,7 @@ var _ = BeforeSuite(func() {
 	testNamespace = "config-policy-test"
 	defaultTimeoutSeconds = 30
 	By("Create Namespace if needed")
-	namespaces := clientHub.CoreV1().Namespaces()
+	namespaces := clientManaged.CoreV1().Namespaces()
 	if _, err := namespaces.Get(testNamespace, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
 		Expect(namespaces.Create(&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{

@@ -15,7 +15,7 @@ const case1PodName string = "nginx-pod-e2e"
 const case1PolicyYaml string = "../resources/case1_pod_handling/case1_pod_create.yaml"
 const case1PolicyCheckMNHYaml string = "../resources/case1_pod_handling/case1_pod_check-mnh.yaml"
 
-var _ = Describe("Test spec sync", func() {
+var _ = Describe("Test pod obj template handling", func() {
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case1PolicyYaml + " on managed")

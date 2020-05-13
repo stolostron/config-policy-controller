@@ -15,7 +15,7 @@ const case2roleName string = "pod-reader-e2e"
 const case2PolicyYaml string = "../resources/case2_role_handling/case2_role_create.yaml"
 const case2PolicyCheckMNHYaml string = "../resources/case2_role_handling/case2_role_check-mnh.yaml"
 
-var _ = Describe("Test spec sync", func() {
+var _ = Describe("Test role obj template handling", func() {
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case2PolicyYaml + " on managed")
