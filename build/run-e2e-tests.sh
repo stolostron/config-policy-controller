@@ -33,7 +33,7 @@ make kind-deploy-controller
 
 echo "patch image"
 kubectl patch deployment config-policy-ctrl -n governance -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"image\":\"${DOCKER_IMAGE_AND_TAG}\"}]}}}}"
-kubectl rollout status -n governance deployment config-policy-ctrl --timeout=90s
+kubectl rollout status -n governance deployment config-policy-ctrl --timeout=120s
 sleep 10
 
 make install-resources
