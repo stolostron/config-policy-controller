@@ -60,6 +60,7 @@ jobs:
           make
           make component/pull
           make component/test/unit
+          export SONAR_GO_TEST_ARGS="\`go list ./... | grep -v test/e2e\`"
           make sonar/go
     - stage: test-e2e
       name: "Deploy the image to a cluster and run e2e tests"
