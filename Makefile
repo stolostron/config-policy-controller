@@ -174,10 +174,11 @@ kind-deploy-controller: check-env
 
 kind-create-cluster:
 	@echo "creating cluster"
-	kind create cluster --name test-hub
+	kind create cluster --name test-managed
+	kind get kubeconfig --name test-managed > $(PWD)/kubeconfig_managed
 
 kind-delete-cluster:
-	kind delete cluster --name test-hub
+	kind delete cluster --name test-managed
 
 install-crds:
 	@echo installing crds
