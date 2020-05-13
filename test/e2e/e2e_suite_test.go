@@ -63,6 +63,7 @@ var _ = BeforeSuite(func() {
 	By("Setup Hub client")
 	gvrPolicy = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "policies"}
 	gvrPod = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
+	gvrRole = schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "roles"}
 	gvrConfigPolicy = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "configurationpolicies"}
 	gvrPlacementBinding = schema.GroupVersionResource{Group: "policies.open-cluster-management.io", Version: "v1", Resource: "placementbindings"}
 	gvrPlacementRule = schema.GroupVersionResource{Group: "apps.open-cluster-management.io", Version: "v1", Resource: "placementrules"}
