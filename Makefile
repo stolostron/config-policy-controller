@@ -187,9 +187,6 @@ install-resources:
 	@echo creating namespaces
 	kubectl create ns config-policy-test
 	kubectl create ns managed
-	@echo creating cluster resources
-	kubectl apply -f test/resources/managed1-cluster.yaml
-	kubectl apply -f test/resources/managed2-cluster.yaml
 
 e2e-test:
 	ginkgo -v --slowSpecThreshold=10 test/e2e
