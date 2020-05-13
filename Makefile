@@ -167,7 +167,7 @@ ifndef DOCKER_PASS
 endif
 
 kind-deploy-controller: check-env
-	@echo installing policy-propagator
+	@echo installing config policy controller
 	kubectl create ns governance
 	kubectl create secret -n governance docker-registry multiclusterhub-operator-pull-secret --docker-server=quay.io --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS}
 	kubectl apply -f deploy/ -n governance
@@ -185,7 +185,7 @@ install-crds:
 
 install-resources:
 	@echo creating namespaces
-	kubectl create ns policy-propagator-test
+	kubectl create ns config-policy-test
 	kubectl create ns managed
 	@echo creating cluster resources
 	kubectl apply -f test/resources/managed1-cluster.yaml
