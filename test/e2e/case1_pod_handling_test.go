@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 //const case1PolicyName string = "default.case1-create-policy"
@@ -23,8 +24,8 @@ var _ = Describe("Test spec sync", func() {
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case1ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"]["compliant"]
-			}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual("NonCompliant"))
+				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should create pod on managed cluster", func() {
 			By("Patching " + case1PolicyYaml + " on hub with spec.remediationAction = enforce")
@@ -36,8 +37,8 @@ var _ = Describe("Test spec sync", func() {
 			Expect(err).To(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case1ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"]["compliant"]
-			}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual("Compliant"))
+				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			pod := utils.GetWithTimeout(clientManagedDynamic, gvrPod, case1PodName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(pod).NotTo(BeNil())
 		})
@@ -48,15 +49,15 @@ var _ = Describe("Test spec sync", func() {
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-mnh", testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"]["compliant"]
-			}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual("NonCompliant"))
+				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 			utils.Kubectl("apply", "-f", case1PolicyCheckMNHYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-moh", testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-moh", testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-moh", testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"]["compliant"]
-			}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual("NonCompliant"))
+				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 	})
 })

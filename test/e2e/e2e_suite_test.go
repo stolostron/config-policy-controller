@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/user"
@@ -35,6 +36,12 @@ var (
 	kubeadminCredential   string
 	kubeconfig            string
 	defaultTimeoutSeconds int
+	kubeconfigManaged     string
+	clientManaged         kubernetes.Interface
+	clientManagedDynamic  dynamic.Interface
+	gvrConfigPolicy       schema.GroupVersionResource
+	gvrPod                schema.GroupVersionResource
+	gvrRole               schema.GroupVersionResource
 
 	defaultImageRegistry       string
 	defaultImagePullSecretName string
@@ -42,21 +49,16 @@ var (
 
 func TestE2e(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Policy Propagator e2e Suite")
+	RunSpecs(t, "Config policy controller e2e Suite")
 }
 
 func init() {
 	klog.SetOutput(GinkgoWriter)
 	klog.InitFlags(nil)
-
-	// flag.StringVar(&kubeadminUser, "kubeadmin-user", "kubeadmin", "Provide the kubeadmin credential for the cluster under test (e.g. -kubeadmin-user=\"xxxxx\").")
-	// flag.StringVar(&kubeadminCredential, "kubeadmin-credential", "",
-	// 	"Provide the kubeadmin credential for the cluster under test (e.g. -kubeadmin-credential=\"xxxxx-xxxxx-xxxxx-xxxxx\").")
-	// flag.StringVar(&baseDomain, "base-domain", "", "Provide the base domain for the cluster under test (e.g. -base-domain=\"demo.red-chesterfield.com\").")
-	// flag.StringVar(&kubeconfig, "kubeconfig", "", "Location of the kubeconfig to use; defaults to KUBECONFIG if not set")
-
-	// flag.StringVar(&optionsFile, "options", "", "Location of an \"options.yaml\" file to provide input for various tests")
-
+	klog.SetOutput(GinkgoWriter)
+	klog.InitFlags(nil)
+	//flag.StringVar(&kubeconfigHub, "kubeconfig_hub", "../../kubeconfig_hub", "Location of the kubeconfig to use; defaults to KUBECONFIG if not set")
+	flag.StringVar(&kubeconfigManaged, "kubeconfig_managed", "../../kubeconfig_managed", "Location of the kubeconfig to use; defaults to KUBECONFIG if not set")
 }
 
 var _ = BeforeSuite(func() {
@@ -69,6 +71,8 @@ var _ = BeforeSuite(func() {
 	gvrPlacementRule = schema.GroupVersionResource{Group: "apps.open-cluster-management.io", Version: "v1", Resource: "placementrules"}
 	clientHub = NewKubeClient("", "", "")
 	clientHubDynamic = NewKubeClientDynamic("", "", "")
+	clientManaged = NewKubeClient("", kubeconfigManaged, "")
+	clientManagedDynamic = NewKubeClientDynamic("", kubeconfigManaged, "")
 	defaultImageRegistry = "quay.io/open-cluster-management"
 	defaultImagePullSecretName = "multiclusterhub-operator-pull-secret"
 	testNamespace = "policy-propagator-test"

@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Red Hat, Inc.
-package e2e
+package utils
 
 import (
 	"fmt"
@@ -16,18 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
-
-// GeneratePlrStatus generate plr status with given clusters
-// func GeneratePlrStatus(clusters ...string) *appsv1.PlacementRuleStatus {
-// 	plrDecision := []appsv1.PlacementDecision{}
-// 	for _, cluster := range clusters {
-// 		plrDecision = append(plrDecision, appsv1.PlacementDecision{
-// 			ClusterName:      cluster,
-// 			ClusterNamespace: cluster,
-// 		})
-// 	}
-// 	return &appsv1.PlacementRuleStatus{Decisions: plrDecision}
-// }
 
 // Pause sleep for given seconds
 func Pause(s uint) {

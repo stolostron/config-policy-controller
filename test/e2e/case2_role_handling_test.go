@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 //const case2PolicyName string = "default.case2-create-policy"
@@ -23,8 +24,8 @@ var _ = Describe("Test spec sync", func() {
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"]["compliant"]
-			}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual("NonCompliant"))
+				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should create role on managed cluster", func() {
 			By("Patching " + case2PolicyYaml + " on hub with spec.remediationAction = enforce")
@@ -36,9 +37,9 @@ var _ = Describe("Test spec sync", func() {
 			Expect(err).To(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"]["compliant"]
-			}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual("Compliant"))
-			role := utils.GetWithTimeout(clientManagedDynamic, gvrrole, case2roleName, testNamespace, true, defaultTimeoutSeconds)
+				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
+			role := utils.GetWithTimeout(clientManagedDynamic, gvrRole, case2roleName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(role).NotTo(BeNil())
 		})
 		It("should create violations properly", func() {
@@ -48,15 +49,15 @@ var _ = Describe("Test spec sync", func() {
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-role-check-mnh", testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"]["compliant"]
-			}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual("NonCompliant"))
+				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 			utils.Kubectl("apply", "-f", case2PolicyCheckMNHYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-role-check-moh", testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-role-check-moh", testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-role-check-moh", testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"]["compliant"]
-			}, defaultTimeoutSeconds, 1).Should(utils.SemanticEqual("NonCompliant"))
+				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 	})
 })
