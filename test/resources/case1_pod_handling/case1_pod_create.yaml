@@ -2,7 +2,6 @@ apiVersion: policies.open-cluster-management.io/v1
 kind: ConfigurationPolicy
 metadata:
   name: policy-pod-create
-  namespace: default
   annotations:
     policy.mcm.ibm.com/standards: NIST-CSF
     policy.mcm.ibm.com/categories: PR.PT Protective Technology
