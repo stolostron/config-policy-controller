@@ -35,7 +35,7 @@ func ParseYaml(file string) *unstructured.Unstructured {
 	return yamlPlc
 }
 
-// getWithTimeout keeps polling to get the object for timeout seconds until wantFound is met (true for found, false for not found)
+// GetWithTimeout keeps polling to get the object for timeout seconds until wantFound is met (true for found, false for not found)
 func GetWithTimeout(
 	clientHubDynamic dynamic.Interface,
 	gvr schema.GroupVersionResource,
@@ -104,10 +104,19 @@ func ListWithTimeout(
 
 }
 
+// Kubectl executes kubectl commands
 func Kubectl(args ...string) {
 	cmd := exec.Command("kubectl", args...)
 	err := cmd.Start()
 	if err != nil {
 		Fail(fmt.Sprintf("Error: %v", err))
 	}
+}
+
+// GetComplianceState parses status field of configurationPolicy to get compliance
+func GetComplianceState(managedPlc *unstructured.Unstructured) (result interface{}) {
+	if managedPlc.Object["status"] != nil {
+		return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+	}
+	return nil
 }

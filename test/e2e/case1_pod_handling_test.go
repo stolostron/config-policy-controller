@@ -26,7 +26,7 @@ var _ = Describe("Test pod obj template handling", func() {
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case1ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should create pod on managed cluster", func() {
@@ -39,7 +39,7 @@ var _ = Describe("Test pod obj template handling", func() {
 			Expect(err).To(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case1ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			pod := utils.GetWithTimeout(clientManagedDynamic, gvrPod, case1PodName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(pod).NotTo(BeNil())
@@ -51,14 +51,14 @@ var _ = Describe("Test pod obj template handling", func() {
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-mnh", testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 			utils.Kubectl("apply", "-f", case1PolicyCheckMNHYaml, "-n", testNamespace)
 			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-moh", testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-moh", testNamespace, true, defaultTimeoutSeconds)
-				return managedPlc.Object["status"].(map[string]interface{})["compliant"]
+				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 	})
