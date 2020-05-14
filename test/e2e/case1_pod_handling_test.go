@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
 )
 
 //const case1PolicyName string = "default.case1-create-policy"
@@ -20,7 +19,6 @@ var _ = Describe("Test pod obj template handling", func() {
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case1PolicyYaml + " on managed")
-			klog.Infof("using test namespace %s", testNamespace)
 			utils.Kubectl("apply", "-f", case1PolicyYaml, "-n", testNamespace)
 			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case1ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
