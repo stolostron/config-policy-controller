@@ -32,8 +32,8 @@ make install-crds
 make kind-deploy-controller 
 
 echo "patch image"
-kubectl patch deployment config-policy-ctrl -n governance -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"image\":\"${DOCKER_IMAGE_AND_TAG}\"}]}}}}"
-kubectl rollout status -n governance deployment config-policy-ctrl --timeout=180s
+kubectl patch deployment config-policy-ctrl -n config-policy-test -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"image\":\"${DOCKER_IMAGE_AND_TAG}\"}]}}}}"
+kubectl rollout status -n config-policy-test deployment config-policy-ctrl --timeout=180s
 sleep 10
 
 make install-resources
