@@ -50,6 +50,13 @@ jobs:
           make component/build
           make component/push
           if [ "$IMAGE_SCAN" != "false" ]; then make security/scans; fi;
+        - if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then 
+          export COMPONENT_NEWTAG="latest-dev";
+          make component/tag;
+          export COMPONENT_VERSION="latest";
+          export COMPONENT_TAG_EXTENSION="-dev";
+          make component/push;
+        fi;
     - stage: unit-test
       name: "Run unit test"
       script:
