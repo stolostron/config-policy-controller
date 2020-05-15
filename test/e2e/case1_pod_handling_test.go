@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//const case1PolicyName string = "default.case1-create-policy"
 const case1ConfigPolicyName string = "policy-pod-create"
 const case1PodName string = "nginx-pod-e2e"
 const case1PolicyYaml string = "../resources/case1_pod_handling/case1_pod_create.yaml"

@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//const case2PolicyName string = "default.case2-create-policy"
 const case2ConfigPolicyName string = "policy-role-create"
 const case2roleName string = "pod-reader-e2e"
 const case2PolicyYaml string = "../resources/case2_role_handling/case2_role_create.yaml"
