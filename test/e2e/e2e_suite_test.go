@@ -72,7 +72,7 @@ var _ = BeforeSuite(func() {
 	defaultImageRegistry = "quay.io/open-cluster-management"
 	defaultImagePullSecretName = "multiclusterhub-operator-pull-secret"
 	testNamespace = "config-policy-test"
-	defaultTimeoutSeconds = 60
+	defaultTimeoutSeconds = 120
 	By("Create Namespace if needed")
 	namespaces := clientManaged.CoreV1().Namespaces()
 	if _, err := namespaces.Get(testNamespace, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
