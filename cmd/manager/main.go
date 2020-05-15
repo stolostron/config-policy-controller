@@ -62,7 +62,6 @@ func main() {
 	// controller-runtime)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
-	pflag.StringVar(&namespace, "watch-ns", "default", "Watched Kubernetes namespace")
 	namespace = os.Getenv("WATCH_NAMESPACE")
 
 	pflag.UintVar(&frequency, "update-frequency", 10, "The status update frequency (in seconds) of a mutation policy")
