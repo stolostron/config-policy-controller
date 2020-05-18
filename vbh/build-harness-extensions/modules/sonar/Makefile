@@ -1,8 +1,8 @@
 .PHONY: sonar/go
 ## Run SonarCloud analysis for Go. This will generally be run as part of a Travis build, not during local development.
 sonar/go: go/gosec-install
-	go test -coverprofile=coverage.out -json ./... > report.json
-	gosec -fmt sonarqube -out gosec.json -no-fail ./...
+	go test -coverprofile=coverage.out -json `go list ./... | grep -v test/e2e` > report.json
+	gosec -fmt sonarqube -out gosec.json -no-fail `go list ./... | grep -v test/e2e`
 	unset SONARQUBE_SCANNER_PARAMS
 	sonar-scanner --debug
 
