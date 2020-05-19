@@ -8,7 +8,7 @@ metadata:
     policy.mcm.ibm.com/controls: PR.PT-3 Least Functionality
 spec:
   complianceType: musthave
-  remediationAction: inform
+  remediationAction: enforce
   disabled: false
   namespaceSelector:
     exclude: ["kube-*"]

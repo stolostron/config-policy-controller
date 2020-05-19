@@ -1,7 +1,7 @@
 apiVersion: policies.open-cluster-management.io/v1
 kind: ConfigurationPolicy
 metadata:
-  name: policy-pod-create
+  name: policy-role-create-inform
   annotations:
     policy.mcm.ibm.com/standards: NIST-CSF
     policy.mcm.ibm.com/categories: PR.PT Protective Technology
@@ -16,14 +16,11 @@ spec:
   object-templates:
     - complianceType: musthave
       objectDefinition:
-        apiVersion: v1
-        kind: Pod
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: Role
         metadata:
-          name: nginx-pod-e2e
-        spec:
-          containers:
-            - image: nginx:1.7.9
-              name: nginx
-              ports:
-                - containerPort: 80
-          
+          name: pod-reader-e2e
+        rules:
+          - apiGroups: ["extensions", "apps"]
+            resources: ["deployments"]
+            verbs: ["get", "list", "watch", "create", "delete","patch"]

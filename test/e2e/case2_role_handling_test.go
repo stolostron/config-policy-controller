@@ -6,43 +6,45 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const case2ConfigPolicyName string = "policy-role-create"
+const case2ConfigPolicyNameInform string = "policy-role-create-inform"
+const case2ConfigPolicyNameEnforce string = "policy-role-create"
 const case2roleName string = "pod-reader-e2e"
-const case2PolicyYaml string = "../resources/case2_role_handling/case2_role_create.yaml"
+const case2PolicyYamlInform string = "../resources/case2_role_handling/case2_role_create_inform.yaml"
+const case2PolicyYamlEnforce string = "../resources/case2_role_handling/case2_role_create_enforce.yaml"
 const case2PolicyCheckMNHYaml string = "../resources/case2_role_handling/case2_role_check-mnh.yaml"
+const case2PolicyCheckMOHYaml string = "../resources/case2_role_handling/case2_role_check-moh.yaml"
 
 var _ = Describe("Test role obj template handling", func() {
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, func() {
 		It("should be created properly on the managed cluster", func() {
-			By("Creating " + case2PolicyYaml + " on managed")
-			utils.Kubectl("apply", "-f", case2PolicyYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
+			By("Creating " + case2PolicyYamlInform + " on managed")
+			utils.Kubectl("apply", "-f", case2PolicyYamlInform, "-n", testNamespace)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should create role on managed cluster", func() {
-			By("Patching " + case2PolicyYaml + " on hub with spec.remediationAction = enforce")
-			managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
-			Expect(managedPlc).NotTo(BeNil())
-			Expect(managedPlc.Object["spec"].(map[string]interface{})["remediationAction"]).To(Equal("inform"))
-			managedPlc.Object["spec"].(map[string]interface{})["remediationAction"] = "enforce"
-			managedPlc, err := clientManagedDynamic.Resource(gvrPolicy).Namespace(testNamespace).Update(managedPlc, metav1.UpdateOptions{})
-			Expect(err).To(BeNil())
+			By("creating " + case2PolicyYamlEnforce + " on hub with spec.remediationAction = enforce")
+			utils.Kubectl("apply", "-f", case2PolicyYamlEnforce, "-n", testNamespace)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyNameEnforce, testNamespace, true, defaultTimeoutSeconds)
+			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyNameEnforce, testNamespace, true, defaultTimeoutSeconds)
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
-			role := utils.GetWithTimeout(clientManagedDynamic, gvrRole, case2roleName, testNamespace, true, defaultTimeoutSeconds)
+			// Eventually(func() interface{} {
+			// 	informPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case2ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
+			// 	return utils.GetComplianceState(informPlc)
+			// }, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
+			role := utils.GetWithTimeout(clientManagedDynamic, gvrRole, case2roleName, "default", true, defaultTimeoutSeconds)
 			Expect(role).NotTo(BeNil())
 		})
 		It("should create violations properly", func() {
-			By("Creating " + case2PolicyYaml + " on managed")
 			utils.Kubectl("apply", "-f", case2PolicyCheckMNHYaml, "-n", testNamespace)
 			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-role-check-mnh", testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
@@ -50,7 +52,7 @@ var _ = Describe("Test role obj template handling", func() {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-role-check-mnh", testNamespace, true, defaultTimeoutSeconds)
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
-			utils.Kubectl("apply", "-f", case2PolicyCheckMNHYaml, "-n", testNamespace)
+			utils.Kubectl("apply", "-f", case2PolicyCheckMOHYaml, "-n", testNamespace)
 			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-role-check-moh", testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {

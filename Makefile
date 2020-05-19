@@ -190,4 +190,4 @@ install-resources:
 	kubectl create ns managed
 
 e2e-test:
-	ginkgo -v --slowSpecThreshold=10 test/e2e
+	${GOPATH}/bin/ginkgo -v --slowSpecThreshold=10 test/e2e
