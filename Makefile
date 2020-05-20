@@ -206,5 +206,5 @@ stop-instrumented:
 coverage-merge:
 	cat coverage_unit.out
 	cat coverage_e2e.out
-	gocovmerge $(pwd)/coverage_* >> coverage.out
+	gocovmerge $(PWD)/coverage_* >> coverage.out
 	cat coverage.out
