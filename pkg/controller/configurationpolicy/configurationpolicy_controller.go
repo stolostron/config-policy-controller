@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,7 +42,9 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
-var log = logf.Log.WithName("controller_configurationpolicy")
+const controllerName string = "configuration-policy-controller"
+
+var log = logf.Log.WithName(controllerName)
 
 // availablePolicies is a cach all all available polices
 var availablePolicies common.SyncedPolicyMap
@@ -125,7 +126,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("configurationpolicy-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -148,17 +149,17 @@ func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset, kubeCl
 
 	EventOnParent = strings.ToLower(eventParent)
 
-	recorder, _ = common.CreateRecorder(*KubeClient, "policy-controller")
+	recorder, _ = common.CreateRecorder(*KubeClient, controllerName)
 	config = kubeconfig
-	config.GroupVersion = &schema.GroupVersion{Group: "policies.open-cluster-management.io", Version: "v1"}
-	config.APIPath = "/apis"
-	config.ContentType = runtime.ContentTypeJSON
-	config.NegotiatedSerializer = PassthruCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme.Scheme)}
-	client, err := rest.RESTClientFor(config)
-	if err != nil {
-		glog.Fatalf("error creating REST client: %s", err)
-	}
-	restClient = client
+	// config.GroupVersion = &schema.GroupVersion{Group: "policies.open-cluster-management.io", Version: "v1"}
+	// config.APIPath = "/apis"
+	// config.ContentType = runtime.ContentTypeJSON
+	// config.NegotiatedSerializer = PassthruCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme.Scheme)}
+	// client, err := rest.RESTClientFor(config)
+	// if err != nil {
+	// 	glog.Fatalf("error creating REST client: %s", err)
+	// }
+	// restClient = client
 }
 
 //InitializeClient helper function to initialize kubeclient
