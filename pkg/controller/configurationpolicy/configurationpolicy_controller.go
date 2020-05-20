@@ -345,11 +345,11 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 			}
 			if update {
 				//update parent policy with violation
-				eventType := eventNormal
-				if plc.Status.CompliancyDetails[indx].ComplianceState == policyv1.NonCompliant {
-					eventType = eventWarning
-				}
-				recorder.Event(&plc, eventType, fmt.Sprintf("policy: %s", plc.GetName()), convertPolicyStatusToString(&plc))
+				// eventType := eventNormal
+				// if plc.Status.CompliancyDetails[indx].ComplianceState == policyv1.NonCompliant {
+				// 	eventType = eventWarning
+				// }
+				//recorder.Event(&plc, eventType, fmt.Sprintf("policy: %s", plc.GetName()), convertPolicyStatusToString(&plc))
 				addForUpdate(&plc)
 			}
 		}
@@ -1157,18 +1157,19 @@ func updateTemplate(
 					}
 
 					//merge changes into new spec
+					var mergedObj interface{}
 					switch newObj := newObj.(type) {
 					case []interface{}:
-						newObj, err = compareLists(newObj, oldObj.([]interface{}), complianceType)
+						mergedObj, err = compareLists(newObj, oldObj.([]interface{}), complianceType)
 					case map[string]interface{}:
-						newObj, err = compareSpecs(newObj, oldObj.(map[string]interface{}), complianceType)
+						mergedObj, err = compareSpecs(newObj, oldObj.(map[string]interface{}), complianceType)
 					}
 					if err != nil {
 						message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
 						return false, false, message
 					}
 					//check if merged spec has changed
-					nJSON, err := json.Marshal(newObj)
+					nJSON, err := json.Marshal(mergedObj)
 					if err != nil {
 						message := fmt.Sprintf("Error converting updated %s to JSON: %s", key, err)
 						return false, false, message
@@ -1183,7 +1184,7 @@ func updateTemplate(
 					}
 					mapMtx := sync.RWMutex{}
 					mapMtx.Lock()
-					existingObj.UnstructuredContent()[key] = newObj
+					existingObj.UnstructuredContent()[key] = mergedObj
 					mapMtx.Unlock()
 					if updateNeeded {
 						if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform)) {
@@ -1439,20 +1440,6 @@ func updatePolicyStatus(policies map[string]*policyv1.ConfigurationPolicy) (*pol
 		}
 	}
 	return nil, nil
-}
-
-func setStatus(policy *policyv1.ConfigurationPolicy) {
-	compliant := true
-	for index := range policy.Spec.ObjectTemplates {
-		if policy.Status.CompliancyDetails[index].ComplianceState == policyv1.NonCompliant {
-			compliant = false
-		}
-	}
-	if compliant {
-		policy.Status.ComplianceState = policyv1.Compliant
-	} else {
-		policy.Status.ComplianceState = policyv1.NonCompliant
-	}
 }
 
 func handleRemovingPolicy(plc *policyv1.ConfigurationPolicy) {
