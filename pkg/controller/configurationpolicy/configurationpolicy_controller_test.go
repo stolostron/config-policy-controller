@@ -348,45 +348,6 @@ func TestCompareLists(t *testing.T) {
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
-func TestCheckUnNamespacedPolicies(t *testing.T) {
-	var simpleClient kubernetes.Interface = testclient.NewSimpleClientset()
-	common.Initialize(&simpleClient, nil)
-	var samplePolicy = policiesv1alpha1.ConfigurationPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
-		}}
-
-	var policies = map[string]*policiesv1alpha1.ConfigurationPolicy{}
-	policies["policy1"] = &samplePolicy
-
-	err := checkUnNamespacedPolicies(policies)
-	assert.Nil(t, err)
-}
-
-func TestEnsureDefaultLabel(t *testing.T) {
-	updateNeeded := ensureDefaultLabel(&samplePolicy)
-	assert.True(t, updateNeeded)
-
-	var labels1 = map[string]string{}
-	labels1["category"] = grcCategory
-	samplePolicy.Labels = labels1
-	updateNeeded = ensureDefaultLabel(&samplePolicy)
-	assert.False(t, updateNeeded)
-
-	var labels2 = map[string]string{}
-	labels2["category"] = "foo"
-	samplePolicy.Labels = labels2
-	updateNeeded = ensureDefaultLabel(&samplePolicy)
-	assert.True(t, updateNeeded)
-
-	var labels3 = map[string]string{}
-	labels3["foo"] = grcCategory
-	samplePolicy.Labels = labels3
-	updateNeeded = ensureDefaultLabel(&samplePolicy)
-	assert.True(t, updateNeeded)
-}
-
 func TestCheckAllClusterLevel(t *testing.T) {
 	var subject = sub.Subject{
 		APIGroup:  "",

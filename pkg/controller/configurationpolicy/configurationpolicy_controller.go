@@ -43,15 +43,7 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
-//UpdatePolicyMap used to keep track of policies to be updated
-var UpdatePolicyMap = make(map[string]*policyv1.ConfigurationPolicy)
-
 var log = logf.Log.WithName("controller_configurationpolicy")
-
-// Finalizer used to ensure consistency when deleting a CRD
-const Finalizer = "finalizer.policies.open-cluster-management.io"
-
-const grcCategory = "system-and-information-integrity"
 
 // availablePolicies is a cach all all available polices
 var availablePolicies common.SyncedPolicyMap
@@ -147,9 +139,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 // Initialize to initialize some controller variables
-func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset, kClient *kubernetes.Interface, mgr manager.Manager, namespace, eventParent string,
-	syncAlert bool, clustName string) {
-	InitializeClient(kClient)
+func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset, kubeClient *kubernetes.Interface, mgr manager.Manager, namespace, eventParent string) {
+	InitializeClient(kubeClient)
 	PlcChan = make(chan *policyv1.ConfigurationPolicy, 100) //buffering up to 100 policies for update
 
 	NamespaceWatched = namespace
@@ -168,19 +159,11 @@ func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset, kClien
 		glog.Fatalf("error creating REST client: %s", err)
 	}
 	restClient = client
-
-	syncAlertTargets = syncAlert
-
-	if clustName == "" {
-		clusterName = "mcm-managed-cluster"
-	} else {
-		clusterName = clustName
-	}
 }
 
 //InitializeClient helper function to initialize kubeclient
-func InitializeClient(kClient *kubernetes.Interface) {
-	KubeClient = kClient
+func InitializeClient(kubeClient *kubernetes.Interface) {
+	KubeClient = kubeClient
 }
 
 // blank assignment to verify that ReconcileConfigurationPolicy implements reconcile.Reconciler
@@ -215,7 +198,8 @@ func (r *ReconcileConfigurationPolicy) Reconcile(request reconcile.Request) (rec
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			reqLogger.Info("error 1 *********")
+			log.Info(fmt.Sprintf("removing policy %s", instance.GetName()))
+			handleRemovingPolicy(instance)
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -223,119 +207,39 @@ func (r *ReconcileConfigurationPolicy) Reconcile(request reconcile.Request) (rec
 		return reconcile.Result{}, err
 	}
 
-	// name of our mcm custom finalizer
-	// myFinalizerName := Finalizer
-
-	//if instance.ObjectMeta.DeletionTimestamp.IsZero()
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
-		// updateNeeded := false
-		// The object is not being deleted, so if it might not have our finalizer,
-		// then lets add the finalizer and update the object.
-		// if !containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
-		// 	instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, myFinalizerName)
-		// 	updateNeeded = true
-		// }
-		// if !ensureDefaultLabel(instance) {
-		// 	updateNeeded = true
-		// }
-		// if updateNeeded {
-		// 	if err := r.client.Update(context.Background(), instance); err != nil {
-		// 		return reconcile.Result{Requeue: true}, nil
-		// 	}
-		// }
-		instance.Status.CompliancyDetails = nil //reset CompliancyDetails
-		log.Info(fmt.Sprintf("adding policy %s", instance.GetName()))
-		err := handleAddingPolicy(instance)
-		if err != nil {
-			glog.V(3).Infof("Failed to handleAddingPolicy")
-		}
-	} else {
-		log.Info(fmt.Sprintf("removing policy %s", instance.GetName()))
-		handleRemovingPolicy(instance)
-		// The object is being deleted
-		// if containsString(instance.ObjectMeta.Finalizers, myFinalizerName) {
-		// 	// our finalizer is present, so lets handle our external dependency
-		// 	if err := r.deleteExternalDependency(instance); err != nil {
-		// 		// if fail to delete the external dependency here, return with error
-		// 		// so that it can be retried
-		// 		return reconcile.Result{}, err
-		// 	}
-
-		// 	// remove our finalizer from the list and update it.
-		// 	instance.ObjectMeta.Finalizers = removeString(instance.ObjectMeta.Finalizers, myFinalizerName)
-		// 	if err := r.client.Update(context.Background(), instance); err != nil {
-		// 		return reconcile.Result{Requeue: true}, nil
-		// 	}
-		// }
-		// Our finalizer has finished, so the reconciler can do nothing.
-		return reconcile.Result{}, nil
-	}
-
-	relevantNamespaces := getPolicyNamespaces(*instance)
-	//for each namespace, check the compliance against the policy:
-	for _, ns := range relevantNamespaces {
-		handlePolicyPerNamespace(ns, instance, instance.ObjectMeta.DeletionTimestamp.IsZero())
+	log.Info(fmt.Sprintf("adding policy %s", instance.GetName()))
+	err = handleAddingPolicy(instance)
+	if err != nil {
+		glog.V(3).Infof("Failed to handleAddingPolicy")
+		return reconcile.Result{}, err
 	}
 
 	glog.V(3).Infof("reason: successful processing, subject: policy/%v, namespace: %v, according to policy: %v, additional-info: none",
 		instance.Name, instance.Namespace, instance.Name)
-
-	// Pod already exists - don't requeue
-	// reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	return reconcile.Result{}, nil
-}
-
-func handlePolicyPerNamespace(namespace string, plc *policyv1.ConfigurationPolicy, added bool) {
-	//for each template we should handle each Kind of objects. I.e. iterate on all the items
-	//of a given Kind
-	glog.V(6).Infof("Policy: %v, namespace: %v\n", plc.Name, namespace)
 }
 
 // PeriodicallyExecSamplePolicies always check status
 func PeriodicallyExecSamplePolicies(freq uint, test bool) {
-	var plcToUpdateMap map[string]*policyv1.ConfigurationPolicy
+	// var plcToUpdateMap map[string]*policyv1.ConfigurationPolicy
 	for {
 		start := time.Now()
 		printMap(availablePolicies.PolicyMap)
-		plcToUpdateMap = make(map[string]*policyv1.ConfigurationPolicy)
+		// plcToUpdateMap = make(map[string]*policyv1.ConfigurationPolicy)
 		for _, policy := range availablePolicies.PolicyMap {
-			//For each namespace, fetch all the RoleBindings in that NS according to the policy selector
-			//For each RoleBindings get the number of users
-			//update the status internal map
-			//no difference between enforce and inform here
-
-			// roleBindingList, err := (*common.KubeClient).RbacV1().RoleBindings(namespace).
-			// 	List(metav1.ListOptions{LabelSelector: labels.Set(policy.Spec.LabelSelector).String()})
-			// if err != nil {
-			// 	glog.Errorf("reason: communication error, subject: k8s API server, namespace: %v, according to policy: %v, additional-info: %v\n",
-			// 		namespace, policy.Name, err)
-			// 	continue
-			// }
-			// userViolationCount, GroupViolationCount := checkViolationsPerNamespace(roleBindingList, policy)
-			if strings.EqualFold(string(policy.Spec.RemediationAction), string(policyv1.Enforce)) {
-				glog.V(5).Infof("Enforce is set, but ignored :-)")
-			}
-			// if addViolationCount(policy, userViolationCount, GroupViolationCount, namespace) {
-			// 	plcToUpdateMap[policy.Name] = policy
-			// }
-
 			Mx.Lock()
 			handleObjectTemplates(*policy)
 			Mx.Unlock()
 
 			// checkComplianceBasedOnDetails(policy)
 		}
-		err := checkUnNamespacedPolicies(plcToUpdateMap)
-		if err != nil {
-			glog.V(3).Infof("Failed to checkUnNamespacedPolicies")
-		}
 
-		//update status of all policies that changed:
-		faultyPlc, err := updatePolicyStatus(plcToUpdateMap)
-		if err != nil {
-			glog.Errorf("reason: policy update error, subject: policy/%v, namespace: %v, according to policy: %v, additional-info: %v\n",
-				faultyPlc.Name, faultyPlc.Namespace, faultyPlc.Name, err)
-		}
+		// //update status of all policies that changed:
+		// faultyPlc, err := updatePolicyStatus(plcToUpdateMap)
+		// if err != nil {
+		// 	glog.Errorf("reason: policy update error, subject: policy/%v, namespace: %v, according to policy: %v, additional-info: %v\n",
+		// 		faultyPlc.Name, faultyPlc.Namespace, faultyPlc.Name, err)
+		// }
 
 		// making sure that if processing is > freq we don't sleep
 		// if freq > processing we sleep for the remaining duration
@@ -412,11 +316,6 @@ func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason str
 }
 
 func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
-	if reflect.DeepEqual(plc.Labels["ignore"], "true") {
-		plc.Status = policyv1.ConfigurationPolicyStatus{
-			ComplianceState: policyv1.UnknownCompliancy,
-		}
-	}
 	plcNamespaces := getPolicyNamespaces(plc)
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
@@ -1571,56 +1470,8 @@ func addForUpdate(policy *policyv1.ConfigurationPolicy) {
 	})
 	if err != nil {
 		log.Error(err, err.Error())
-		time.Sleep(100) //giving enough time to sync
+		// time.Sleep(100) //giving enough time to sync
 	}
-}
-
-func ensureDefaultLabel(instance *policyv1.ConfigurationPolicy) (updateNeeded bool) {
-	//we need to ensure this label exists -> category: "System and Information Integrity"
-	if instance.ObjectMeta.Labels == nil {
-		newlbl := make(map[string]string)
-		newlbl["category"] = grcCategory
-		instance.ObjectMeta.Labels = newlbl
-		return true
-	}
-	if _, ok := instance.ObjectMeta.Labels["category"]; !ok {
-		instance.ObjectMeta.Labels["category"] = grcCategory
-		return true
-	}
-	if instance.ObjectMeta.Labels["category"] != grcCategory {
-		instance.ObjectMeta.Labels["category"] = grcCategory
-		return true
-	}
-	return false
-}
-
-func checkUnNamespacedPolicies(plcToUpdateMap map[string]*policyv1.ConfigurationPolicy) error {
-	// plcMap := convertMaptoPolicyNameKey()
-	// // group the policies with cluster users and the ones with groups
-	// // take the plc with min users and groups and make it your baseline
-	// ClusteRoleBindingList, err := (*common.KubeClient).RbacV1().ClusterRoleBindings().List(metav1.ListOptions{})
-	// if err != nil {
-	// 	glog.Errorf("reason: communication error, subject: k8s API server, namespace: all, according to policy: none, additional-info: %v\n", err)
-	// 	return err
-	// }
-
-	// clusterLevelUsers, clusterLevelGroups := checkAllClusterLevel(ClusteRoleBindingList)
-
-	// for _, policy := range plcMap {
-	// 	var userViolationCount, groupViolationCount int
-	// 	if policy.Spec.MaxClusterRoleBindingUsers < clusterLevelUsers && policy.Spec.MaxClusterRoleBindingUsers >= 0 {
-	// 		userViolationCount = clusterLevelUsers - policy.Spec.MaxClusterRoleBindingUsers
-	// 	}
-	// 	if policy.Spec.MaxClusterRoleBindingGroups < clusterLevelGroups && policy.Spec.MaxClusterRoleBindingGroups >= 0 {
-	// 		groupViolationCount = clusterLevelGroups - policy.Spec.MaxClusterRoleBindingGroups
-	// 	}
-	// 	if addViolationCount(policy, userViolationCount, groupViolationCount, "cluster-wide") {
-	// 		plcToUpdateMap[policy.Name] = policy
-	// 	}
-	// 	checkComplianceBasedOnDetails(policy)
-	// }
-
-	return nil
 }
 
 func checkAllClusterLevel(clusterRoleBindingList *v1.ClusterRoleBindingList) (userV, groupV int) {
@@ -1963,64 +1814,6 @@ func convertPolicyStatusToString(plc *policyv1.ConfigurationPolicy) (results str
 		}
 	}
 	return result
-}
-
-func prettyPrint(res roleCompareResult, roleTName string) string {
-	message := fmt.Sprintf("the role \" %v \" has ", roleTName)
-	if len(res.missingKeys) > 0 {
-		missingKeys := "missing keys: "
-		for key, value := range res.missingKeys {
-
-			missingKeys += (key + "{")
-			for k := range value {
-				missingKeys += (k + ",")
-			}
-			missingKeys = strings.TrimSuffix(missingKeys, ",")
-			missingKeys += "} "
-		}
-		message += missingKeys
-	}
-	if len(res.missingVerbs) > 0 {
-		missingVerbs := "missing verbs: "
-		for key, value := range res.missingVerbs {
-
-			missingVerbs += (key + "{")
-			for k := range value {
-				missingVerbs += (k + ",")
-			}
-			missingVerbs = strings.TrimSuffix(missingVerbs, ",")
-			missingVerbs += "} "
-		}
-		message += missingVerbs
-	}
-	if len(res.AdditionalKeys) > 0 {
-		AdditionalKeys := "additional keys: "
-		for key, value := range res.AdditionalKeys {
-
-			AdditionalKeys += (key + "{")
-			for k := range value {
-				AdditionalKeys += (k + ",")
-			}
-			AdditionalKeys = strings.TrimSuffix(AdditionalKeys, ",")
-			AdditionalKeys += "} "
-		}
-		message += AdditionalKeys
-	}
-	if len(res.AddtionalVerbs) > 0 {
-		AddtionalVerbs := "additional verbs: "
-		for key, value := range res.AddtionalVerbs {
-
-			AddtionalVerbs += (key + "{")
-			for k := range value {
-				AddtionalVerbs += (k + ",")
-			}
-			AddtionalVerbs = strings.TrimSuffix(AddtionalVerbs, ",")
-			AddtionalVerbs += "} "
-		}
-		message += AddtionalVerbs
-	}
-
-	return message
 }
 
 func recoverFlow() {
