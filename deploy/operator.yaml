@@ -20,7 +20,6 @@ spec:
           name: config-policy-ctrl
           command:
           - config-policy-controller
-          - --watch-ns=config-policy-test
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
