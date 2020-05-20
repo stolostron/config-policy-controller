@@ -346,11 +346,11 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 			}
 			if update {
 				//update parent policy with violation
-				// eventType := eventNormal
-				// if plc.Status.CompliancyDetails[indx].ComplianceState == policyv1.NonCompliant {
-				// 	eventType = eventWarning
-				// }
-				//recorder.Event(&plc, eventType, fmt.Sprintf("policy: %s", plc.GetName()), convertPolicyStatusToString(&plc))
+				eventType := eventNormal
+				if plc.Status.CompliancyDetails[indx].ComplianceState == policyv1.NonCompliant {
+					eventType = eventWarning
+				}
+				recorder.Event(&plc, eventType, fmt.Sprintf("policy: %s", plc.GetName()), convertPolicyStatusToString(&plc))
 				addForUpdate(&plc)
 			}
 		}
