@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	coretypes "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	sub "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -348,55 +347,6 @@ func TestCompareLists(t *testing.T) {
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
-func TestCheckAllClusterLevel(t *testing.T) {
-	var subject = sub.Subject{
-		APIGroup:  "",
-		Kind:      "User",
-		Name:      "user1",
-		Namespace: "default",
-	}
-	var subjects = []sub.Subject{}
-	subjects = append(subjects, subject)
-	var clusterRoleBinding = sub.ClusterRoleBinding{
-		Subjects: subjects,
-	}
-	var items = []sub.ClusterRoleBinding{}
-	items = append(items, clusterRoleBinding)
-	var clusterRoleBindingList = sub.ClusterRoleBindingList{
-		Items: items,
-	}
-	var users, groups = checkAllClusterLevel(&clusterRoleBindingList)
-	assert.Equal(t, 1, users)
-	assert.Equal(t, 0, groups)
-}
-
-func TestCheckViolationsPerNamespace(t *testing.T) {
-	var subject = sub.Subject{
-		APIGroup:  "",
-		Kind:      "User",
-		Name:      "user1",
-		Namespace: "default",
-	}
-	var subjects = []sub.Subject{}
-	subjects = append(subjects, subject)
-	var roleBinding = sub.RoleBinding{
-		Subjects: subjects,
-	}
-	var items = []sub.RoleBinding{}
-	items = append(items, roleBinding)
-	var roleBindingList = sub.RoleBindingList{
-		Items: items,
-	}
-	var samplePolicySpec = policiesv1alpha1.ConfigurationPolicySpec{
-		MaxRoleBindingUsersPerNamespace:  1,
-		MaxRoleBindingGroupsPerNamespace: 1,
-		MaxClusterRoleBindingUsers:       1,
-		MaxClusterRoleBindingGroups:      1,
-	}
-	samplePolicy.Spec = samplePolicySpec
-	checkViolationsPerNamespace(&roleBindingList, &samplePolicy)
-}
-
 func TestCreateParentPolicy(t *testing.T) {
 	var ownerReference = metav1.OwnerReference{
 		Name: "foo",
@@ -430,12 +380,6 @@ func TestConvertPolicyStatusToString(t *testing.T) {
 	assert.NotNil(t, policyInString)
 }
 
-func TestDeleteExternalDependency(t *testing.T) {
-	mgr, err = manager.New(cfg, manager.Options{})
-	reconcileConfigurationPolicy := ReconcileConfigurationPolicy{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("samplepolicy-controller")}
-	reconcileConfigurationPolicy.deleteExternalDependency(&samplePolicy)
-}
-
 func TestHandleAddingPolicy(t *testing.T) {
 	var simpleClient kubernetes.Interface = testclient.NewSimpleClientset()
 	var typeMeta = metav1.TypeMeta{
@@ -453,28 +397,6 @@ func TestHandleAddingPolicy(t *testing.T) {
 	err := handleAddingPolicy(&samplePolicy)
 	assert.Nil(t, err)
 	handleRemovingPolicy(&samplePolicy)
-}
-
-func TestGetContainerID(t *testing.T) {
-	var containerStateWaiting = coretypes.ContainerStateWaiting{
-		Reason: "unknown",
-	}
-	var containerState = coretypes.ContainerState{
-		Waiting: &containerStateWaiting,
-	}
-	var containerStatus = coretypes.ContainerStatus{
-		State:       containerState,
-		ContainerID: "id",
-	}
-	var containerStatuses []coretypes.ContainerStatus
-	containerStatuses = append(containerStatuses, containerStatus)
-	var podStatus = coretypes.PodStatus{
-		ContainerStatuses: containerStatuses,
-	}
-	var pod = coretypes.Pod{
-		Status: podStatus,
-	}
-	getContainerID(pod, "foo")
 }
 
 func newRule(verbs, apiGroups, resources, nonResourceURLs string) rbacv1.PolicyRule {

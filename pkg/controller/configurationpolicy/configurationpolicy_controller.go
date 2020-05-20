@@ -20,13 +20,11 @@ import (
 	common "github.com/open-cluster-management/config-policy-controller/pkg/common"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -63,11 +61,6 @@ var config *rest.Config
 
 var restClient *rest.RESTClient
 
-var syncAlertTargets bool
-
-//CemWebhookURL url to send events to
-var CemWebhookURL string
-
 var clusterName string
 
 //Mx for making the map thread safe
@@ -86,23 +79,6 @@ var NamespaceWatched string
 
 // EventOnParent specifies if we also want to send events to the parent policy. Available options are yes/no/ifpresent
 var EventOnParent string
-
-// PrometheusAddr port addr for prom metrics
-var PrometheusAddr string
-
-type roleCompareResult struct {
-	roleName     string
-	missingKeys  map[string]map[string]bool
-	missingVerbs map[string]map[string]bool
-
-	AdditionalKeys map[string]map[string]bool
-	AddtionalVerbs map[string]map[string]bool
-}
-
-// PassthruCodecFactory provides methods for retrieving "DirectCodec"s, which do not do conversion.
-type PassthruCodecFactory struct {
-	serializer.CodecFactory
-}
 
 // PluralScheme extends scheme with plurals
 type PluralScheme struct {
@@ -229,16 +205,7 @@ func PeriodicallyExecSamplePolicies(freq uint, test bool) {
 			Mx.Lock()
 			handleObjectTemplates(*policy)
 			Mx.Unlock()
-
-			// checkComplianceBasedOnDetails(policy)
 		}
-
-		// //update status of all policies that changed:
-		// faultyPlc, err := updatePolicyStatus(plcToUpdateMap)
-		// if err != nil {
-		// 	glog.Errorf("reason: policy update error, subject: policy/%v, namespace: %v, according to policy: %v, additional-info: %v\n",
-		// 		faultyPlc.Name, faultyPlc.Namespace, faultyPlc.Name, err)
-		// }
 
 		// making sure that if processing is > freq we don't sleep
 		// if freq > processing we sleep for the remaining duration
@@ -1321,24 +1288,9 @@ func AppendCondition(conditions []policyv1.Condition, newCond *policyv1.Conditio
 			conditions[lastIndex-1] = *newCond
 			return conditions
 		}
-		//different than the last event, trigger event
-		if syncAlertTargets {
-			res, err := triggerEvent(*newCond, resourceType, resolved)
-			if err != nil {
-				glog.Errorf("event failed to be triggered: %v", err)
-			}
-			glog.V(3).Infof("event triggered: %v", res)
-		}
 
 	} else {
 		//first condition => trigger event
-		if syncAlertTargets {
-			res, err := triggerEvent(*newCond, resourceType, resolved)
-			if err != nil {
-				glog.Errorf("event failed to be triggered: %v", err)
-			}
-			glog.V(3).Infof("event triggered: %v", res)
-		}
 		conditions = append(conditions, *newCond)
 		return conditions
 	}
@@ -1388,70 +1340,6 @@ func IsSimilarToLastCondition(oldCond policyv1.Condition, newCond policyv1.Condi
 	return false
 }
 
-func triggerEvent(cond policyv1.Condition, resourceType string, resolved []bool) (res string, err error) {
-
-	resolutionResult := false
-	eventType := "notification"
-	eventSeverity := "Normal"
-	if len(resolved) > 0 {
-		resolutionResult = resolved[0]
-	}
-	if !resolutionResult {
-		eventSeverity = "Critical"
-		eventType = "violation"
-	}
-	WebHookURL, err := GetCEMWebhookURL()
-	if err != nil {
-		return "", err
-	}
-	glog.Errorf("webhook url: %s", WebHookURL)
-	event := common.CEMEvent{
-		Resource: common.Resource{
-			Name:    "compliance-issue",
-			Cluster: clusterName,
-			Type:    resourceType,
-		},
-		Summary:    cond.Message,
-		Severity:   eventSeverity,
-		Timestamp:  cond.LastTransitionTime.String(),
-		Resolution: resolutionResult,
-		Sender: common.Sender{
-			Name:    "MCM Policy Controller",
-			Cluster: clusterName,
-			Type:    "K8s controller",
-		},
-		Type: common.Type{
-			StatusOrThreshold: cond.Reason,
-			EventType:         eventType,
-		},
-	}
-	payload, err := json.Marshal(event)
-	if err != nil {
-		return "", err
-	}
-	result, err := common.PostEvent(WebHookURL, payload)
-	return result, err
-}
-
-// NewScheme creates an object for given group/version/kind and set ObjectKind
-func NewScheme() *PluralScheme {
-	return &PluralScheme{Scheme: runtime.NewScheme(), plurals: make(map[schema.GroupVersionKind]string)}
-}
-
-// SetPlural sets the plural for corresponding  group/version/kind
-func (p *PluralScheme) SetPlural(gvk schema.GroupVersionKind, plural string) {
-	p.plurals[gvk] = plural
-}
-
-// GetCEMWebhookURL populate the webhook value from a CRD
-func GetCEMWebhookURL() (url string, err error) {
-
-	if CemWebhookURL == "" {
-		return "", fmt.Errorf("undefined CEM webhook: %s", CemWebhookURL)
-	}
-	return CemWebhookURL, nil
-}
-
 func addForUpdate(policy *policyv1.ConfigurationPolicy) {
 	compliant := true
 	for index := range policy.Spec.ObjectTemplates {
@@ -1471,53 +1359,6 @@ func addForUpdate(policy *policyv1.ConfigurationPolicy) {
 		log.Error(err, err.Error())
 		// time.Sleep(100) //giving enough time to sync
 	}
-}
-
-func checkAllClusterLevel(clusterRoleBindingList *v1.ClusterRoleBindingList) (userV, groupV int) {
-	usersMap := make(map[string]bool)
-	groupsMap := make(map[string]bool)
-	for _, clusterRoleBinding := range clusterRoleBindingList.Items {
-		for _, subject := range clusterRoleBinding.Subjects {
-			if subject.Kind == "User" {
-				usersMap[subject.Name] = true
-			}
-			if subject.Kind == "Group" {
-				groupsMap[subject.Name] = true
-			}
-		}
-	}
-	return len(usersMap), len(groupsMap)
-}
-
-func convertMaptoPolicyNameKey() map[string]*policyv1.ConfigurationPolicy {
-	plcMap := make(map[string]*policyv1.ConfigurationPolicy)
-	for _, policy := range availablePolicies.PolicyMap {
-		plcMap[policy.Name] = policy
-	}
-	return plcMap
-}
-
-func checkViolationsPerNamespace(roleBindingList *v1.RoleBindingList, plc *policyv1.ConfigurationPolicy) (userV, groupV int) {
-	usersMap := make(map[string]bool)
-	groupsMap := make(map[string]bool)
-	for _, roleBinding := range roleBindingList.Items {
-		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == "User" {
-				usersMap[subject.Name] = true
-			}
-			if subject.Kind == "Group" {
-				groupsMap[subject.Name] = true
-			}
-		}
-	}
-	var userViolationCount, groupViolationCount int
-	if plc.Spec.MaxRoleBindingUsersPerNamespace < len(usersMap) && plc.Spec.MaxRoleBindingUsersPerNamespace >= 0 {
-		userViolationCount = (len(usersMap) - plc.Spec.MaxRoleBindingUsersPerNamespace)
-	}
-	if plc.Spec.MaxRoleBindingGroupsPerNamespace < len(groupsMap) && plc.Spec.MaxRoleBindingGroupsPerNamespace >= 0 {
-		groupViolationCount = (len(groupsMap) - plc.Spec.MaxRoleBindingGroupsPerNamespace)
-	}
-	return userViolationCount, groupViolationCount
 }
 
 // func addViolationCount(plc *policyv1.ConfigurationPolicy, userCount int, groupCount int, namespace string) bool {
@@ -1641,15 +1482,6 @@ func setStatus(policy *policyv1.ConfigurationPolicy) {
 	}
 }
 
-func getContainerID(pod corev1.Pod, containerName string) string {
-	for _, containerStatus := range pod.Status.ContainerStatuses {
-		if containerStatus.Name == containerName {
-			return containerStatus.ContainerID
-		}
-	}
-	return ""
-}
-
 func handleRemovingPolicy(plc *policyv1.ConfigurationPolicy) {
 	for k, v := range availablePolicies.PolicyMap {
 		if v.Name == plc.Name {
@@ -1680,29 +1512,6 @@ func handleAddingPolicy(plc *policyv1.ConfigurationPolicy) error {
 	return err
 }
 
-func newConfigurationPolicy(plc *policyv1.ConfigurationPolicy) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       plc.Kind,
-			"apiVersion": plc.APIVersion,
-			"metadata":   plc.GetObjectMeta(),
-			"spec":       plc.Spec,
-		},
-	}
-}
-
-//=================================================================
-//deleteExternalDependency in case the CRD was related to non-k8s resource
-//nolint
-func (r *ReconcileConfigurationPolicy) deleteExternalDependency(instance *policyv1.ConfigurationPolicy) error {
-	glog.V(0).Infof("reason: CRD deletion, subject: policy/%v, namespace: %v, according to policy: none, additional-info: none\n",
-		instance.Name,
-		instance.Namespace)
-	// Ensure that delete implementation is idempotent and safe to invoke
-	// multiple types for same object.
-	return nil
-}
-
 //=================================================================
 // Helper function to join strings
 func join(strs ...string) string {
@@ -1714,29 +1523,6 @@ func join(strs ...string) string {
 		result += str
 	}
 	return result
-}
-
-//=================================================================
-// Helper functions to check if a string exists in a slice of strings.
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-//=================================================================
-// Helper functions to remove a string from a slice of strings.
-func removeString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
 }
 
 //=================================================================
