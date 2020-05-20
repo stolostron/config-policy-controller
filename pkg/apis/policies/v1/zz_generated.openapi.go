@@ -115,30 +115,6 @@ func schema_pkg_apis_policies_v1alpha1_ConfigurationPolicySpec(ref common.Refere
 							},
 						},
 					},
-					"maxRoleBindingUsersPerNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"maxRoleBindingGroupsPerNamespace": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"maxClusterRoleBindingUsers": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
-					"maxClusterRoleBindingGroups": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
-						},
-					},
 				},
 			},
 		},

@@ -28,10 +28,8 @@ var samplePolicy = ConfigurationPolicy{
 	}}
 
 var samplePolicySpec = ConfigurationPolicySpec{
-	Severity:                        "high",
-	RemediationAction:               "enforce",
-	MaxRoleBindingUsersPerNamespace: 1,
-	MaxClusterRoleBindingGroups:     1,
+	Severity:          "high",
+	RemediationAction: "enforce",
 }
 
 var typeMeta = metav1.TypeMeta{

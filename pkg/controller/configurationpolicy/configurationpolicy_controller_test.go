@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	coretypes "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	sub "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -369,33 +368,6 @@ func TestEnsureDefaultLabel(t *testing.T) {
 	samplePolicy.Labels = labels3
 	updateNeeded = ensureDefaultLabel(&samplePolicy)
 	assert.True(t, updateNeeded)
-}
-
-func TestCheckViolationsPerNamespace(t *testing.T) {
-	var subject = sub.Subject{
-		APIGroup:  "",
-		Kind:      "User",
-		Name:      "user1",
-		Namespace: "default",
-	}
-	var subjects = []sub.Subject{}
-	subjects = append(subjects, subject)
-	var roleBinding = sub.RoleBinding{
-		Subjects: subjects,
-	}
-	var items = []sub.RoleBinding{}
-	items = append(items, roleBinding)
-	var roleBindingList = sub.RoleBindingList{
-		Items: items,
-	}
-	var samplePolicySpec = policiesv1alpha1.ConfigurationPolicySpec{
-		MaxRoleBindingUsersPerNamespace:  1,
-		MaxRoleBindingGroupsPerNamespace: 1,
-		MaxClusterRoleBindingUsers:       1,
-		MaxClusterRoleBindingGroups:      1,
-	}
-	samplePolicy.Spec = samplePolicySpec
-	checkViolationsPerNamespace(&roleBindingList, &samplePolicy)
 }
 
 func TestCreateParentPolicy(t *testing.T) {

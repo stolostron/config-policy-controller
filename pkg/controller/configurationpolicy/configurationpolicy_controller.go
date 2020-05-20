@@ -20,7 +20,6 @@ import (
 	common "github.com/open-cluster-management/config-policy-controller/pkg/common"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -237,24 +236,12 @@ func (r *ReconcileConfigurationPolicy) Reconcile(request reconcile.Request) (rec
 		return reconcile.Result{}, nil
 	}
 
-	relevantNamespaces := getPolicyNamespaces(*instance)
-	//for each namespace, check the compliance against the policy:
-	for _, ns := range relevantNamespaces {
-		handlePolicyPerNamespace(ns, instance, instance.ObjectMeta.DeletionTimestamp.IsZero())
-	}
-
 	glog.V(3).Infof("reason: successful processing, subject: policy/%v, namespace: %v, according to policy: %v, additional-info: none",
 		instance.Name, instance.Namespace, instance.Name)
 
 	// Pod already exists - don't requeue
 	// reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	return reconcile.Result{}, nil
-}
-
-func handlePolicyPerNamespace(namespace string, plc *policyv1.ConfigurationPolicy, added bool) {
-	//for each template we should handle each Kind of objects. I.e. iterate on all the items
-	//of a given Kind
-	glog.V(6).Infof("Policy: %v, namespace: %v\n", plc.Name, namespace)
 }
 
 // PeriodicallyExecSamplePolicies always check status
@@ -1538,29 +1525,6 @@ func convertMaptoPolicyNameKey() map[string]*policyv1.ConfigurationPolicy {
 		plcMap[policy.Name] = policy
 	}
 	return plcMap
-}
-
-func checkViolationsPerNamespace(roleBindingList *v1.RoleBindingList, plc *policyv1.ConfigurationPolicy) (userV, groupV int) {
-	usersMap := make(map[string]bool)
-	groupsMap := make(map[string]bool)
-	for _, roleBinding := range roleBindingList.Items {
-		for _, subject := range roleBinding.Subjects {
-			if subject.Kind == "User" {
-				usersMap[subject.Name] = true
-			}
-			if subject.Kind == "Group" {
-				groupsMap[subject.Name] = true
-			}
-		}
-	}
-	var userViolationCount, groupViolationCount int
-	if plc.Spec.MaxRoleBindingUsersPerNamespace < len(usersMap) && plc.Spec.MaxRoleBindingUsersPerNamespace >= 0 {
-		userViolationCount = (len(usersMap) - plc.Spec.MaxRoleBindingUsersPerNamespace)
-	}
-	if plc.Spec.MaxRoleBindingGroupsPerNamespace < len(groupsMap) && plc.Spec.MaxRoleBindingGroupsPerNamespace >= 0 {
-		groupViolationCount = (len(groupsMap) - plc.Spec.MaxRoleBindingGroupsPerNamespace)
-	}
-	return userViolationCount, groupViolationCount
 }
 
 func updatePolicyStatus(policies map[string]*policyv1.ConfigurationPolicy) (*policyv1.ConfigurationPolicy, error) {
