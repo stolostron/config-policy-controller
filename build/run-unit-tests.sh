@@ -17,6 +17,7 @@ export PATH=$PATH:/usr/local/kubebuilder/bin
 # Run unit test
 export IMAGE_NAME_AND_VERSION=${1}
 go test -coverprofile=coverage_unit.out -covermode=atomic `go list ./... | grep -v test/e2e` > report.json
+cat report.json
 
 if ! which kubectl > /dev/null; then
     echo "installing kubectl"
