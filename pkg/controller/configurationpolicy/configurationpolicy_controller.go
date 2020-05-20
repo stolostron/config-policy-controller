@@ -59,8 +59,6 @@ var eventWarning = "Warning"
 
 var config *rest.Config
 
-var restClient *rest.RESTClient
-
 var clusterName string
 
 //Mx for making the map thread safe
@@ -79,14 +77,6 @@ var NamespaceWatched string
 
 // EventOnParent specifies if we also want to send events to the parent policy. Available options are yes/no/ifpresent
 var EventOnParent string
-
-// PluralScheme extends scheme with plurals
-type PluralScheme struct {
-	Scheme *runtime.Scheme
-
-	// plurals for group, version and kinds
-	plurals map[schema.GroupVersionKind]string
-}
 
 // Add creates a new ConfigurationPolicy Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -117,30 +107,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 // Initialize to initialize some controller variables
 func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset, kubeClient *kubernetes.Interface, mgr manager.Manager, namespace, eventParent string) {
-	InitializeClient(kubeClient)
+	KubeClient = kubeClient
 	PlcChan = make(chan *policyv1.ConfigurationPolicy, 100) //buffering up to 100 policies for update
-
 	NamespaceWatched = namespace
 	clientSet = clientset
-
 	EventOnParent = strings.ToLower(eventParent)
-
 	recorder, _ = common.CreateRecorder(*KubeClient, controllerName)
 	config = kubeconfig
-	// config.GroupVersion = &schema.GroupVersion{Group: "policies.open-cluster-management.io", Version: "v1"}
-	// config.APIPath = "/apis"
-	// config.ContentType = runtime.ContentTypeJSON
-	// config.NegotiatedSerializer = PassthruCodecFactory{CodecFactory: serializer.NewCodecFactory(scheme.Scheme)}
-	// client, err := rest.RESTClientFor(config)
-	// if err != nil {
-	// 	glog.Fatalf("error creating REST client: %s", err)
-	// }
-	// restClient = client
-}
-
-//InitializeClient helper function to initialize kubeclient
-func InitializeClient(kubeClient *kubernetes.Interface) {
-	KubeClient = kubeClient
 }
 
 // blank assignment to verify that ReconcileConfigurationPolicy implements reconcile.Reconciler
