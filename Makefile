@@ -204,7 +204,6 @@ stop-instrumented:
 	ps -ef | grep 'config-po' | grep -v grep | awk '{print $$2}' | xargs kill
 
 coverage-merge:
-	cat coverage_unit.out
-	cat coverage_e2e.out
+	@echo merging the coverage report
 	gocovmerge $(PWD)/coverage_* >> coverage.out
 	cat coverage.out
