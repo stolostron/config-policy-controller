@@ -104,13 +104,18 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 // Initialize to initialize some controller variables
 func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset, kubeClient *kubernetes.Interface, mgr manager.Manager, namespace, eventParent string) {
-	KubeClient = kubeClient
+	InitializeClient(kubeClient)
 	PlcChan = make(chan *policyv1.ConfigurationPolicy, 100) //buffering up to 100 policies for update
 	NamespaceWatched = namespace
 	clientSet = clientset
 	EventOnParent = strings.ToLower(eventParent)
 	recorder, _ = common.CreateRecorder(*KubeClient, controllerName)
 	config = kubeconfig
+}
+
+//InitializeClient helper function to initialize kubeclient
+func InitializeClient(kubeClient *kubernetes.Interface) {
+	KubeClient = kubeClient
 }
 
 // blank assignment to verify that ReconcileConfigurationPolicy implements reconcile.Reconciler
