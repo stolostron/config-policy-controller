@@ -74,7 +74,6 @@ func TestReconcile(t *testing.T) {
 	}
 	var simpleClient kubernetes.Interface = testclient.NewSimpleClientset()
 	common.Initialize(&simpleClient, nil)
-	InitializeClient(&simpleClient)
 	res, err := r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
