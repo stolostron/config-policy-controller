@@ -65,7 +65,6 @@ jobs:
         # Bootstrap the build harness, pull test image, and run unit tests.
         - |
           make
-          make component/pull
           make component/test/unit
           export SONAR_GO_TEST_ARGS="\`go list ./... | grep -v test/e2e\`"
           make sonar/go

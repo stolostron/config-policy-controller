@@ -168,9 +168,9 @@ endif
 
 kind-deploy-controller: check-env
 	@echo installing config policy controller
-	kubectl create ns governance
-	kubectl create secret -n governance docker-registry multiclusterhub-operator-pull-secret --docker-server=quay.io --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS}
-	kubectl apply -f deploy/ -n governance
+	kubectl create ns multicluster-endpoint
+	kubectl create secret -n multicluster-endpoint docker-registry multiclusterhub-operator-pull-secret --docker-server=quay.io --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS}
+	kubectl apply -f deploy/ -n multicluster-endpoint
 
 kind-create-cluster:
 	@echo "creating cluster"
