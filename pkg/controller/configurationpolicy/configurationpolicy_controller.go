@@ -199,24 +199,22 @@ func (r *ReconcileConfigurationPolicy) Reconcile(request reconcile.Request) (rec
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info(fmt.Sprintf("removing policy %s", instance.GetName()))
+			reqLogger.Info("Confiugration policy was deleted, removing it...")
 			handleRemovingPolicy(instance)
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		reqLogger.Info("error 2 *********")
+		reqLogger.Info("Failed to retrieve configuration policy", "err", err)
 		return reconcile.Result{}, err
 	}
 
-	log.Info(fmt.Sprintf("adding policy %s", instance.GetName()))
+	reqLogger.Info("Confiugration policy was found, adding it...")
 	err = handleAddingPolicy(instance)
 	if err != nil {
-		glog.V(3).Infof("Failed to handleAddingPolicy")
+		reqLogger.Info("Failed to handleAddingPolicy", "err", err)
 		return reconcile.Result{}, err
 	}
-
-	glog.V(3).Infof("reason: successful processing, subject: policy/%v, namespace: %v, according to policy: %v, additional-info: none",
-		instance.Name, instance.Namespace, instance.Name)
+	reqLogger.Info("Reconcile complete.")
 	return reconcile.Result{}, nil
 }
 
