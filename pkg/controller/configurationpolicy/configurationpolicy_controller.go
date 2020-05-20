@@ -101,7 +101,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 // Initialize to initialize some controller variables
-func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset, kubeClient *kubernetes.Interface, mgr manager.Manager, namespace, eventParent string) {
+func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset,
+	kubeClient *kubernetes.Interface, mgr manager.Manager, namespace, eventParent string) {
 	InitializeClient(kubeClient)
 	PlcChan = make(chan *policyv1.ConfigurationPolicy, 100) //buffering up to 100 policies for update
 	NamespaceWatched = namespace
