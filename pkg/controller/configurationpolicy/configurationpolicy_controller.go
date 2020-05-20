@@ -56,8 +56,6 @@ var eventWarning = "Warning"
 
 var config *rest.Config
 
-var clusterName string
-
 //Mx for making the map thread safe
 var Mx sync.RWMutex
 
