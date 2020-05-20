@@ -66,6 +66,7 @@ jobs:
         - |
           make
           make component/test/unit
+          make coverage-merge
           make go/gosec-install
           gosec -fmt sonarqube -out gosec.json -no-fail ./...
           make sonar/js
