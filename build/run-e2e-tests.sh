@@ -2,10 +2,6 @@
 
 set -e
 
-
-CURR_FOLDER_PATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-KIND_KUBECONFIG="${CURR_FOLDER_PATH}/../kind_kubeconfig.yaml"
-export KUBECONFIG=${KIND_KUBECONFIG}
 export DOCKER_IMAGE_AND_TAG=${1}
 
 if ! which kubectl > /dev/null; then
@@ -23,9 +19,6 @@ go get github.com/onsi/ginkgo/ginkgo
 go get github.com/onsi/gomega/...
 
 make kind-create-cluster 
-
-# setup kubeconfig
-kind get kubeconfig --name test-managed > ${KIND_KUBECONFIG}
 
 make install-crds 
 
