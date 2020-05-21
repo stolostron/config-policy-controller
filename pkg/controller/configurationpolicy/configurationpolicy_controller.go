@@ -926,27 +926,6 @@ func createObject(namespaced bool, namespace string, name string, rsrc schema.Gr
 	var err error
 	created := false
 	// set ownerReference for mutaionPolicy and override remediationAction
-	if parent != nil {
-		plcOwnerReferences := *metav1.NewControllerRef(parent, schema.GroupVersionKind{
-			Group:   policyv1.SchemeGroupVersion.Group,
-			Version: policyv1.SchemeGroupVersion.Version,
-			Kind:    "Policy",
-		})
-		labels := unstruct.GetLabels()
-		if labels == nil {
-			labels = map[string]string{"cluster-namespace": namespace}
-		} else {
-			labels["cluster-namespace"] = namespace
-		}
-		unstruct.SetLabels(labels)
-		unstruct.SetOwnerReferences([]metav1.OwnerReference{plcOwnerReferences})
-		if spec, ok := unstruct.Object["spec"]; ok {
-			specObject := spec.(map[string]interface{})
-			if _, ok := specObject["remediationAction"]; ok {
-				specObject["remediationAction"] = parent.Spec.RemediationAction
-			}
-		}
-	}
 
 	glog.V(6).Infof("createObject:  `%s`", unstruct)
 
