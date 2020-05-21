@@ -922,7 +922,7 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 	return exists
 }
 
-func createObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource, unstruct unstructured.Unstructured, dclient dynamic.Interface, parent *policyv1.ConfigurationPolicy) (result bool, erro error) {
+func createObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource, unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, erro error) {
 	var err error
 	created := false
 	// set ownerReference for mutaionPolicy and override remediationAction
