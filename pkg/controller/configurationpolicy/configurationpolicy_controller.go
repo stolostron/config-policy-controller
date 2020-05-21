@@ -335,7 +335,19 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 			}
 			if !mustNotHave && numCompliant > 0 {
 				//compliant; musthave and objects exist
-				message := fmt.Sprintf("%d instances of %v exist as specified, therefore this Object template is compliant", numCompliant, kind)
+				nameStr := ""
+				for ns, names := range nonCompliantObjects {
+					nameStr += "["
+					for i, name := range names {
+						nameStr += name
+						if i != len(names)-1 {
+							nameStr += ", "
+						}
+					}
+					nameStr += "] in namespace " + ns + "; "
+				}
+				nameStr = nameStr[:len(nameStr)-2]
+				message := fmt.Sprintf("%v %v exist as specified, therefore this Object template is compliant", kind, nameStr)
 				update = createNotification(&plc, indx, "K8s `must have` object already exists", message)
 			}
 			if mustNotHave && numNonCompliant == 0 {
@@ -922,7 +934,8 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 	return exists
 }
 
-func createObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource, unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, erro error) {
+func createObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
+	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, erro error) {
 	var err error
 	created := false
 	// set ownerReference for mutaionPolicy and override remediationAction
@@ -1448,6 +1461,7 @@ func convertPolicyStatusToString(plc *policyv1.ConfigurationPolicy) (results str
 			result += cond.Type + " - " + cond.Message + ", "
 		}
 	}
+	result = result[:len(result)-1]
 	return result
 }
 
