@@ -768,7 +768,7 @@ func handleMissingMustHave(plc *policyv1.ConfigurationPolicy, index int, action 
 	var err error
 	var cond *policyv1.Condition
 	if strings.ToLower(string(action)) == strings.ToLower(string(policyv1.Enforce)) {
-		if created, err = createObject(namespaced, namespace, name, rsrc, unstruct, dclient, nil); !created {
+		if created, err = createObject(namespaced, namespace, name, rsrc, unstruct, dclient); !created {
 			message := fmt.Sprintf("%v `%v` is missing, and cannot be created, reason: `%v`", rsrc.Resource, name, err)
 			cond = &policyv1.Condition{
 				Type:               "violation",
