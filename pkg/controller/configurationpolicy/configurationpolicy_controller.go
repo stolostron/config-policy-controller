@@ -308,6 +308,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 
 		if !enforce {
 			update := false
+			compliant := false
 			if !mustNotHave && numCompliant == 0 {
 				//noncompliant; musthave and objects do not exist
 				message := fmt.Sprintf("No instances of `%v` exist as specified, and one should be created", kind)
@@ -349,16 +350,18 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 				nameStr = nameStr[:len(nameStr)-2]
 				message := fmt.Sprintf("%v %v exist as specified, therefore this Object template is compliant", kind, nameStr)
 				update = createNotification(&plc, indx, "K8s `must have` object already exists", message)
+				compliant = true
 			}
 			if mustNotHave && numNonCompliant == 0 {
 				//compliant; mustnothave and no objects exist
 				message := fmt.Sprintf("no instances of `%v` exist as specified, therefore this Object template is compliant", kind)
 				update = createNotification(&plc, indx, "K8s must `not` have object already missing", message)
+				compliant = true
 			}
 			if update {
 				//update parent policy with violation
 				eventType := eventNormal
-				if plc.Status.CompliancyDetails[indx].ComplianceState == policyv1.NonCompliant {
+				if !compliant {
 					eventType = eventWarning
 				}
 				recorder.Event(&plc, eventType, fmt.Sprintf("policy: %s", plc.GetName()), convertPolicyStatusToString(&plc))
@@ -1414,8 +1417,12 @@ func createParentPolicyEvent(instance *policyv1.ConfigurationPolicy) {
 	parentPlc := createParentPolicy(instance)
 
 	if reconcilingAgent.recorder != nil {
+		eventType := "Normal"
+		if instance.Status.ComplianceState == policyv1.NonCompliant {
+			eventType = "Warning"
+		}
 		reconcilingAgent.recorder.Event(&parentPlc,
-			corev1.EventTypeNormal,
+			eventType,
 			fmt.Sprintf("policy: %s/%s", instance.Namespace, instance.Name),
 			convertPolicyStatusToString(instance))
 	}
