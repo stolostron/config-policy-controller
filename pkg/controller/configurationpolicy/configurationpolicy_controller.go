@@ -255,6 +255,7 @@ func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason str
 }
 
 func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
+	fmt.Println(fmt.Sprintf("processing object templates for policy %s...", plc.GetName()))
 	plcNamespaces := getPolicyNamespaces(plc)
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
@@ -288,8 +289,18 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 		numCompliant := 0
 		numNonCompliant := 0
 
+		dd := clientSet.Discovery()
+		apiresourcelist, err := dd.ServerResources()
+		if err != nil {
+			glog.Fatal(err)
+		}
+		apigroups, err := restmapper.GetAPIGroupResources(dd)
+		if err != nil {
+			glog.Fatal(err)
+		}
+
 		for _, ns := range relevantNamespaces {
-			names, compliant, objKind := handleObjects(objectT, ns, indx, &plc, clientSet, config, recorder)
+			names, compliant, objKind := handleObjects(objectT, ns, indx, &plc, clientSet, config, recorder, apiresourcelist, apigroups)
 			if objKind != "" {
 				kind = objKind
 			}
@@ -373,14 +384,11 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 	}
 }
 
-func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int, policy *policyv1.ConfigurationPolicy, clientset *kubernetes.Clientset, config *rest.Config, recorder record.EventRecorder) (objNameList []string, compliant bool, rsrcKind string) {
+func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int, policy *policyv1.ConfigurationPolicy, clientset *kubernetes.Clientset, config *rest.Config, recorder record.EventRecorder, apiresourcelist []*metav1.APIResourceList, apigroups []*restmapper.APIGroupResources) (objNameList []string, compliant bool, rsrcKind string) {
+	fmt.Println(fmt.Sprintf("handling object template [%d] in namespace %s", index, namespace))
+
 	updateNeeded := false
 	namespaced := true
-	dd := clientset.Discovery()
-	apigroups, err := restmapper.GetAPIGroupResources(dd)
-	if err != nil {
-		glog.Fatal(err)
-	}
 
 	restmapper := restmapper.NewDiscoveryRESTMapper(apigroups)
 	//ext := runtime.RawExtension{}
@@ -464,11 +472,6 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		Version: mapping.GroupVersionKind.Version,
 	}
 	dclient, err := dynamic.NewForConfig(restconfig)
-	if err != nil {
-		glog.Fatal(err)
-	}
-
-	apiresourcelist, err := dd.ServerResources()
 	if err != nil {
 		glog.Fatal(err)
 	}
