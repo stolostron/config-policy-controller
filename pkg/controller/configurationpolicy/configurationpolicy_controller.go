@@ -524,7 +524,8 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	return nil, compliant, ""
 }
 
-func getClientRsrc(mapping *meta.RESTMapping, apiresourcelist []*metav1.APIResourceList) (dclient dynamic.Interface, rsrc schema.GroupVersionResource, namespaced bool) {
+func getClientRsrc(mapping *meta.RESTMapping, apiresourcelist []*metav1.APIResourceList) (dclient dynamic.Interface,
+	rsrc schema.GroupVersionResource, namespaced bool) {
 	namespaced = false
 	restconfig := config
 	restconfig.GroupVersion = &schema.GroupVersion{
@@ -551,7 +552,8 @@ func getClientRsrc(mapping *meta.RESTMapping, apiresourcelist []*metav1.APIResou
 	return dclient, rsrc, namespaced
 }
 
-func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtension, policy *policyv1.ConfigurationPolicy, index int) (mapping *meta.RESTMapping) {
+func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtension,
+	policy *policyv1.ConfigurationPolicy, index int) (mapping *meta.RESTMapping) {
 	updateNeeded := false
 	restmapper := restmapper.NewDiscoveryRESTMapper(apigroups)
 	glog.V(9).Infof("reading raw object: %v", string(ext.Raw))
