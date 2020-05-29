@@ -110,7 +110,7 @@ lint: lint-all
 ############################################################
 
 test:
-	@go test ${TESTARGS} `go list ./... | grep -v test/e2e`
+	go test ${TESTARGS} `go list ./... | grep -v test/e2e`
 
 ############################################################
 # coverage section
