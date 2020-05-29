@@ -1503,7 +1503,6 @@ func convertPolicyStatusToString(plc *policyv1.ConfigurationPolicy) (results str
 			}
 		}
 	}
-	result = result[:len(result)-1]
 	return result
 }
 
