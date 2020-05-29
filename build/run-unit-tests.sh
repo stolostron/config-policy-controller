@@ -41,6 +41,6 @@ go get github.com/onsi/gomega/...
 # run e2e test
 make build-instrumented
 make kind-bootstrap-cluster-dev
-make run-instrumented || true
+make run-instrumented
 make e2e-test
-make stop-instrumented
+make stop-instrumented || travis_terminate 0
