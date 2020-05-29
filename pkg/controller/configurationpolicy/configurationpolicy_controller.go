@@ -184,10 +184,22 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 				flattenedPolicyList[key] = policy
 			}
 		}
+
+		//get resources once per cycle to avoid hanging
+		dd := clientSet.Discovery()
+		apiresourcelist, err := dd.ServerResources()
+		if err != nil {
+			glog.Fatal(err)
+		}
+		apigroups, err := restmapper.GetAPIGroupResources(dd)
+		if err != nil {
+			glog.Fatal(err)
+		}
+
 		//flattenedpolicylist only contains 1 of each policy instance
 		for _, policy := range flattenedPolicyList {
 			Mx.Lock()
-			handleObjectTemplates(*policy)
+			handleObjectTemplates(*policy, apiresourcelist, apigroups)
 			Mx.Unlock()
 		}
 
@@ -265,7 +277,8 @@ func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason str
 	return update
 }
 
-func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
+func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*metav1.APIResourceList,
+	apigroups []*restmapper.APIGroupResources) {
 	fmt.Println(fmt.Sprintf("processing object templates for policy %s...", plc.GetName()))
 	plcNamespaces := getPolicyNamespaces(plc)
 	for indx, objectT := range plc.Spec.ObjectTemplates {
@@ -299,16 +312,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 
 		numCompliant := 0
 		numNonCompliant := 0
-
-		dd := clientSet.Discovery()
-		apiresourcelist, err := dd.ServerResources()
-		if err != nil {
-			glog.Fatal(err)
-		}
-		apigroups, err := restmapper.GetAPIGroupResources(dd)
-		if err != nil {
-			glog.Fatal(err)
-		}
 
 		for _, ns := range relevantNamespaces {
 			names, compliant, objKind := handleObjects(objectT, ns, indx, &plc, config, recorder, apiresourcelist, apigroups)
