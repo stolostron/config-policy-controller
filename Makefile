@@ -198,10 +198,10 @@ build-instrumented:
 	go test -covermode=atomic -coverpkg=github.com/open-cluster-management/$(IMG)... -c -tags e2e ./cmd/manager -o build/_output/bin/$(IMG)-instrumented
 
 run-instrumented:
-	WATCH_NAMESPACE="managed" ./build/_output/bin/$(IMG)-instrumented -test.run "^TestRunMain$$" -test.coverprofile=coverage_e2e.out &>/dev/null &
+	WATCH_NAMESPACE="managed" ./build/_output/bin/$(IMG)-instrumented -test.run "^TestRunMain$$" -test.coverprofile=coverage_e2e.out &>/dev/null || true & 
 
 stop-instrumented:
-	ps -ef | grep 'config-po' | grep -v grep | awk '{print $$2}' | xargs kill ; exit 0
+	ps -ef | grep 'config-po' | grep -v grep | awk '{print $$2}' | xargs kill
 
 coverage-merge:
 	@echo merging the coverage report
