@@ -201,7 +201,7 @@ run-instrumented:
 	WATCH_NAMESPACE="managed" ./build/_output/bin/$(IMG)-instrumented -test.run "^TestRunMain$$" -test.coverprofile=coverage_e2e.out &>/dev/null &
 
 stop-instrumented:
-	ps -ef | grep 'config-po' | grep -v grep | awk '{print $$2}' | xargs kill
+	ps -ef | grep 'config-po' | grep -v grep | awk '{print $$2}' | xargs kill || true
 
 coverage-merge:
 	@echo merging the coverage report
