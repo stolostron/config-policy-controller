@@ -174,11 +174,7 @@ func TestPeriodicallyExecConfigPolicies(t *testing.T) {
 				Exclude: []string{"kube-system"},
 			},
 			RemediationAction: "inform",
-			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-				&policiesv1alpha1.ObjectTemplate{
-					ComplianceType: "musthave",
-				},
-			},
+			ObjectTemplates:   []*policiesv1alpha1.ObjectTemplate{},
 		},
 	}
 
