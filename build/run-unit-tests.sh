@@ -39,7 +39,7 @@ go get github.com/onsi/ginkgo/ginkgo
 go get github.com/onsi/gomega/...
 
 # run e2e test
-# make build-instrumented
-# make kind-bootstrap-cluster-dev
-# make run-instrumented
-# make e2e-test
+make build-instrumented
+make kind-bootstrap-cluster-dev
+make run-instrumented
+make e2e-test
