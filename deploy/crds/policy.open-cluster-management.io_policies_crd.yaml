@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: policies.policy.open-cluster-management.io
 spec:
-  group: policies.open-cluster-management.io
+  group: policy.open-cluster-management.io
   names:
     kind: Policy
     listKind: PolicyList
