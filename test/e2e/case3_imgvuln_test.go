@@ -25,7 +25,7 @@ var _ = Describe("Test role obj template handling", func() {
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameCSV, testNamespace, true, defaultTimeoutSeconds)
 				return utils.GetComplianceState(managedPlc)
-			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
+			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should check for a subscription on managed cluster", func() {
 			By("Creating " + case3ConfigPolicyNameSub + " on managed")
