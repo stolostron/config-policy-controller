@@ -175,9 +175,31 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 	for {
 		start := time.Now()
 		printMap(availablePolicies.PolicyMap)
+		flattenedPolicyList := map[string]*policyv1.ConfigurationPolicy{}
 		for _, policy := range availablePolicies.PolicyMap {
+			key := fmt.Sprintf("%s/%s", policy.GetName(), policy.GetResourceVersion())
+			if _, ok := flattenedPolicyList[key]; ok {
+				continue
+			} else {
+				flattenedPolicyList[key] = policy
+			}
+		}
+
+		//get resources once per cycle to avoid hanging
+		dd := clientSet.Discovery()
+		apiresourcelist, err := dd.ServerResources()
+		if err != nil {
+			glog.Fatal(err)
+		}
+		apigroups, err := restmapper.GetAPIGroupResources(dd)
+		if err != nil {
+			glog.Fatal(err)
+		}
+
+		//flattenedpolicylist only contains 1 of each policy instance
+		for _, policy := range flattenedPolicyList {
 			Mx.Lock()
-			handleObjectTemplates(*policy)
+			handleObjectTemplates(*policy, apiresourcelist, apigroups)
 			Mx.Unlock()
 		}
 
@@ -255,17 +277,18 @@ func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason str
 	return update
 }
 
-func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
+func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*metav1.APIResourceList,
+	apigroups []*restmapper.APIGroupResources) {
 	fmt.Println(fmt.Sprintf("processing object templates for policy %s...", plc.GetName()))
 	plcNamespaces := getPolicyNamespaces(plc)
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
 		compliantObjects := map[string][]string{}
-		mustNotHave := strings.ToLower(string(objectT.ComplianceType)) == strings.ToLower(string(policyv1.MustNotHave))
 		enforce := strings.ToLower(string(plc.Spec.RemediationAction)) == strings.ToLower(string(policyv1.Enforce))
 		relevantNamespaces := plcNamespaces
 		kind := "unknown"
 		desiredName := ""
+		mustNotHave := strings.ToLower(string(objectT.ComplianceType)) == strings.ToLower(string(policyv1.MustNotHave))
 
 		//override policy namespaces if one is present in object template
 		var unstruct unstructured.Unstructured
@@ -290,16 +313,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 		numCompliant := 0
 		numNonCompliant := 0
 
-		dd := clientSet.Discovery()
-		apiresourcelist, err := dd.ServerResources()
-		if err != nil {
-			glog.Fatal(err)
-		}
-		apigroups, err := restmapper.GetAPIGroupResources(dd)
-		if err != nil {
-			glog.Fatal(err)
-		}
-
 		for _, ns := range relevantNamespaces {
 			names, compliant, objKind := handleObjects(objectT, ns, indx, &plc, config, recorder, apiresourcelist, apigroups)
 			if objKind != "" {
@@ -321,67 +334,81 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy) {
 		}
 
 		if !enforce {
-			update := false
-			compliant := false
-			if !mustNotHave && numCompliant == 0 {
-				//noncompliant; musthave and objects do not exist
-				message := fmt.Sprintf("No instances of `%v` exist as specified, and one should be created", kind)
-				if desiredName != "" {
-					message = fmt.Sprintf("%v `%v` does not exist as specified, and should be created", kind, desiredName)
-				}
-				update = createViolation(&plc, indx, "K8s missing a must have object", message)
+			objData := map[string]interface{}{
+				"indx":        indx,
+				"kind":        kind,
+				"desiredName": desiredName,
 			}
-			if mustNotHave && numNonCompliant > 0 {
-				//noncompliant; mustnothave and objects exist
-				nameStr := ""
-				for ns, names := range nonCompliantObjects {
-					nameStr += "["
-					for i, name := range names {
-						nameStr += name
-						if i != len(names)-1 {
-							nameStr += ", "
-						}
-					}
-					nameStr += "] in namespace " + ns + "; "
-				}
-				nameStr = nameStr[:len(nameStr)-2]
-				message := fmt.Sprintf("%v exist and should be deleted: %v", kind, nameStr)
-				update = createViolation(&plc, indx, "K8s has a must `not` have object", message)
-			}
-			if !mustNotHave && numCompliant > 0 {
-				//compliant; musthave and objects exist
-				nameStr := ""
-				for ns, names := range compliantObjects {
-					nameStr += "["
-					for i, name := range names {
-						nameStr += name
-						if i != len(names)-1 {
-							nameStr += ", "
-						}
-					}
-					nameStr += "] in namespace " + ns + "; "
-				}
-				nameStr = nameStr[:len(nameStr)-2]
-				message := fmt.Sprintf("%v %v exist as specified, therefore this Object template is compliant", kind, nameStr)
-				update = createNotification(&plc, indx, "K8s `must have` object already exists", message)
-				compliant = true
-			}
-			if mustNotHave && numNonCompliant == 0 {
-				//compliant; mustnothave and no objects exist
-				message := fmt.Sprintf("no instances of `%v` exist as specified, therefore this Object template is compliant", kind)
-				update = createNotification(&plc, indx, "K8s must `not` have object already missing", message)
-				compliant = true
-			}
-			if update {
-				//update parent policy with violation
-				eventType := eventNormal
-				if !compliant {
-					eventType = eventWarning
-				}
-				recorder.Event(&plc, eventType, fmt.Sprintf("policy: %s", plc.GetName()), convertPolicyStatusToString(&plc))
-				addForUpdate(&plc)
-			}
+			createInformStatus(mustNotHave, numCompliant, numNonCompliant, compliantObjects, nonCompliantObjects, &plc, objData)
 		}
+	}
+}
+
+func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int, compliantObjects map[string][]string,
+	nonCompliantObjects map[string][]string, policy *policyv1.ConfigurationPolicy, objData map[string]interface{}) {
+	plc := *policy
+	update := false
+	compliant := false
+	desiredName := objData["desiredName"].(string)
+	indx := objData["indx"].(int)
+	kind := objData["kind"].(string)
+	if !mustNotHave && numCompliant == 0 {
+		//noncompliant; musthave and objects do not exist
+		message := fmt.Sprintf("No instances of `%v` exist as specified, and one should be created", kind)
+		if desiredName != "" {
+			message = fmt.Sprintf("%v `%v` does not exist as specified, and should be created", kind, desiredName)
+		}
+		update = createViolation(&plc, indx, "K8s missing a must have object", message)
+	}
+	if mustNotHave && numNonCompliant > 0 {
+		//noncompliant; mustnothave and objects exist
+		nameStr := ""
+		for ns, names := range nonCompliantObjects {
+			nameStr += "["
+			for i, name := range names {
+				nameStr += name
+				if i != len(names)-1 {
+					nameStr += ", "
+				}
+			}
+			nameStr += "] in namespace " + ns + "; "
+		}
+		nameStr = nameStr[:len(nameStr)-2]
+		message := fmt.Sprintf("%v exist and should be deleted: %v", kind, nameStr)
+		update = createViolation(&plc, indx, "K8s has a must `not` have object", message)
+	}
+	if !mustNotHave && numCompliant > 0 {
+		//compliant; musthave and objects exist
+		nameStr := ""
+		for ns, names := range compliantObjects {
+			nameStr += "["
+			for i, name := range names {
+				nameStr += name
+				if i != len(names)-1 {
+					nameStr += ", "
+				}
+			}
+			nameStr += "] in namespace " + ns + "; "
+		}
+		nameStr = nameStr[:len(nameStr)-2]
+		message := fmt.Sprintf("%v %v exist as specified, therefore this Object template is compliant", kind, nameStr)
+		update = createNotification(&plc, indx, "K8s `must have` object already exists", message)
+		compliant = true
+	}
+	if mustNotHave && numNonCompliant == 0 {
+		//compliant; mustnothave and no objects exist
+		message := fmt.Sprintf("no instances of `%v` exist as specified, therefore this Object template is compliant", kind)
+		update = createNotification(&plc, indx, "K8s must `not` have object already missing", message)
+		compliant = true
+	}
+	if update {
+		//update parent policy with violation
+		eventType := eventNormal
+		if !compliant {
+			eventType = eventWarning
+		}
+		recorder.Event(&plc, eventType, fmt.Sprintf("policy: %s", plc.GetName()), convertPolicyStatusToString(&plc))
+		addForUpdate(&plc)
 	}
 }
 
@@ -1247,12 +1274,35 @@ func updateTemplate(
 					if newObj == nil || oldObj == nil {
 						return false, false, ""
 					}
-					updateNeeded := !(reflect.DeepEqual(newObj, oldObj))
-					oldMap := existingObj.UnstructuredContent()["metadata"].(map[string]interface{})
-					resVer := oldMap["resourceVersion"]
+					//merge changes into new spec
+					var mergedObj interface{}
+					switch newObj := newObj.(type) {
+					case []interface{}:
+						mergedObj, err = compareLists(newObj, oldObj.([]interface{}), complianceType)
+					case map[string]interface{}:
+						mergedObj, err = compareSpecs(newObj, oldObj.(map[string]interface{}), complianceType)
+					}
+					if err != nil {
+						message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
+						return false, false, message
+					}
+					//check if merged spec has changed
+					nJSON, err := json.Marshal(mergedObj)
+					if err != nil {
+						message := fmt.Sprintf("Error converting updated %s to JSON: %s", key, err)
+						return false, false, message
+					}
+					oJSON, err := json.Marshal(oldObj)
+					if err != nil {
+						message := fmt.Sprintf("Error converting updated %s to JSON: %s", key, err)
+						return false, false, message
+					}
+					if !reflect.DeepEqual(nJSON, oJSON) {
+						updateNeeded = true
+					}
 					mapMtx := sync.RWMutex{}
 					mapMtx.Lock()
-					unstruct.Object["metadata"].(map[string]interface{})["resourceVersion"] = resVer
+					existingObj.UnstructuredContent()[key] = mergedObj
 					mapMtx.Unlock()
 					if updateNeeded {
 						if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform)) {
@@ -1260,7 +1310,7 @@ func updateTemplate(
 						}
 						//enforce
 						glog.V(4).Infof("Updating %v template `%v`...", typeStr, name)
-						_, err = res.Update(&unstruct, metav1.UpdateOptions{})
+						_, err = res.Update(existingObj, metav1.UpdateOptions{})
 						if errors.IsNotFound(err) {
 							message := fmt.Sprintf("`%v` is not present and must be created", typeStr)
 							return false, false, message
@@ -1432,8 +1482,25 @@ func printMap(myMap map[string]*policyv1.ConfigurationPolicy) {
 	}
 	fmt.Println("Available policies in namespaces: ")
 
+	mapToPrint := map[string][]string{}
 	for k, v := range myMap {
-		fmt.Printf("namespace = %v; policy = %v \n", strings.Split(k, "/")[0], v.Name)
+		if _, ok := mapToPrint[v.Name]; ok {
+			mapToPrint[v.Name] = append(mapToPrint[v.Name], strings.Split(k, "/")[0])
+		} else {
+			mapToPrint[v.Name] = []string{strings.Split(k, "/")[0]}
+		}
+	}
+
+	for k, v := range mapToPrint {
+		nsString := "["
+		for idx, ns := range v {
+			nsString += ns
+			if idx != len(v)-1 {
+				nsString += ", "
+			}
+		}
+		nsString += "]"
+		fmt.Println(fmt.Sprintf("configpolicy %s in namespace(s) %s", k, nsString))
 	}
 }
 
@@ -1496,11 +1563,13 @@ func convertPolicyStatusToString(plc *policyv1.ConfigurationPolicy) (results str
 	}
 	for _, v := range plc.Status.CompliancyDetails {
 		result += "; "
-		for _, cond := range v.Conditions {
-			result += cond.Type + " - " + cond.Message + ", "
+		for idx, cond := range v.Conditions {
+			result += cond.Type + " - " + cond.Message
+			if idx != len(v.Conditions)-1 {
+				result += ", "
+			}
 		}
 	}
-	result = result[:len(result)-1]
 	return result
 }
 
