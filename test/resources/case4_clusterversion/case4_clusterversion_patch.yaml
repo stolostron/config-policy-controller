@@ -1,7 +1,7 @@
 apiVersion: policy.open-cluster-management.io/v1
 kind: ConfigurationPolicy
 metadata:
-  name: openshift-upgrade-channel-e2e
+  name: openshift-upgrade-channel-patch
   namespace: managed
   annotations:
     policy.mcm.ibm.com/standards: NIST-CSF

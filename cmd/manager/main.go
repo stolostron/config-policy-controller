@@ -88,6 +88,7 @@ func main() {
 		log.Error(err, "Failed to get watch namespace")
 		os.Exit(1)
 	}
+	namespace = "managed"
 
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
