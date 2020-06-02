@@ -3,10 +3,6 @@ kind: ConfigurationPolicy
 metadata:
   name: openshift-upgrade-channel-e2e
   namespace: managed
-  annotations:
-    policy.mcm.ibm.com/standards: NIST-CSF
-    policy.mcm.ibm.com/categories: PR.IP Information Protection Processes and Procedures
-    policy.mcm.ibm.com/controls: PR.IP-1 Baseline configuration
 spec:
   remediationAction: enforce
   namespaceSelector:
