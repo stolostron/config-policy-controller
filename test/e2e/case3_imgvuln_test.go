@@ -15,7 +15,7 @@ const case3PolicyYamlCSV string = "../resources/case3_imgvuln/case3_csv.yaml"
 const case3PolicyYamlSub string = "../resources/case3_imgvuln/case3_subscription.yaml"
 const case3PolicyYamlVuln string = "../resources/case3_imgvuln/case3_vuln.yaml"
 
-var _ = Describe("Test role obj template handling", func() {
+var _ = Describe("Test img vulnerability obj template handling", func() {
 	Describe("Create a clusterserviceversion on managed cluster in ns:"+testNamespace, func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case3ConfigPolicyNameCSV + " on managed")
