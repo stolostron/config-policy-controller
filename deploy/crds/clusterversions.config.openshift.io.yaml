@@ -1,15 +1,8 @@
-apiVersion: apiextensions.k8s.io/v1
+apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  creationTimestamp: "2020-04-15T15:22:52Z"
-  generation: 41971
   name: clusterversions.config.openshift.io
-  resourceVersion: "34492653"
-  selfLink: /apis/apiextensions.k8s.io/v1/customresourcedefinitions/clusterversions.config.openshift.io
-  uid: ac15ed20-b176-4416-beb5-c876e91e3a8c
 spec:
-  conversion:
-    strategy: None
   group: config.openshift.io
   names:
     kind: ClusterVersion
