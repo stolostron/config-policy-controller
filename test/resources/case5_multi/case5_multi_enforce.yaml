@@ -2,7 +2,7 @@ apiVersion: policy.open-cluster-management.io/v1
 kind: ConfigurationPolicy
 metadata:
   name: policy-pod-multi-create
-  namespace: default
+  namespace: managed
 spec:
   remediationAction: enforce
   namespaceSelector:
