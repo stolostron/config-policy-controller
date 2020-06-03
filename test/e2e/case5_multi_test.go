@@ -13,9 +13,9 @@ const case5ConfigPolicyNameEnforce string = "policy-pod-multi-create"
 const case5ConfigPolicyNameCombo string = "policy-pod-multi-combo"
 const case5PodName1 string = "nginx-pod-1"
 const case5PodName2 string = "nginx-pod-1"
-const case5InformYaml string = "policy-pod-multi-mh"
-const case5EnforceYaml string = "policy-pod-multi-create"
-const case5ComboYaml string = "policy-pod-multi-combo"
+const case5InformYaml string = "../resources/case5_multi/case5_multi_mh.yaml"
+const case5EnforceYaml string = "../resources/case5_multi/case5_multi_enforce.yaml"
+const case5ComboYaml string = "../resources/case5_multi/case5_multi_combo.yaml"
 
 var _ = Describe("Test multiple obj template handling", func() {
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, func() {
