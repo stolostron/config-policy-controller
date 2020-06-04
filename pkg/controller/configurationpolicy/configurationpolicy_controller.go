@@ -414,7 +414,11 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int, policy *policyv1.ConfigurationPolicy,
 	config *rest.Config, recorder record.EventRecorder, apiresourcelist []*metav1.APIResourceList,
 	apigroups []*restmapper.APIGroupResources) (objNameList []string, compliant bool, rsrcKind string) {
-	fmt.Println(fmt.Sprintf("handling object template [%d] in namespace %s", index, namespace))
+	if namespace != "" {
+		fmt.Println(fmt.Sprintf("handling object template [%d] in namespace %s", index, namespace))
+	} else {
+		fmt.Println(fmt.Sprintf("handling object template [%d] (no namespace specified)", index))
+	}
 	var err error
 	updateNeeded := false
 	namespaced := true
@@ -438,6 +442,19 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		namespace = metaNamespace
 	}
 	dclient, rsrc, namespaced := getClientRsrc(mapping, apiresourcelist)
+	if namespaced && namespace == "" {
+		//namespaced but none specified, generate violation
+		updateStatus := createViolation(policy, index, "K8s missing namespace", "namespaced object has no namespace specified")
+		if updateStatus {
+			eventType := eventNormal
+			if index < len(policy.Status.CompliancyDetails) && policy.Status.CompliancyDetails[index].ComplianceState == policyv1.NonCompliant {
+				eventType = eventWarning
+			}
+			recorder.Event(policy, eventType, fmt.Sprintf("policy: %s/%s", policy.GetName(), name), convertPolicyStatusToString(policy))
+			addForUpdate(policy)
+		}
+		return nil, false, ""
+	}
 	if name != "" {
 		exists = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
 		objNames = append(objNames, name)
@@ -494,30 +511,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			if !updated && throwSpecViolation {
 				compliant = false
 			} else if !updated && msg != "" {
-				cond := &policyv1.Condition{
-					Type:               "violation",
-					Status:             corev1.ConditionFalse,
-					LastTransitionTime: metav1.Now(),
-					Reason:             "K8s update template error",
-					Message:            msg,
-				}
-				if len(policy.Status.CompliancyDetails) <= index {
-					policy.Status.CompliancyDetails = append(policy.Status.CompliancyDetails, policyv1.TemplateStatus{
-						ComplianceState: policyv1.NonCompliant,
-						Conditions:      []policyv1.Condition{},
-					})
-				}
-				if policy.Status.CompliancyDetails[index].ComplianceState != policyv1.NonCompliant {
-					updateNeeded = true
-				}
-				policy.Status.CompliancyDetails[index].ComplianceState = policyv1.NonCompliant
-
-				if !checkMessageSimilarity(policy.Status.CompliancyDetails[index].Conditions, cond) {
-					conditions := AppendCondition(policy.Status.CompliancyDetails[index].Conditions, cond, rsrc.Resource, false)
-					policy.Status.CompliancyDetails[index].Conditions = conditions
-					updateNeeded = true
-				}
-				glog.Errorf(msg)
+				updateNeeded = createViolation(policy, index, "K8s update template error", msg)
 			}
 		}
 
@@ -920,7 +914,7 @@ func getPolicyNamespaces(policy policyv1.ConfigurationPolicy) []string {
 	//then get the list of deduplicated
 	finalList := common.DeduplicateItems(includedNamespaces, excludedNamespaces)
 	if len(finalList) == 0 {
-		finalList = append(finalList, "default")
+		finalList = append(finalList, "")
 	}
 	return finalList
 }
@@ -1459,29 +1453,35 @@ func handleAddingPolicy(plc *policyv1.ConfigurationPolicy) error {
 		availablePolicies.AddObject(key, plc)
 	}
 	if len(selectedNamespaces) == 0 {
-		dd := clientSet.Discovery()
-		apiresourcelist, err := dd.ServerResources()
-		if err != nil {
-			glog.Fatal(err)
-		}
-		apigroups, err := restmapper.GetAPIGroupResources(dd)
-		if err != nil {
-			glog.Fatal(err)
-		}
-		namespaced := false
-		for indx, objectT := range plc.Spec.ObjectTemplates {
-			mapping := getMapping(apigroups, objectT.ObjectDefinition, plc, indx)
-			_, _, objNamespaced := getClientRsrc(mapping, apiresourcelist)
-			if objNamespaced {
-				namespaced = true
-			}
-		}
-		if !namespaced {
-			key := fmt.Sprintf("%s/%s", "NA", plc.Name)
-			availablePolicies.AddObject(key, plc)
-		} else {
-			err = fmt.Errorf("namespaced object in policy %s has no namespace specified", plc.GetName())
-		}
+		key := fmt.Sprintf("%s/%s", "NA", plc.Name)
+		availablePolicies.AddObject(key, plc)
+		// dd := clientSet.Discovery()
+		// apiresourcelist, err := dd.ServerResources()
+		// if err != nil {
+		// 	glog.Fatal(err)
+		// }
+		// apigroups, err := restmapper.GetAPIGroupResources(dd)
+		// if err != nil {
+		// 	glog.Fatal(err)
+		// }
+		// namespaced := false
+		// for indx, objectT := range plc.Spec.ObjectTemplates {
+		// 	mapping := getMapping(apigroups, objectT.ObjectDefinition, plc, indx)
+		// 	_, _, objNamespaced := getClientRsrc(mapping, apiresourcelist)
+		// 	if objNamespaced {
+		// 		namespaced = true
+		// 		update := createViolation(plc, indx, "K8s missing namespace", "namespaced object has no namespace specified")
+		// 		if update {
+
+		// 		}
+		// 	}
+		// }
+		// if !namespaced {
+		// 	key := fmt.Sprintf("%s/%s", "NA", plc.Name)
+		// 	availablePolicies.AddObject(key, plc)
+		// } else {
+		// 	err = fmt.Errorf("namespaced object in policy %s has no namespace specified", plc.GetName())
+		// }
 	}
 	return err
 }
