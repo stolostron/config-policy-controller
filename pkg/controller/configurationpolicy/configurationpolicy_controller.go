@@ -54,6 +54,7 @@ var clientSet *kubernetes.Clientset
 
 var eventNormal = "Normal"
 var eventWarning = "Warning"
+var eventFmtStr = "policy: %s/%s"
 
 var config *rest.Config
 
@@ -444,13 +445,16 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	dclient, rsrc, namespaced := getClientRsrc(mapping, apiresourcelist)
 	if namespaced && namespace == "" {
 		//namespaced but none specified, generate violation
-		updateStatus := createViolation(policy, index, "K8s missing namespace", "namespaced object has no namespace specified")
+		updateStatus := createViolation(policy, index, "K8s missing namespace",
+			"namespaced object has no namespace specified")
 		if updateStatus {
 			eventType := eventNormal
-			if index < len(policy.Status.CompliancyDetails) && policy.Status.CompliancyDetails[index].ComplianceState == policyv1.NonCompliant {
+			if index < len(policy.Status.CompliancyDetails) &&
+				policy.Status.CompliancyDetails[index].ComplianceState == policyv1.NonCompliant {
 				eventType = eventWarning
 			}
-			recorder.Event(policy, eventType, fmt.Sprintf("policy: %s/%s", policy.GetName(), name), convertPolicyStatusToString(policy))
+			recorder.Event(policy, eventType, fmt.Sprintf(eventFmtStr, policy.GetName(), name),
+				convertPolicyStatusToString(policy))
 			addForUpdate(policy)
 		}
 		return nil, false, ""
@@ -524,7 +528,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			if index < len(policy.Status.CompliancyDetails) && policy.Status.CompliancyDetails[index].ComplianceState == policyv1.NonCompliant {
 				eventType = eventWarning
 			}
-			recorder.Event(policy, eventType, fmt.Sprintf("policy: %s/%s", policy.GetName(), name), convertPolicyStatusToString(policy))
+			recorder.Event(policy, eventType, fmt.Sprintf(eventFmtStr, policy.GetName(), name), convertPolicyStatusToString(policy))
 			addForUpdate(policy)
 		}
 	} else {
@@ -1521,7 +1525,7 @@ func createParentPolicyEvent(instance *policyv1.ConfigurationPolicy) {
 		}
 		reconcilingAgent.recorder.Event(&parentPlc,
 			eventType,
-			fmt.Sprintf("policy: %s/%s", instance.Namespace, instance.Name),
+			fmt.Sprintf(eventFmtStr, instance.Namespace, instance.Name),
 			convertPolicyStatusToString(instance))
 	}
 }
