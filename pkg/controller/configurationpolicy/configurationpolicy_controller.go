@@ -1458,6 +1458,31 @@ func handleAddingPolicy(plc *policyv1.ConfigurationPolicy) error {
 		key := fmt.Sprintf("%s/%s", ns, plc.Name)
 		availablePolicies.AddObject(key, plc)
 	}
+	if len(selectedNamespaces) == 0 {
+		dd := clientSet.Discovery()
+		apiresourcelist, err := dd.ServerResources()
+		if err != nil {
+			glog.Fatal(err)
+		}
+		apigroups, err := restmapper.GetAPIGroupResources(dd)
+		if err != nil {
+			glog.Fatal(err)
+		}
+		namespaced := false
+		for indx, objectT := range plc.Spec.ObjectTemplates {
+			mapping := getMapping(apigroups, objectT.ObjectDefinition, plc, indx)
+			_, _, objNamespaced := getClientRsrc(mapping, apiresourcelist)
+			if objNamespaced {
+				namespaced = true
+			}
+		}
+		if !namespaced {
+			key := fmt.Sprintf("%s/%s", "NA", plc.Name)
+			availablePolicies.AddObject(key, plc)
+		} else {
+			err = fmt.Errorf("namespaced object in policy %s has no namespace specified", plc.GetName())
+		}
+	}
 	return err
 }
 
