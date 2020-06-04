@@ -13,9 +13,9 @@ const case6ConfigPolicyNameRole string = "role-policy-no-ns"
 const case6ConfigPolicyNameCombo string = "policy-combo-no-ns"
 const case6NSName1 string = "e2etest"
 const case6NSName2 string = "e2etest2"
-const case6NSYaml string = "../resources/case6_multi/case6_create_ns.yaml"
-const case6RoleYaml string = "../resources/case6_multi/case6_create_role.yaml"
-const case6ComboYaml string = "../resources/case6_multi/case6_combo.yaml"
+const case6NSYaml string = "../resources/case6_no_ns/case6_create_ns.yaml"
+const case6RoleYaml string = "../resources/case6_no_ns/case6_create_role.yaml"
+const case6ComboYaml string = "../resources/case6_no_ns/case6_combo.yaml"
 
 var _ = Describe("Test multiple obj template handling", func() {
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, func() {
@@ -38,6 +38,9 @@ var _ = Describe("Test multiple obj template handling", func() {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case6ConfigPolicyNameNS, testNamespace, true, defaultTimeoutSeconds)
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
+			utils.Kubectl("apply", "-f", case6ComboYaml, "-n", testNamespace)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case6ConfigPolicyNameCombo, testNamespace, true, defaultTimeoutSeconds)
+			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				comboPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case6ConfigPolicyNameCombo, testNamespace, true, defaultTimeoutSeconds)
 				return utils.GetComplianceState(comboPlc)
