@@ -56,6 +56,9 @@ var eventNormal = "Normal"
 var eventWarning = "Warning"
 var eventFmtStr = "policy: %s/%s"
 
+const getObjError = "object `%v` cannot be retrieved from the api server\n"
+const convertJSONError = "Error converting updated %s to JSON: %s"
+
 var config *rest.Config
 
 //Mx for making the map thread safe
@@ -75,7 +78,7 @@ var NamespaceWatched string
 // EventOnParent specifies if we also want to send events to the parent policy. Available options are yes/no/ifpresent
 var EventOnParent string
 
-// Add creates a new ConfigurationPolicy Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new ConfigurationPolicy Controller and adds it to the Manager.
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -83,7 +86,8 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileConfigurationPolicy{client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetEventRecorderFor("configurationpolicy-controller")}
+	return &ReconcileConfigurationPolicy{client: mgr.GetClient(), scheme: mgr.GetScheme(),
+		recorder: mgr.GetEventRecorderFor("configurationpolicy-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -469,13 +473,14 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			exists = false
 		}
 	}
-	objShouldExist := !(strings.ToLower(string(objectT.ComplianceType)) == strings.ToLower(string(policyv1.MustNotHave)))
+	objShouldExist := strings.ToLower(string(objectT.ComplianceType)) != strings.ToLower(string(policyv1.MustNotHave))
 	if len(objNames) == 1 {
 		name = objNames[0]
 		if !exists && objShouldExist {
 			//it is a musthave and it does not exist, so it must be created
 			if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Enforce)) {
-				updateNeeded, err = handleMissingMustHave(policy, index, remediation, namespaced, namespace, name, rsrc, unstruct, dclient)
+				updateNeeded, err = handleMissingMustHave(policy, index, remediation, namespaced,
+					map[string]string{"name": name, "namespace": namespace}, rsrc, unstruct, dclient)
 				if err != nil {
 					// violation created for handling error
 					glog.Errorf("error handling a missing object `%v` that is a must have according to policy `%v`", name, policy.Name)
@@ -487,7 +492,8 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		if exists && !objShouldExist {
 			//it is a mustnothave but it exist, so it must be deleted
 			if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Enforce)) {
-				updateNeeded, err = handleExistsMustNotHave(policy, index, remediation, namespaced, namespace, name, rsrc, dclient)
+				updateNeeded, err = handleExistsMustNotHave(policy, index, remediation, namespaced, namespace,
+					name, rsrc, dclient)
 				if err != nil {
 					glog.Errorf("error handling a existing object `%v` that is a must NOT have according to policy `%v`", name, policy.Name)
 				}
@@ -511,7 +517,8 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		}
 
 		if exists {
-			updated, throwSpecViolation, msg := updateTemplate(strings.ToLower(string(objectT.ComplianceType)), namespaced, namespace, name, remediation, rsrc, unstruct, dclient, unstruct.Object["kind"].(string), nil)
+			updated, throwSpecViolation, msg := updateTemplate(strings.ToLower(string(objectT.ComplianceType)), namespaced, namespace, name,
+				remediation, rsrc, unstruct, dclient, unstruct.Object["kind"].(string), nil)
 			if !updated && throwSpecViolation {
 				compliant = false
 			} else if !updated && msg != "" {
@@ -525,10 +532,12 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 
 		if updateNeeded {
 			eventType := eventNormal
-			if index < len(policy.Status.CompliancyDetails) && policy.Status.CompliancyDetails[index].ComplianceState == policyv1.NonCompliant {
+			if index < len(policy.Status.CompliancyDetails) &&
+				policy.Status.CompliancyDetails[index].ComplianceState == policyv1.NonCompliant {
 				eventType = eventWarning
 			}
-			recorder.Event(policy, eventType, fmt.Sprintf(eventFmtStr, policy.GetName(), name), convertPolicyStatusToString(policy))
+			recorder.Event(policy, eventType, fmt.Sprintf(eventFmtStr, policy.GetName(), name),
+				convertPolicyStatusToString(policy))
 			addForUpdate(policy)
 		}
 	} else {
@@ -583,7 +592,9 @@ func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtens
 	glog.V(9).Infof("reading raw object: %v", string(ext.Raw))
 	_, gvk, err := unstructured.UnstructuredJSONScheme.Decode(ext.Raw, nil, nil)
 	if err != nil {
-		decodeErr := fmt.Sprintf("Decoding error, please check your policy file! Aborting handling the object template at index [%v] in policy `%v` with error = `%v`", index, policy.Name, err)
+		decodeErr := fmt.Sprintf("Decoding error, please check your policy file!"+
+			" Aborting handling the object template at index [%v] in policy `%v` with error = `%v`",
+			index, policy.Name, err)
 		glog.Errorf(decodeErr)
 
 		if len(policy.Status.CompliancyDetails) <= index {
@@ -678,7 +689,8 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 	return name, kind, namespace
 }
 
-func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string, dclient dynamic.Interface) (kindNameList []string) {
+func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string,
+	dclient dynamic.Interface) (kindNameList []string) {
 	if namespaced {
 		res := dclient.Resource(rsrc).Namespace(ns)
 		resList, err := res.List(metav1.ListOptions{})
@@ -705,11 +717,13 @@ func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string
 	return kindNameList
 }
 
-func handleMissingMustNotHave(plc *policyv1.ConfigurationPolicy, index int, name string, rsrc schema.GroupVersionResource) bool {
+func handleMissingMustNotHave(plc *policyv1.ConfigurationPolicy, index int, name string,
+	rsrc schema.GroupVersionResource) bool {
 	glog.V(7).Infof("entering `does not exists` & ` must not have`")
 	var cond *policyv1.Condition
 	var update bool
-	message := fmt.Sprintf("%v `%v` is missing as it should be, therefore this Object template is compliant", rsrc.Resource, name)
+	message := fmt.Sprintf("%v `%v` is missing as it should be, therefore this Object template is compliant",
+		rsrc.Resource, name)
 	cond = &policyv1.Condition{
 		Type:               "succeeded",
 		Status:             corev1.ConditionTrue,
@@ -736,10 +750,12 @@ func handleMissingMustNotHave(plc *policyv1.ConfigurationPolicy, index int, name
 	return update
 }
 
-func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, index int, name string, rsrc schema.GroupVersionResource) (updateNeeded bool) {
+func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, index int, name string,
+	rsrc schema.GroupVersionResource) (updateNeeded bool) {
 	var cond *policyv1.Condition
 	var update bool
-	message := fmt.Sprintf("%v `%v` exists as it should be, therefore this Object template is compliant", rsrc.Resource, name)
+	message := fmt.Sprintf("%v `%v` exists as it should be, therefore this Object template is compliant",
+		rsrc.Resource, name)
 	cond = &policyv1.Condition{
 		Type:               "notification",
 		Status:             corev1.ConditionTrue,
@@ -766,7 +782,9 @@ func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, index int, name str
 	return update
 }
 
-func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, index int, action policyv1.RemediationAction, namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource, dclient dynamic.Interface) (result bool, erro error) {
+func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, index int, action policyv1.RemediationAction,
+	namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
+	dclient dynamic.Interface) (result bool, erro error) {
 	glog.V(7).Infof("entering `exists` & ` must not have`")
 	var cond *policyv1.Condition
 	var update, deleted bool
@@ -828,8 +846,13 @@ func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, index int, actio
 	return update, err
 }
 
-func handleMissingMustHave(plc *policyv1.ConfigurationPolicy, index int, action policyv1.RemediationAction, namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource, unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, erro error) {
+func handleMissingMustHave(plc *policyv1.ConfigurationPolicy, index int, action policyv1.RemediationAction,
+	namespaced bool, metadata map[string]string, rsrc schema.GroupVersionResource, unstruct unstructured.Unstructured,
+	dclient dynamic.Interface) (result bool, erro error) {
 	glog.V(7).Infof("entering `does not exists` & ` must have`")
+
+	name := metadata["name"]
+	namespace := metadata["namespace"]
 
 	var update, created bool
 	var err error
@@ -954,7 +977,8 @@ func checkMessageSimilarity(conditions []policyv1.Condition, cond *policyv1.Cond
 	return same
 }
 
-func objectExists(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource, unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool) {
+func objectExists(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
+	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool) {
 	exists := false
 	if !namespaced {
 		res := dclient.Resource(rsrc)
@@ -965,7 +989,7 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 				exists = false
 				return exists
 			}
-			glog.Errorf("object `%v` cannot be retrieved from the api server\n", name)
+			glog.Errorf(getObjError, name)
 
 		} else {
 			exists = true
@@ -980,7 +1004,7 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 				glog.V(6).Infof("response to retrieve a namespaced object `%v` from the api-server: %v", name, err)
 				return exists
 			}
-			glog.Errorf("object `%v` cannot be retrieved from the api server\n", name)
+			glog.Errorf(getObjError, name)
 		} else {
 			exists = true
 			glog.V(6).Infof("object `%v` retrieved from the api server\n", name)
@@ -1033,7 +1057,8 @@ func createObject(namespaced bool, namespace string, name string, rsrc schema.Gr
 	return created, err
 }
 
-func deleteObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource, dclient dynamic.Interface) (result bool, erro error) {
+func deleteObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
+	dclient dynamic.Interface) (result bool, erro error) {
 	deleted := false
 	var err error
 	if !namespaced {
@@ -1167,7 +1192,8 @@ func compareLists(newList []interface{}, oldList []interface{}, ctype string) (u
 	return mergedList, nil
 }
 
-func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{}, ctype string) (updatedSpec map[string]interface{}, err error) {
+func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{},
+	ctype string) (updatedSpec map[string]interface{}, err error) {
 	if ctype == "mustonlyhave" {
 		return newSpec, nil
 	}
@@ -1197,7 +1223,7 @@ func updateTemplate(
 		res := dclient.Resource(rsrc).Namespace(namespace)
 		existingObj, err := res.Get(name, metav1.GetOptions{})
 		if err != nil {
-			glog.Errorf("object `%v` cannot be retrieved from the api server\n", name)
+			glog.Errorf(getObjError, name)
 		} else {
 			for key := range unstruct.Object {
 				if !isBlacklisted(key) {
@@ -1222,12 +1248,12 @@ func updateTemplate(
 					//check if merged spec has changed
 					nJSON, err := json.Marshal(mergedObj)
 					if err != nil {
-						message := fmt.Sprintf("Error converting updated %s to JSON: %s", key, err)
+						message := fmt.Sprintf(convertJSONError, key, err)
 						return false, false, message
 					}
 					oJSON, err := json.Marshal(oldObj)
 					if err != nil {
-						message := fmt.Sprintf("Error converting updated %s to JSON: %s", key, err)
+						message := fmt.Sprintf(convertJSONError, key, err)
 						return false, false, message
 					}
 					if !reflect.DeepEqual(nJSON, oJSON) {
@@ -1262,7 +1288,7 @@ func updateTemplate(
 		res := dclient.Resource(rsrc)
 		existingObj, err := res.Get(name, metav1.GetOptions{})
 		if err != nil {
-			glog.Errorf("object `%v` cannot be retrieved from the api server\n", name)
+			glog.Errorf(getObjError, name)
 		} else {
 			for key := range unstruct.Object {
 				if !isBlacklisted(key) {
@@ -1286,12 +1312,12 @@ func updateTemplate(
 					//check if merged spec has changed
 					nJSON, err := json.Marshal(mergedObj)
 					if err != nil {
-						message := fmt.Sprintf("Error converting updated %s to JSON: %s", key, err)
+						message := fmt.Sprintf(convertJSONError, key, err)
 						return false, false, message
 					}
 					oJSON, err := json.Marshal(oldObj)
 					if err != nil {
-						message := fmt.Sprintf("Error converting updated %s to JSON: %s", key, err)
+						message := fmt.Sprintf(convertJSONError, key, err)
 						return false, false, message
 					}
 					if !reflect.DeepEqual(nJSON, oJSON) {
@@ -1327,7 +1353,8 @@ func updateTemplate(
 }
 
 // AppendCondition check and appends conditions
-func AppendCondition(conditions []policyv1.Condition, newCond *policyv1.Condition, resourceType string, resolved ...bool) (conditionsRes []policyv1.Condition) {
+func AppendCondition(conditions []policyv1.Condition, newCond *policyv1.Condition, resourceType string,
+	resolved ...bool) (conditionsRes []policyv1.Condition) {
 	defer recoverFlow()
 	lastIndex := len(conditions)
 	if lastIndex > 0 {
@@ -1421,7 +1448,8 @@ func updatePolicyStatus(policies map[string]*policyv1.ConfigurationPolicy) (*pol
 			createParentPolicyEvent(instance)
 		}
 		if reconcilingAgent.recorder != nil {
-			reconcilingAgent.recorder.Event(instance, "Normal", "Policy updated", fmt.Sprintf("Policy status is: %v", instance.Status.ComplianceState))
+			reconcilingAgent.recorder.Event(instance, "Normal", "Policy updated", fmt.Sprintf("Policy status is: %v",
+				instance.Status.ComplianceState))
 		}
 	}
 	return nil, nil
@@ -1438,8 +1466,8 @@ func handleRemovingPolicy(name string) {
 func handleAddingPolicy(plc *policyv1.ConfigurationPolicy) error {
 	allNamespaces, err := common.GetAllNamespaces()
 	if err != nil {
-		glog.Errorf("reason: error fetching the list of available namespaces, subject: K8s API server, namespace: all, according to policy: %v, additional-info: %v",
-			plc.Name, err)
+		glog.Errorf("reason: error fetching the list of available namespaces,"+
+			" subject: K8s API server, namespace: all, according to policy: %v, additional-info: %v", plc.Name, err)
 		return err
 	}
 	//clean up that policy from the existing namepsaces, in case the modification is in the namespace selector
@@ -1451,7 +1479,8 @@ func handleAddingPolicy(plc *policyv1.ConfigurationPolicy) error {
 			}
 		}
 	}
-	selectedNamespaces := common.GetSelectedNamespaces(plc.Spec.NamespaceSelector.Include, plc.Spec.NamespaceSelector.Exclude, allNamespaces)
+	selectedNamespaces := common.GetSelectedNamespaces(plc.Spec.NamespaceSelector.Include,
+		plc.Spec.NamespaceSelector.Exclude, allNamespaces)
 	for _, ns := range selectedNamespaces {
 		key := fmt.Sprintf("%s/%s", ns, plc.Name)
 		availablePolicies.AddObject(key, plc)
