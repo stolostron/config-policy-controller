@@ -517,8 +517,8 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		}
 
 		if exists {
-			updated, throwSpecViolation, msg := updateTemplate(strings.ToLower(string(objectT.ComplianceType)), namespaced, namespace, name,
-				remediation, rsrc, unstruct, dclient, unstruct.Object["kind"].(string), nil)
+			updated, throwSpecViolation, msg := updateTemplate(strings.ToLower(string(objectT.ComplianceType)), namespaced,
+				namespace, name, remediation, rsrc, unstruct, dclient, unstruct.Object["kind"].(string), nil)
 			if !updated && throwSpecViolation {
 				compliant = false
 			} else if !updated && msg != "" {
@@ -1214,140 +1214,85 @@ func isBlacklisted(key string) (result bool) {
 	return false
 }
 
+func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured, remediation policyv1.RemediationAction,
+	complianceType string, typeStr string, name string, res dynamic.ResourceInterface) (a bool, b bool, c string) {
+	var err error
+	updateNeeded := false
+	for key := range unstruct.Object {
+		if !isBlacklisted(key) {
+			newObj := unstruct.Object[key]
+			oldObj := existingObj.UnstructuredContent()[key]
+			if newObj == nil || oldObj == nil {
+				return false, false, ""
+			}
+
+			//merge changes into new spec
+			var mergedObj interface{}
+			switch newObj := newObj.(type) {
+			case []interface{}:
+				mergedObj, err = compareLists(newObj, oldObj.([]interface{}), complianceType)
+			case map[string]interface{}:
+				mergedObj, err = compareSpecs(newObj, oldObj.(map[string]interface{}), complianceType)
+			}
+			if err != nil {
+				message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
+				return false, false, message
+			}
+			//check if merged spec has changed
+			nJSON, err := json.Marshal(mergedObj)
+			if err != nil {
+				message := fmt.Sprintf(convertJSONError, key, err)
+				return false, false, message
+			}
+			oJSON, err := json.Marshal(oldObj)
+			if err != nil {
+				message := fmt.Sprintf(convertJSONError, key, err)
+				return false, false, message
+			}
+			if !reflect.DeepEqual(nJSON, oJSON) {
+				updateNeeded = true
+			}
+			mapMtx := sync.RWMutex{}
+			mapMtx.Lock()
+			existingObj.UnstructuredContent()[key] = mergedObj
+			mapMtx.Unlock()
+			if updateNeeded {
+				if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform)) {
+					return false, true, ""
+				}
+				//enforce
+				glog.V(4).Infof("Updating %v template `%v`...", typeStr, name)
+				_, err = res.Update(existingObj, metav1.UpdateOptions{})
+				if errors.IsNotFound(err) {
+					message := fmt.Sprintf("`%v` is not present and must be created", typeStr)
+					return false, false, message
+				}
+				if err != nil {
+					message := fmt.Sprintf("Error updating the object `%v`, the error is `%v`", name, err)
+					return false, false, message
+				}
+				glog.V(4).Infof("Resource `%v` updated\n", name)
+			}
+		}
+	}
+	return false, false, ""
+}
+
 func updateTemplate(
 	complianceType string, namespaced bool, namespace string, name string, remediation policyv1.RemediationAction,
 	rsrc schema.GroupVersionResource, unstruct unstructured.Unstructured, dclient dynamic.Interface,
 	typeStr string, parent *policyv1.ConfigurationPolicy) (success bool, throwSpecViolation bool, message string) {
-	updateNeeded := false
+	var res dynamic.ResourceInterface
 	if namespaced {
-		res := dclient.Resource(rsrc).Namespace(namespace)
-		existingObj, err := res.Get(name, metav1.GetOptions{})
-		if err != nil {
-			glog.Errorf(getObjError, name)
-		} else {
-			for key := range unstruct.Object {
-				if !isBlacklisted(key) {
-					newObj := unstruct.Object[key]
-					oldObj := existingObj.UnstructuredContent()[key]
-					if newObj == nil || oldObj == nil {
-						return false, false, ""
-					}
-
-					//merge changes into new spec
-					var mergedObj interface{}
-					switch newObj := newObj.(type) {
-					case []interface{}:
-						mergedObj, err = compareLists(newObj, oldObj.([]interface{}), complianceType)
-					case map[string]interface{}:
-						mergedObj, err = compareSpecs(newObj, oldObj.(map[string]interface{}), complianceType)
-					}
-					if err != nil {
-						message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
-						return false, false, message
-					}
-					//check if merged spec has changed
-					nJSON, err := json.Marshal(mergedObj)
-					if err != nil {
-						message := fmt.Sprintf(convertJSONError, key, err)
-						return false, false, message
-					}
-					oJSON, err := json.Marshal(oldObj)
-					if err != nil {
-						message := fmt.Sprintf(convertJSONError, key, err)
-						return false, false, message
-					}
-					if !reflect.DeepEqual(nJSON, oJSON) {
-						updateNeeded = true
-					}
-					mapMtx := sync.RWMutex{}
-					mapMtx.Lock()
-					existingObj.UnstructuredContent()[key] = mergedObj
-					mapMtx.Unlock()
-					if updateNeeded {
-						if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform)) {
-							return false, true, ""
-						}
-						//enforce
-						glog.V(4).Infof("Updating %v template `%v`...", typeStr, name)
-						_, err = res.Update(existingObj, metav1.UpdateOptions{})
-						if errors.IsNotFound(err) {
-							message := fmt.Sprintf("`%v` is not present and must be created", typeStr)
-							return false, false, message
-						}
-						if err != nil {
-							message := fmt.Sprintf("Error updating the object `%v`, the error is `%v`", name, err)
-							return false, false, message
-						}
-						glog.V(4).Infof("Resource `%v` updated\n", name)
-					}
-				}
-			}
-			return false, false, ""
-		}
+		res = dclient.Resource(rsrc).Namespace(namespace)
 	} else {
-		res := dclient.Resource(rsrc)
-		existingObj, err := res.Get(name, metav1.GetOptions{})
-		if err != nil {
-			glog.Errorf(getObjError, name)
-		} else {
-			for key := range unstruct.Object {
-				if !isBlacklisted(key) {
-					newObj := unstruct.Object[key]
-					oldObj := existingObj.UnstructuredContent()[key]
-					if newObj == nil || oldObj == nil {
-						return false, false, ""
-					}
-					//merge changes into new spec
-					var mergedObj interface{}
-					switch newObj := newObj.(type) {
-					case []interface{}:
-						mergedObj, err = compareLists(newObj, oldObj.([]interface{}), complianceType)
-					case map[string]interface{}:
-						mergedObj, err = compareSpecs(newObj, oldObj.(map[string]interface{}), complianceType)
-					}
-					if err != nil {
-						message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
-						return false, false, message
-					}
-					//check if merged spec has changed
-					nJSON, err := json.Marshal(mergedObj)
-					if err != nil {
-						message := fmt.Sprintf(convertJSONError, key, err)
-						return false, false, message
-					}
-					oJSON, err := json.Marshal(oldObj)
-					if err != nil {
-						message := fmt.Sprintf(convertJSONError, key, err)
-						return false, false, message
-					}
-					if !reflect.DeepEqual(nJSON, oJSON) {
-						updateNeeded = true
-					}
-					mapMtx := sync.RWMutex{}
-					mapMtx.Lock()
-					existingObj.UnstructuredContent()[key] = mergedObj
-					mapMtx.Unlock()
-					if updateNeeded {
-						if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform)) {
-							return false, true, ""
-						}
-						//enforce
-						glog.V(4).Infof("Updating %v template `%v`...", typeStr, name)
-						_, err = res.Update(existingObj, metav1.UpdateOptions{})
-						if errors.IsNotFound(err) {
-							message := fmt.Sprintf("`%v` is not present and must be created", typeStr)
-							return false, false, message
-						}
-						if err != nil {
-							message := fmt.Sprintf("Error updating the object `%v`, the error is `%v`", name, err)
-							return false, false, message
-						}
-						glog.V(4).Infof("Resource `%v` updated\n", name)
-					}
-				}
-			}
-			return false, false, ""
-		}
+		res = dclient.Resource(rsrc)
+	}
+	existingObj, err := res.Get(name, metav1.GetOptions{})
+	if err != nil {
+		glog.Errorf(getObjError, name)
+	} else {
+		return handleKeys(unstruct, existingObj, remediation, complianceType, typeStr, name, res)
 	}
 	return false, false, ""
 }
