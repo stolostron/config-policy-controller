@@ -720,127 +720,32 @@ func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string
 func handleMissingMustNotHave(plc *policyv1.ConfigurationPolicy, index int, name string,
 	rsrc schema.GroupVersionResource) bool {
 	glog.V(7).Infof("entering `does not exists` & ` must not have`")
-	var cond *policyv1.Condition
-	var update bool
 	message := fmt.Sprintf("%v `%v` is missing as it should be, therefore this Object template is compliant",
 		rsrc.Resource, name)
-	cond = &policyv1.Condition{
-		Type:               "succeeded",
-		Status:             corev1.ConditionTrue,
-		LastTransitionTime: metav1.Now(),
-		Reason:             "K8s must `not` have object already missing",
-		Message:            message,
-	}
-	if len((*plc).Status.CompliancyDetails) <= index {
-		(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
-			ComplianceState: policyv1.Compliant,
-			Conditions:      []policyv1.Condition{},
-		})
-	}
-	if (*plc).Status.CompliancyDetails[index].ComplianceState != policyv1.Compliant {
-		update = true
-	}
-	(*plc).Status.CompliancyDetails[index].ComplianceState = policyv1.Compliant
-
-	if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
-		conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, rsrc.Resource, true)
-		(*plc).Status.CompliancyDetails[index].Conditions = conditions
-		update = true
-	}
-	return update
+	return createNotification(plc, index, "K8s must `not` have object already missing", message)
 }
 
 func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, index int, name string,
 	rsrc schema.GroupVersionResource) (updateNeeded bool) {
-	var cond *policyv1.Condition
-	var update bool
 	message := fmt.Sprintf("%v `%v` exists as it should be, therefore this Object template is compliant",
 		rsrc.Resource, name)
-	cond = &policyv1.Condition{
-		Type:               "notification",
-		Status:             corev1.ConditionTrue,
-		LastTransitionTime: metav1.Now(),
-		Reason:             "K8s `must have` object already exists",
-		Message:            message,
-	}
-	if len((*plc).Status.CompliancyDetails) <= index {
-		(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
-			ComplianceState: policyv1.Compliant,
-			Conditions:      []policyv1.Condition{},
-		})
-	}
-	if (*plc).Status.CompliancyDetails[index].ComplianceState != policyv1.Compliant {
-		update = true
-	}
-	(*plc).Status.CompliancyDetails[index].ComplianceState = policyv1.Compliant
-
-	if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
-		conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, rsrc.Resource, true)
-		(*plc).Status.CompliancyDetails[index].Conditions = conditions
-		update = true
-	}
-	return update
+	return createNotification(plc, index, "K8s must `not` have object already missing", message)
 }
 
 func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, index int, action policyv1.RemediationAction,
 	namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
 	dclient dynamic.Interface) (result bool, erro error) {
 	glog.V(7).Infof("entering `exists` & ` must not have`")
-	var cond *policyv1.Condition
 	var update, deleted bool
 	var err error
 
 	if strings.ToLower(string(action)) == strings.ToLower(string(policyv1.Enforce)) {
 		if deleted, err = deleteObject(namespaced, namespace, name, rsrc, dclient); !deleted {
 			message := fmt.Sprintf("%v `%v` exists, and cannot be deleted, reason: `%v`", rsrc.Resource, name, err)
-			cond = &policyv1.Condition{
-				Type:               "violation",
-				Status:             corev1.ConditionFalse,
-				LastTransitionTime: metav1.Now(),
-				Reason:             "K8s deletion error",
-				Message:            message,
-			}
-			if len((*plc).Status.CompliancyDetails) <= index {
-				(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
-					ComplianceState: policyv1.NonCompliant,
-					Conditions:      []policyv1.Condition{},
-				})
-			}
-			if (*plc).Status.CompliancyDetails[index].ComplianceState != policyv1.NonCompliant {
-				update = true
-			}
-			(*plc).Status.CompliancyDetails[index].ComplianceState = policyv1.NonCompliant
-
-			if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
-				conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, "", false)
-				(*plc).Status.CompliancyDetails[index].Conditions = conditions
-				update = true
-			}
+			update = createViolation(plc, index, "K8s deletion error", message)
 		} else { //deleted successfully
 			message := fmt.Sprintf("%v `%v` existed, and was deleted successfully", rsrc.Resource, name)
-			cond = &policyv1.Condition{
-				Type:               "notification",
-				Status:             corev1.ConditionTrue,
-				LastTransitionTime: metav1.Now(),
-				Reason:             "K8s deletion success",
-				Message:            message,
-			}
-			if len((*plc).Status.CompliancyDetails) <= index {
-				(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
-					ComplianceState: policyv1.Compliant,
-					Conditions:      []policyv1.Condition{},
-				})
-			}
-			if (*plc).Status.CompliancyDetails[index].ComplianceState != policyv1.Compliant {
-				update = true
-			}
-			(*plc).Status.CompliancyDetails[index].ComplianceState = policyv1.Compliant
-
-			if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
-				conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, "", false)
-				(*plc).Status.CompliancyDetails[index].Conditions = conditions
-				update = true
-			}
+			update = createNotification(plc, index, "K8s deletion success", message)
 		}
 	}
 	return update, err
@@ -856,59 +761,14 @@ func handleMissingMustHave(plc *policyv1.ConfigurationPolicy, index int, action 
 
 	var update, created bool
 	var err error
-	var cond *policyv1.Condition
 	if strings.ToLower(string(action)) == strings.ToLower(string(policyv1.Enforce)) {
 		if created, err = createObject(namespaced, namespace, name, rsrc, unstruct, dclient); !created {
 			message := fmt.Sprintf("%v `%v` is missing, and cannot be created, reason: `%v`", rsrc.Resource, name, err)
-			cond = &policyv1.Condition{
-				Type:               "violation",
-				Status:             corev1.ConditionFalse,
-				LastTransitionTime: metav1.Now(),
-				Reason:             "K8s creation error",
-				Message:            message,
-			}
-			if len((*plc).Status.CompliancyDetails) <= index {
-				(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
-					ComplianceState: policyv1.NonCompliant,
-					Conditions:      []policyv1.Condition{},
-				})
-			}
-			if (*plc).Status.CompliancyDetails[index].ComplianceState != policyv1.NonCompliant {
-				update = true
-			}
-			(*plc).Status.CompliancyDetails[index].ComplianceState = policyv1.NonCompliant
-
-			if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
-				conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, "", false)
-				(*plc).Status.CompliancyDetails[index].Conditions = conditions
-				update = true
-			}
+			update = createViolation(plc, index, "K8s creation error", message)
 		} else { //created successfully
 			glog.V(8).Infof("entering `%v` created successfully", name)
 			message := fmt.Sprintf("%v `%v` was missing, and was created successfully", rsrc.Resource, name)
-			cond = &policyv1.Condition{
-				Type:               "notification",
-				Status:             corev1.ConditionTrue,
-				LastTransitionTime: metav1.Now(),
-				Reason:             "K8s creation success",
-				Message:            message,
-			}
-			if len((*plc).Status.CompliancyDetails) <= index {
-				(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
-					ComplianceState: policyv1.Compliant,
-					Conditions:      []policyv1.Condition{},
-				})
-			}
-			if (*plc).Status.CompliancyDetails[index].ComplianceState != policyv1.Compliant {
-				update = true
-			}
-			(*plc).Status.CompliancyDetails[index].ComplianceState = policyv1.Compliant
-
-			if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
-				conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, "", false)
-				(*plc).Status.CompliancyDetails[index].Conditions = conditions
-				update = true
-			}
+			update = createNotification(plc, index, "K8s creation success", message)
 		}
 	}
 	return update, err
@@ -1214,8 +1074,9 @@ func isBlacklisted(key string) (result bool) {
 	return false
 }
 
-func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured, remediation policyv1.RemediationAction,
-	complianceType string, typeStr string, name string, res dynamic.ResourceInterface) (a bool, b bool, c string) {
+func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
+	remediation policyv1.RemediationAction, complianceType string, typeStr string, name string,
+	res dynamic.ResourceInterface) (a bool, b bool, c string) {
 	var err error
 	updateNeeded := false
 	for key := range unstruct.Object {
