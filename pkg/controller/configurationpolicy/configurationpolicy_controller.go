@@ -224,18 +224,19 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 	}
 }
 
-func addConditionToStatus(plc *policyv1.ConfigurationPolicy, cond *policyv1.Condition, index int) (updateNeeded bool) {
+func addConditionToStatus(plc *policyv1.ConfigurationPolicy, cond *policyv1.Condition, index int,
+	complianceState policyv1.ComplianceState) (updateNeeded bool) {
 	var update bool
 	if len((*plc).Status.CompliancyDetails) <= index {
 		(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
-			ComplianceState: policyv1.NonCompliant,
+			ComplianceState: complianceState,
 			Conditions:      []policyv1.Condition{},
 		})
 	}
-	if (*plc).Status.CompliancyDetails[index].ComplianceState != policyv1.NonCompliant {
+	if (*plc).Status.CompliancyDetails[index].ComplianceState != complianceState {
 		update = true
 	}
-	(*plc).Status.CompliancyDetails[index].ComplianceState = policyv1.NonCompliant
+	(*plc).Status.CompliancyDetails[index].ComplianceState = complianceState
 
 	if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
 		conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, "", false)
@@ -254,7 +255,7 @@ func createViolation(plc *policyv1.ConfigurationPolicy, index int, reason string
 		Reason:             reason,
 		Message:            message,
 	}
-	return addConditionToStatus(plc, cond, index)
+	return addConditionToStatus(plc, cond, index, policyv1.NonCompliant)
 }
 
 func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason string, message string) (result bool) {
@@ -266,7 +267,7 @@ func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason str
 		Reason:             reason,
 		Message:            message,
 	}
-	return addConditionToStatus(plc, cond, index)
+	return addConditionToStatus(plc, cond, index, policyv1.Compliant)
 }
 
 func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*metav1.APIResourceList,
