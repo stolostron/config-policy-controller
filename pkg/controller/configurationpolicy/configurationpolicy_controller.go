@@ -741,7 +741,8 @@ func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, rsrc schema.GroupVe
 }
 
 func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.RemediationAction,
-	rsrc schema.GroupVersionResource, dclient dynamic.Interface, metadata map[string]interface{}) (result bool, erro error) {
+	rsrc schema.GroupVersionResource, dclient dynamic.Interface,
+	metadata map[string]interface{}) (result bool, erro error) {
 	glog.V(7).Infof("entering `exists` & ` must not have`")
 
 	name := metadata["name"].(string)
@@ -765,7 +766,8 @@ func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.
 }
 
 func handleMissingMustHave(plc *policyv1.ConfigurationPolicy, action policyv1.RemediationAction,
-	rsrc schema.GroupVersionResource, dclient dynamic.Interface, metadata map[string]interface{}) (result bool, erro error) {
+	rsrc schema.GroupVersionResource, dclient dynamic.Interface,
+	metadata map[string]interface{}) (result bool, erro error) {
 	glog.V(7).Infof("entering `does not exists` & ` must have`")
 
 	name := metadata["name"].(string)
