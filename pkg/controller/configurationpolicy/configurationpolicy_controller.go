@@ -274,6 +274,15 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 	apigroups []*restmapper.APIGroupResources) {
 	fmt.Println(fmt.Sprintf("processing object templates for policy %s...", plc.GetName()))
 	plcNamespaces := getPolicyNamespaces(plc)
+	if plc.Spec.RemediationAction == "" {
+		message := "Policy does not have a RemediationAction specified"
+		update := createViolation(&plc, 0, "No RemediationAction", message)
+		if update {
+			recorder.Event(&plc, eventWarning, fmt.Sprintf("policy: %s", plc.GetName()), convertPolicyStatusToString(&plc))
+			addForUpdate(&plc)
+		}
+		return
+	}
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
 		compliantObjects := map[string][]string{}
