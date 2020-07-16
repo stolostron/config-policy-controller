@@ -70,8 +70,6 @@ spec:
             severity:
               description: 'Severity : low, medium or high'
               type: string
-          required:
-          - remediationAction
           type: object
         status:
           description: ConfigurationPolicyStatus is the status for a Policy resource
