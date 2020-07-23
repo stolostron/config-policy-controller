@@ -256,8 +256,6 @@ func createViolation(plc *policyv1.ConfigurationPolicy, index int, reason string
 		Reason:             reason,
 		Message:            message,
 	}
-	fmt.Println("CREATING VIOlATION")
-	fmt.Println(cond)
 	return addConditionToStatus(plc, cond, index, policyv1.NonCompliant)
 }
 
@@ -1154,8 +1152,6 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 				mergedObj = newObj
 			}
 			if typeErr != "" {
-				fmt.Println("---------- TYPEERR FOUND ----------")
-				fmt.Println(typeErr)
 				return false, false, typeErr, true
 			}
 			if err != nil {
