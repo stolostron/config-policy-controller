@@ -256,6 +256,8 @@ func createViolation(plc *policyv1.ConfigurationPolicy, index int, reason string
 		Reason:             reason,
 		Message:            message,
 	}
+	fmt.Println("CREATING VIOlATION")
+	fmt.Println(cond)
 	return addConditionToStatus(plc, cond, index, policyv1.NonCompliant)
 }
 
@@ -316,6 +318,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		numCompliant := 0
 		numNonCompliant := 0
 
+		handled := false
+
 		for _, ns := range relevantNamespaces {
 			names, compliant, objKind := handleObjects(objectT, ns, indx, &plc, config, recorder, apiresourcelist, apigroups)
 			if objKind != "" {
@@ -323,7 +327,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			}
 			if names == nil {
 				//object template enforced, already handled in handleObjects
-				continue
+				handled = true
 			} else {
 				enforce = false
 				if !compliant {
@@ -336,7 +340,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			}
 		}
 
-		if !enforce {
+		if !handled && !enforce {
 			objData := map[string]interface{}{
 				"indx":        indx,
 				"kind":        kind,
@@ -556,20 +560,23 @@ func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.
 		}
 	}
 
-	if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform)) {
-		return []string{name}, compliant, rsrc.Resource
-	}
-
 	if updateNeeded {
 		eventType := eventNormal
 		if data["index"].(int) < len(policy.Status.CompliancyDetails) &&
 			policy.Status.CompliancyDetails[data["index"].(int)].ComplianceState == policyv1.NonCompliant {
 			eventType = eventWarning
+			compliant = false
 		}
 		recorder.Event(policy, eventType, fmt.Sprintf(eventFmtStr, policy.GetName(), name),
 			convertPolicyStatusToString(policy))
 		addForUpdate(policy)
+		return nil, compliant, ""
 	}
+
+	if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform)) {
+		return []string{name}, compliant, rsrc.Resource
+	}
+
 	return nil, compliant, ""
 }
 
@@ -1139,6 +1146,8 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 				mergedObj = newObj
 			}
 			if typeErr != "" {
+				fmt.Println("---------- TYPEERR FOUND ----------")
+				fmt.Println(typeErr)
 				return false, false, typeErr
 			}
 			if err != nil {
