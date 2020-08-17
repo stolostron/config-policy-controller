@@ -1108,9 +1108,9 @@ func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{}
 	return merged.(map[string]interface{}), nil
 }
 
-func isBlacklisted(key string) (result bool) {
-	blacklist := []string{"apiVersion", "metadata", "kind", "status"}
-	for _, val := range blacklist {
+func isDenylisted(key string) (result bool) {
+	denylist := []string{"apiVersion", "metadata", "kind"}
+	for _, val := range denylist {
 		if key == val {
 			return true
 		}
@@ -1124,7 +1124,7 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 	var err error
 	updateNeeded := false
 	for key := range unstruct.Object {
-		if !isBlacklisted(key) {
+		if !isDenylisted(key) {
 			newObj := unstruct.Object[key]
 			oldObj := existingObj.UnstructuredContent()[key]
 
