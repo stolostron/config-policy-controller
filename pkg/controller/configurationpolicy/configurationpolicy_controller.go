@@ -764,7 +764,7 @@ func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, rsrc schema.GroupVe
 
 	message := fmt.Sprintf("%v `%v` exists as it should be, therefore this Object template is compliant",
 		rsrc.Resource, name)
-	return createNotification(plc, index, "K8s must have object already missing", message)
+	return createNotification(plc, index, "K8s must have object already exists", message)
 }
 
 func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.RemediationAction,
@@ -1130,36 +1130,36 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 			typeErr := ""
 			//merge changes into new spec
 			var mergedObj interface{}
-			if oldObj == nil {
-				mergedObj = newObj
-			} else {
-				switch newObj := newObj.(type) {
+			switch newObj := newObj.(type) {
+			case []interface{}:
+				switch oldObj := oldObj.(type) {
 				case []interface{}:
-					switch oldObj := oldObj.(type) {
-					case []interface{}:
-						mergedObj, err = compareLists(newObj, oldObj, complianceType)
-					default:
-						typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
-							key)
-					}
-				case map[string]interface{}:
-					switch oldObj := oldObj.(type) {
-					case (map[string]interface{}):
-						mergedObj, err = compareSpecs(newObj, oldObj, complianceType)
-					default:
-						typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
-							key)
-					}
-				default:
+					mergedObj, err = compareLists(newObj, oldObj, complianceType)
+				case nil:
 					mergedObj = newObj
+				default:
+					typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
+						key)
 				}
-				if typeErr != "" {
-					return false, false, typeErr, true
+			case map[string]interface{}:
+				switch oldObj := oldObj.(type) {
+				case (map[string]interface{}):
+					mergedObj, err = compareSpecs(newObj, oldObj, complianceType)
+				case nil:
+					mergedObj = newObj
+				default:
+					typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
+						key)
 				}
-				if err != nil {
-					message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
-					return false, false, message, true
-				}
+			default:
+				mergedObj = newObj
+			}
+			if typeErr != "" {
+				return false, false, typeErr, true
+			}
+			if err != nil {
+				message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
+				return false, false, message, true
 			}
 			//check if merged spec has changed
 			nJSON, err := json.Marshal(mergedObj)
