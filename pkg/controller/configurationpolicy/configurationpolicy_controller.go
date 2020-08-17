@@ -1127,36 +1127,39 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 		if !isBlacklisted(key) {
 			newObj := unstruct.Object[key]
 			oldObj := existingObj.UnstructuredContent()[key]
-
 			typeErr := ""
 			//merge changes into new spec
 			var mergedObj interface{}
-			switch newObj := newObj.(type) {
-			case []interface{}:
-				switch oldObj := oldObj.(type) {
-				case []interface{}:
-					mergedObj, err = compareLists(newObj, oldObj, complianceType)
-				default:
-					typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
-						key)
-				}
-			case map[string]interface{}:
-				switch oldObj := oldObj.(type) {
-				case (map[string]interface{}):
-					mergedObj, err = compareSpecs(newObj, oldObj, complianceType)
-				default:
-					typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
-						key)
-				}
-			default:
+			if oldObj == nil {
 				mergedObj = newObj
-			}
-			if typeErr != "" {
-				return false, false, typeErr, true
-			}
-			if err != nil {
-				message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
-				return false, false, message, true
+			} else {
+				switch newObj := newObj.(type) {
+				case []interface{}:
+					switch oldObj := oldObj.(type) {
+					case []interface{}:
+						mergedObj, err = compareLists(newObj, oldObj, complianceType)
+					default:
+						typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
+							key)
+					}
+				case map[string]interface{}:
+					switch oldObj := oldObj.(type) {
+					case (map[string]interface{}):
+						mergedObj, err = compareSpecs(newObj, oldObj, complianceType)
+					default:
+						typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
+							key)
+					}
+				default:
+					mergedObj = newObj
+				}
+				if typeErr != "" {
+					return false, false, typeErr, true
+				}
+				if err != nil {
+					message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
+					return false, false, message, true
+				}
 			}
 			//check if merged spec has changed
 			nJSON, err := json.Marshal(mergedObj)
