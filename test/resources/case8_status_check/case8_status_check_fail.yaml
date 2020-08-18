@@ -16,4 +16,5 @@ spec:
           name: policy-pod-to-check
         status:
           compliant: NonCompliant
+          compliancyDetails: []
           
