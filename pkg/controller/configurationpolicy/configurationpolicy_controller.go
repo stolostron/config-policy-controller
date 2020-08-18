@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -443,7 +444,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	exists := true
 	objNames := []string{}
 	remediation := policy.Spec.RemediationAction
-	name, kind, metaNamespace := getDetails(unstruct)
+	name, kind, metaNamespace, selfLink := getDetails(unstruct)
 	if metaNamespace != "" {
 		namespace = metaNamespace
 	}
@@ -475,6 +476,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		}
 	}
 	objShouldExist := strings.ToLower(string(objectT.ComplianceType)) != strings.ToLower(string(policyv1.MustNotHave))
+	rsrcKind = ""
 	if len(objNames) == 1 {
 		name = objNames[0]
 		return handleSingleObj(policy, remediation, exists, objShouldExist, rsrc, dclient, objectT, map[string]interface{}{
@@ -484,21 +486,47 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			"index":      index,
 			"unstruct":   unstruct,
 		})
-	}
-	if !exists && objShouldExist {
-		return objNames, false, rsrc.Resource
-	}
-	if exists && !objShouldExist {
-		return objNames, false, rsrc.Resource
-	}
-	if !exists && !objShouldExist {
-		return objNames, true, rsrc.Resource
-	}
-	if exists && objShouldExist {
-		return objNames, true, rsrc.Resource
+	} else if !exists && objShouldExist {
+		compliant = false
+		rsrcKind = rsrc.Resource
+	} else if exists && !objShouldExist {
+		compliant = false
+		rsrcKind = rsrc.Resource
+	} else if !exists && !objShouldExist {
+		compliant = true
+		rsrcKind = rsrc.Resource
+	} else if exists && objShouldExist {
+		compliant = true
+		rsrcKind = rsrc.Resource
+	} else {
+		objNames = nil
 	}
 
-	return nil, compliant, ""
+	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, selfLink)
+	return objNames, compliant, rsrcKind
+}
+
+func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
+	namespace string, namespaced bool, objNames []string, selfLink string) {
+	for _, name := range objNames {
+
+		var relatedObject policyv1.RelatedObject
+		relatedObject.Compliance = strconv.FormatBool(compliant)
+		relatedObject.Reason = ""
+
+		var metadata policyv1.ObjectMetadata
+		metadata.Name = name
+		if namespaced {
+			metadata.Namespace = namespace
+		} else {
+			metadata.Namespace = ""
+		}
+		metadata.SelfLink = selfLink
+		relatedObject.Object.APIVersion = fmt.Sprintf("%s/%s", rsrc.Group, rsrc.Version)
+		relatedObject.Object.Kind = rsrc.Resource
+		relatedObject.Object.Metadata = metadata
+		policy.Status.RelatedObjects = append(policy.Status.RelatedObjects, relatedObject)
+	}
 }
 
 func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.RemediationAction, exists bool,
@@ -694,10 +722,11 @@ func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtens
 	return mapping
 }
 
-func getDetails(unstruct unstructured.Unstructured) (name string, kind string, namespace string) {
+func getDetails(unstruct unstructured.Unstructured) (name string, kind string, namespace string, selfLink string) {
 	name = ""
 	kind = ""
 	namespace = ""
+	selfLink = ""
 	if md, ok := unstruct.Object["metadata"]; ok {
 
 		metadata := md.(map[string]interface{})
@@ -709,13 +738,15 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 			glog.V(5).Infof("overriding the namespace as it is specified in objectTemplates...")
 			namespace = objectns.(string)
 		}
-
+		if objectLink, ok := metadata["selfLink"]; ok {
+			selfLink = objectLink.(string)
+		}
 	}
 
 	if objKind, ok := unstruct.Object["kind"]; ok {
 		kind = objKind.(string)
 	}
-	return name, kind, namespace
+	return name, kind, namespace, selfLink
 }
 
 func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string,
