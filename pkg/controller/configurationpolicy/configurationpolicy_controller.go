@@ -1115,7 +1115,7 @@ func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{}
 }
 
 func isDenylisted(key string, remediation policyv1.RemediationAction) (result bool) {
-	denylist := []string{"apiVersion", "metadata", "kind"}
+	denylist := []string{"apiVersion", "kind"}
 	for _, val := range denylist {
 		if key == val {
 			return true
@@ -1127,6 +1127,21 @@ func isDenylisted(key string, remediation policyv1.RemediationAction) (result bo
 	return false
 }
 
+func formatTemplate(unstruct unstructured.Unstructured, key string) (obj interface{}) {
+	if key == "metadata" {
+		metadata := unstruct.Object[key].(map[string]interface{})
+		md := map[string]interface{}{}
+		if labels, ok := metadata["labels"]; ok {
+			md["labels"] = labels
+		}
+		if annos, ok := metadata["annotations"]; ok {
+			md["annotations"] = annos
+		}
+		return md
+	}
+	return unstruct.Object[key]
+}
+
 func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
 	remediation policyv1.RemediationAction, complianceType string, typeStr string, name string,
 	res dynamic.ResourceInterface) (a bool, b bool, c string, d bool) {
@@ -1134,7 +1149,7 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 	updateNeeded := false
 	for key := range unstruct.Object {
 		if !isDenylisted(key, remediation) {
-			newObj := unstruct.Object[key]
+			newObj := formatTemplate(unstruct, key)
 			oldObj := existingObj.UnstructuredContent()[key]
 			typeErr := ""
 			//merge changes into new spec
