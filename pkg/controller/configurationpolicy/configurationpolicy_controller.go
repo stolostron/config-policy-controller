@@ -804,7 +804,7 @@ func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, rsrc schema.GroupVe
 
 	message := fmt.Sprintf("%v `%v` exists as it should be, therefore this Object template is compliant",
 		rsrc.Resource, name)
-	return createNotification(plc, index, "K8s must have object already missing", message)
+	return createNotification(plc, index, "K8s must have object already exists", message)
 }
 
 func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.RemediationAction,
@@ -1076,6 +1076,12 @@ func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
 		if !ok {
 			return x1
 		}
+		if len(x2) > len(x1) {
+			if ctype == "musthave" {
+				return mergeArrays(x1, x2)
+			}
+			return x1
+		}
 		if len(x2) > 0 {
 			_, ok := x2[0].(map[string]interface{})
 			if ok {
@@ -1148,10 +1154,13 @@ func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{}
 	return merged.(map[string]interface{}), nil
 }
 
-func isBlacklisted(key string) (result bool) {
-	blacklist := []string{"apiVersion", "metadata", "kind", "status"}
-	for _, val := range blacklist {
+func isDenylisted(key string, remediation policyv1.RemediationAction) (result bool) {
+	denylist := []string{"apiVersion", "metadata", "kind"}
+	for _, val := range denylist {
 		if key == val {
+			return true
+		}
+		if key == "status" && remediation == policyv1.Enforce {
 			return true
 		}
 	}
@@ -1164,10 +1173,9 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 	var err error
 	updateNeeded := false
 	for key := range unstruct.Object {
-		if !isBlacklisted(key) {
+		if !isDenylisted(key, remediation) {
 			newObj := unstruct.Object[key]
 			oldObj := existingObj.UnstructuredContent()[key]
-
 			typeErr := ""
 			//merge changes into new spec
 			var mergedObj interface{}
@@ -1176,6 +1184,8 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 				switch oldObj := oldObj.(type) {
 				case []interface{}:
 					mergedObj, err = compareLists(newObj, oldObj, complianceType)
+				case nil:
+					mergedObj = newObj
 				default:
 					typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
 						key)
@@ -1184,6 +1194,8 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 				switch oldObj := oldObj.(type) {
 				case (map[string]interface{}):
 					mergedObj, err = compareSpecs(newObj, oldObj, complianceType)
+				case nil:
+					mergedObj = newObj
 				default:
 					typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
 						key)
