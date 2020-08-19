@@ -479,7 +479,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	rsrcKind = ""
 	if len(objNames) == 1 {
 		name = objNames[0]
-		return handleSingleObj(policy, remediation, exists, objShouldExist, rsrc, dclient, objectT, map[string]interface{}{
+		objNames, compliant, rsrcKind = handleSingleObj(policy, remediation, exists, objShouldExist, rsrc, dclient, objectT, map[string]interface{}{
 			"name":       name,
 			"namespace":  namespace,
 			"namespaced": namespaced,
