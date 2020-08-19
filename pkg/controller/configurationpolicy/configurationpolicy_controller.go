@@ -508,13 +508,17 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	return objNames, compliant, rsrcKind
 }
 
+// addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
+// details on whether the object is compliant or not compliant with the policy.
 func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
 	namespace string, namespaced bool, objNames []string, selfLink string) {
+	// initialize the related objects status
+	policy.Status.RelatedObjects = []policyv1.RelatedObject{}
 	for _, name := range objNames {
 
 		var relatedObject policyv1.RelatedObject
 		relatedObject.Compliance = strconv.FormatBool(compliant)
-		relatedObject.Reason = ""
+		relatedObject.Reason = "" // TODO
 
 		var metadata policyv1.ObjectMetadata
 		metadata.Name = name
