@@ -514,12 +514,12 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 		// Initialize the related object from the object handling
 		var relatedObject policyv1.RelatedObject
 		if compliant {
-			relatedObject.Compliance = string(policyv1.Compliant)
+			relatedObject.Compliant = string(policyv1.Compliant)
 		} else {
-			relatedObject.Compliance = string(policyv1.NonCompliant)
+			relatedObject.Compliant = string(policyv1.NonCompliant)
 		}
 
-		relatedObject.Reason = "" // TODO
+		relatedObject.Reason = "TODO" // TODO
 
 		var metadata policyv1.ObjectMetadata
 		metadata.Name = name
@@ -548,6 +548,7 @@ func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObj
 	}
 	if !updated {
 		policy.Status.RelatedObjects = append(policy.Status.RelatedObjects, relatedObject)
+		addForUpdate(policy)
 	}
 }
 

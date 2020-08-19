@@ -185,7 +185,7 @@ type RelatedObject struct {
 	//
 	Object ObjectResource `json:"object,omitempty"`
 	//
-	Compliance string `json:"compliance,omitempty"`
+	Compliant string `json:"compliant,omitempty"`
 	//
 	Reason string `json:"reason,omitempty"`
 }

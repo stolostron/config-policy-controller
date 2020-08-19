@@ -127,7 +127,8 @@ spec:
                 description: RelatedObject is the list of objects matched by this
                   Policy resource.
                 properties:
-                  compliance:
+                  compliant:
+                    description: Compliant or NonCompliant as determined by the policy for this resource.
                     type: string
                   object:
                     description: ObjectResource is an object identified by the policy
@@ -154,6 +155,7 @@ spec:
                         type: object
                     type: object
                   reason:
+                    description: A description of why the resource is not compliant or compliant.
                     type: string
                 type: object
               type: array
