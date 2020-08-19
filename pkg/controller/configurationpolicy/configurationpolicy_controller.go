@@ -1140,85 +1140,100 @@ func formatTemplate(unstruct unstructured.Unstructured, key string) (obj interfa
 	return unstruct.Object[key]
 }
 
-func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
-	remediation policyv1.RemediationAction, complianceType string, typeStr string, name string,
-	res dynamic.ResourceInterface) (a bool, b bool, c string, d bool) {
+func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
+	complianceType string) (errormsg string, update bool, merged interface{}, skip bool) {
 	var err error
 	updateNeeded := false
+	if !isDenylisted(key) {
+		newObj := formatTemplate(unstruct, key)
+		oldObj := existingObj.UnstructuredContent()[key]
+		typeErr := ""
+		//merge changes into new spec
+		var mergedObj interface{}
+		switch newObj := newObj.(type) {
+		case []interface{}:
+			switch oldObj := oldObj.(type) {
+			case []interface{}:
+				mergedObj, err = compareLists(newObj, oldObj, complianceType)
+			case nil:
+				mergedObj = newObj
+			default:
+				typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
+					key)
+			}
+		case map[string]interface{}:
+			switch oldObj := oldObj.(type) {
+			case (map[string]interface{}):
+				mergedObj, err = compareSpecs(newObj, oldObj, complianceType)
+			case nil:
+				mergedObj = newObj
+			default:
+				typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
+					key)
+			}
+		default:
+			mergedObj = newObj
+		}
+		if typeErr != "" {
+			return typeErr, false, mergedObj, false
+		}
+		if err != nil {
+			message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
+			return message, false, mergedObj, false
+		}
+		//check if merged spec has changed
+		nJSON, err := json.Marshal(mergedObj)
+		if err != nil {
+			message := fmt.Sprintf(convertJSONError, key, err)
+			return message, false, mergedObj, false
+		}
+		oJSON, err := json.Marshal(oldObj)
+		if err != nil {
+			message := fmt.Sprintf(convertJSONError, key, err)
+			return message, false, mergedObj, false
+		}
+		if !reflect.DeepEqual(nJSON, oJSON) {
+			updateNeeded = true
+		}
+		return "", updateNeeded, mergedObj, false
+	}
+	return "", false, nil, true
+}
+
+func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
+	remediation policyv1.RemediationAction, complianceType string, typeStr string, name string,
+	res dynamic.ResourceInterface) (success bool, throwSpecViolation bool, message string,
+	processingErr bool) {
+	var err error
 	for key := range unstruct.Object {
 		isStatus := key == "status"
-		if !isDenylisted(key) {
-			newObj := formatTemplate(unstruct, key)
-			oldObj := existingObj.UnstructuredContent()[key]
-			typeErr := ""
-			//merge changes into new spec
-			var mergedObj interface{}
-			switch newObj := newObj.(type) {
-			case []interface{}:
-				switch oldObj := oldObj.(type) {
-				case []interface{}:
-					mergedObj, err = compareLists(newObj, oldObj, complianceType)
-				case nil:
-					mergedObj = newObj
-				default:
-					typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
-						key)
-				}
-			case map[string]interface{}:
-				switch oldObj := oldObj.(type) {
-				case (map[string]interface{}):
-					mergedObj, err = compareSpecs(newObj, oldObj, complianceType)
-				case nil:
-					mergedObj = newObj
-				default:
-					typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
-						key)
-				}
-			default:
-				mergedObj = newObj
+		errorMsg, updateNeeded, mergedObj, skipped := handleSingleKey(key, unstruct, existingObj, complianceType)
+		if errorMsg != "" {
+			return false, false, errorMsg, true
+		}
+		if mergedObj == nil && skipped {
+			continue
+		}
+		mapMtx := sync.RWMutex{}
+		mapMtx.Lock()
+		existingObj.UnstructuredContent()[key] = mergedObj
+		mapMtx.Unlock()
+		if updateNeeded {
+			if (strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform))) || isStatus {
+				return false, true, "", false
 			}
-			if typeErr != "" {
-				return false, false, typeErr, true
-			}
-			if err != nil {
-				message := fmt.Sprintf("Error merging changes into %s: %s", key, err)
+			//enforce
+			glog.V(4).Infof("Updating %v template `%v`...", typeStr, name)
+			_, err = res.Update(existingObj, metav1.UpdateOptions{})
+			if errors.IsNotFound(err) {
+				message := fmt.Sprintf("`%v` is not present and must be created", typeStr)
 				return false, false, message, true
 			}
-			//check if merged spec has changed
-			nJSON, err := json.Marshal(mergedObj)
 			if err != nil {
-				message := fmt.Sprintf(convertJSONError, key, err)
+				message := fmt.Sprintf("Error updating the object `%v`, the error is `%v`", name, err)
 				return false, false, message, true
 			}
-			oJSON, err := json.Marshal(oldObj)
-			if err != nil {
-				message := fmt.Sprintf(convertJSONError, key, err)
-				return false, false, message, true
-			}
-			if !reflect.DeepEqual(nJSON, oJSON) {
-				updateNeeded = true
-			}
-			mapMtx := sync.RWMutex{}
-			mapMtx.Lock()
-			existingObj.UnstructuredContent()[key] = mergedObj
-			mapMtx.Unlock()
-			if updateNeeded {
-				if (strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform))) || isStatus {
-					return false, true, "", false
-				}
-				//enforce
-				glog.V(4).Infof("Updating %v template `%v`...", typeStr, name)
-				_, err = res.Update(existingObj, metav1.UpdateOptions{})
-				if errors.IsNotFound(err) {
-					message := fmt.Sprintf("`%v` is not present and must be created", typeStr)
-					return false, false, message, true
-				}
-				if err != nil {
-					message := fmt.Sprintf("Error updating the object `%v`, the error is `%v`", name, err)
-					return false, false, message, true
-				}
-				glog.V(4).Infof("Resource `%v` updated\n", name)
-			}
+			glog.V(4).Infof("Resource `%v` updated\n", name)
 		}
 	}
 	return false, false, "", false
