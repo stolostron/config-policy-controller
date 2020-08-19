@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -319,6 +318,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 
 		handled := false
 
+		// initialize the related objects status
+		plc.Status.RelatedObjects = []policyv1.RelatedObject{}
 		for _, ns := range relevantNamespaces {
 			names, compliant, objKind := handleObjects(objectT, ns, indx, &plc, config, recorder, apiresourcelist, apigroups)
 			if objKind != "" {
@@ -503,8 +504,6 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	}
 
 	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, selfLink)
-	// debug
-	addForUpdate(policy)
 	return objNames, compliant, rsrcKind
 }
 
@@ -512,12 +511,16 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 // details on whether the object is compliant or not compliant with the policy.
 func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
 	namespace string, namespaced bool, objNames []string, selfLink string) {
-	// initialize the related objects status
-	policy.Status.RelatedObjects = []policyv1.RelatedObject{}
-	for _, name := range objNames {
 
+	for _, name := range objNames {
+		// Initialize the related object from the object handling
 		var relatedObject policyv1.RelatedObject
-		relatedObject.Compliance = strconv.FormatBool(compliant)
+		if compliant {
+			relatedObject.Compliance = string(policyv1.Compliant)
+		} else {
+			relatedObject.Compliance = string(policyv1.NonCompliant)
+		}
+
 		relatedObject.Reason = "" // TODO
 
 		var metadata policyv1.ObjectMetadata
