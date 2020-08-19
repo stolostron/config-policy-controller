@@ -443,7 +443,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	exists := true
 	objNames := []string{}
 	remediation := policy.Spec.RemediationAction
-	name, kind, metaNamespace, selfLink := getDetails(unstruct)
+	name, kind, metaNamespace := getDetails(unstruct)
 	if metaNamespace != "" {
 		namespace = metaNamespace
 	}
@@ -464,11 +464,19 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		}
 		return nil, false, ""
 	}
+	var nameLinkMap map[string]string
+	var selfLink string
 	if name != "" {
-		exists = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
+		exists, selfLink = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
 		objNames = append(objNames, name)
+		nameLinkMap[name] = selfLink
 	} else if kind != "" {
-		objNames = append(objNames, getNamesOfKind(rsrc, namespaced, namespace, dclient)...)
+		var allNames []string
+		nameLinkMap = getNamesAndLinksOfKind(rsrc, namespaced, namespace, dclient)
+		for k := range nameLinkMap {
+			allNames = append(allNames, k)
+		}
+		objNames = append(objNames, allNames...)
 		remediation = "inform"
 		if len(objNames) == 0 {
 			exists = false
@@ -501,14 +509,14 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		objNames = nil
 	}
 
-	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, selfLink)
+	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, nameLinkMap)
 	return objNames, compliant, rsrcKind
 }
 
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
 // details on whether the object is compliant or not compliant with the policy.
 func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
-	namespace string, namespaced bool, objNames []string, selfLink string) {
+	namespace string, namespaced bool, objNames []string, nameLinkMap map[string]string) {
 
 	for _, name := range objNames {
 		// Initialize the related object from the object handling
@@ -528,7 +536,12 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 		} else {
 			metadata.Namespace = ""
 		}
-		metadata.SelfLink = selfLink
+		selfLink, ok := nameLinkMap[name]
+		if ok {
+			metadata.SelfLink = selfLink
+		} else {
+			metadata.SelfLink = ""
+		}
 		relatedObject.Object.APIVersion = fmt.Sprintf("%s/%s", rsrc.Group, rsrc.Version)
 		relatedObject.Object.Kind = rsrc.Resource
 		relatedObject.Object.Metadata = metadata
@@ -748,11 +761,10 @@ func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtens
 	return mapping
 }
 
-func getDetails(unstruct unstructured.Unstructured) (name string, kind string, namespace string, selfLink string) {
+func getDetails(unstruct unstructured.Unstructured) (name string, kind string, namespace string) {
 	name = ""
 	kind = ""
 	namespace = ""
-	selfLink = ""
 	if md, ok := unstruct.Object["metadata"]; ok {
 
 		metadata := md.(map[string]interface{})
@@ -764,29 +776,26 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 			glog.V(5).Infof("overriding the namespace as it is specified in objectTemplates...")
 			namespace = objectns.(string)
 		}
-		if objectLink, ok := metadata["selfLink"]; ok {
-			selfLink = objectLink.(string)
-		}
 	}
 
 	if objKind, ok := unstruct.Object["kind"]; ok {
 		kind = objKind.(string)
 	}
-	return name, kind, namespace, selfLink
+	return name, kind, namespace
 }
 
-func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string,
-	dclient dynamic.Interface) (kindNameList []string) {
+func getNamesAndLinksOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string,
+	dclient dynamic.Interface) (kindNameList map[string]string) {
+	kindNameList = make(map[string]string)
 	if namespaced {
 		res := dclient.Resource(rsrc).Namespace(ns)
 		resList, err := res.List(metav1.ListOptions{})
 		if err != nil {
 			glog.Error(err)
-			return []string{}
+			return kindNameList
 		}
-		kindNameList = []string{}
 		for _, uObj := range resList.Items {
-			kindNameList = append(kindNameList, uObj.Object["metadata"].(map[string]interface{})["name"].(string))
+			kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] = uObj.Object["metadata"].(map[string]interface{})["selfLink"].(string)
 		}
 		return kindNameList
 	}
@@ -794,11 +803,10 @@ func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string
 	resList, err := res.List(metav1.ListOptions{})
 	if err != nil {
 		glog.Error(err)
-		return []string{}
+		return kindNameList
 	}
-	kindNameList = []string{}
 	for _, uObj := range resList.Items {
-		kindNameList = append(kindNameList, uObj.Object["metadata"].(map[string]interface{})["name"].(string))
+		kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] = uObj.Object["metadata"].(map[string]interface{})["selfLink"].(string)
 	}
 	return kindNameList
 }
@@ -939,39 +947,41 @@ func checkMessageSimilarity(conditions []policyv1.Condition, cond *policyv1.Cond
 }
 
 func objectExists(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
-	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool) {
+	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, selfLink string) {
 	exists := false
 	if !namespaced {
 		res := dclient.Resource(rsrc)
-		_, err := res.Get(name, metav1.GetOptions{})
+		unstr, err := res.Get(name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				glog.V(6).Infof("response to retrieve a non namespaced object `%v` from the api-server: %v", name, err)
 				exists = false
-				return exists
+				return exists, ""
 			}
 			glog.Errorf(getObjError, name)
 
 		} else {
 			exists = true
+			selfLink = unstr.GetSelfLink()
 			glog.V(6).Infof("object `%v` retrieved from the api server\n", name)
 		}
 	} else {
 		res := dclient.Resource(rsrc).Namespace(namespace)
-		_, err := res.Get(name, metav1.GetOptions{})
+		unstr, err := res.Get(name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				exists = false
 				glog.V(6).Infof("response to retrieve a namespaced object `%v` from the api-server: %v", name, err)
-				return exists
+				return exists, ""
 			}
 			glog.Errorf(getObjError, name)
 		} else {
 			exists = true
+			selfLink = unstr.GetSelfLink()
 			glog.V(6).Infof("object `%v` retrieved from the api server\n", name)
 		}
 	}
-	return exists
+	return exists, selfLink
 }
 
 func createObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
