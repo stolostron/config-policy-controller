@@ -284,6 +284,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		}
 		return
 	}
+	// initialize the related objects status
+	plc.Status.RelatedObjects = []policyv1.RelatedObject{}
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
 		compliantObjects := map[string][]string{}
@@ -318,8 +320,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 
 		handled := false
 
-		// initialize the related objects status
-		plc.Status.RelatedObjects = []policyv1.RelatedObject{}
 		for _, ns := range relevantNamespaces {
 			names, compliant, objKind := handleObjects(objectT, ns, indx, &plc, config, recorder, apiresourcelist, apigroups)
 			if objKind != "" {
