@@ -503,6 +503,8 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	}
 
 	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, selfLink)
+	// debug
+	addForUpdate(policy)
 	return objNames, compliant, rsrcKind
 }
 

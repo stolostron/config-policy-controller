@@ -119,43 +119,44 @@ spec:
                     type: array
                 type: object
               type: array
-            relatedObjects:
-              items:
-                description: The objects matched by this Policy resource.
-                  properties:
-                    object:
-                      description: 'An object identified by the policy as a resource that needs to be validated.'
-                      properties:
-                        kind:
-                          description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                          type: string
-                        apiVersion:
-                          description: 'API version of the referent.'
-                          type: string
-                        metadata:
-                          description: 'Metadata values from the referent.'
-                          properties:
-                            name:
-                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                              type: string
-                            namespace:
-                              description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                              type: string
-                            selfLink:
-                              description: 'An unqualified REST API link to the referent.'
-                              type: string
-                          type: object
-                      type: object
-                    compliant:
-                      description: 'Shows the result of applying the policy rules to this resource.'
-                      type: string
-                    reason:
-                      description: 'Shows the reason for the resource not being in compliance with the policy.'
-                      type: string
-                type: array
             compliant:
               description: ComplianceState shows the state of enforcement
               type: string
+            relatedObjects:
+              items:
+                description: RelatedObject is the list of objects matched by this
+                  Policy resource.
+                properties:
+                  compliance:
+                    type: string
+                  object:
+                    description: ObjectResource is an object identified by the policy
+                      as a resource that needs to be validated.
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      kind:
+                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      metadata:
+                        description: Metadata values from the referent.
+                        properties:
+                          name:
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                            type: string
+                          namespace:
+                            description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                            type: string
+                          selfLink:
+                            description: An unqualified REST API link to the referent.
+                            type: string
+                        type: object
+                    type: object
+                  reason:
+                    type: string
+                type: object
+              type: array
           type: object
       type: object
   version: v1
