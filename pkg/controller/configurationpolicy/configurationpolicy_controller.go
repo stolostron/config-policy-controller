@@ -284,8 +284,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		}
 		return
 	}
-	// initialize the related objects status
-	plc.Status.RelatedObjects = []policyv1.RelatedObject{}
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
 		compliantObjects := map[string][]string{}
@@ -534,6 +532,21 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 		relatedObject.Object.APIVersion = fmt.Sprintf("%s/%s", rsrc.Group, rsrc.Version)
 		relatedObject.Object.Kind = rsrc.Resource
 		relatedObject.Object.Metadata = metadata
+		updateRelatedObjectsStatus(policy, relatedObject)
+	}
+}
+
+func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObject policyv1.RelatedObject) {
+	updated := false
+	for index, currentObject := range policy.Status.RelatedObjects {
+		if currentObject.Object.APIVersion == relatedObject.Object.APIVersion && currentObject.Object.Kind == relatedObject.Object.APIVersion {
+			if currentObject.Object.Metadata.Name == relatedObject.Object.Metadata.Name && currentObject.Object.Metadata.Namespace == relatedObject.Object.Metadata.Namespace {
+				updated = true
+				policy.Status.RelatedObjects[index] = relatedObject
+			}
+		}
+	}
+	if !updated {
 		policy.Status.RelatedObjects = append(policy.Status.RelatedObjects, relatedObject)
 	}
 }
