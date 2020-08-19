@@ -1115,7 +1115,7 @@ func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{}
 	return merged.(map[string]interface{}), nil
 }
 
-func isDenylisted(key string, remediation policyv1.RemediationAction) (result bool) {
+func isDenylisted(key string) (result bool) {
 	denylist := []string{"apiVersion", "kind"}
 	for _, val := range denylist {
 		if key == val {
