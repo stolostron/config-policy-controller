@@ -537,16 +537,19 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 }
 
 func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObject policyv1.RelatedObject) {
-	updated := false
+	present := false
 	for index, currentObject := range policy.Status.RelatedObjects {
-		if currentObject.Object.APIVersion == relatedObject.Object.APIVersion && currentObject.Object.Kind == relatedObject.Object.APIVersion {
+		if currentObject.Object.APIVersion == relatedObject.Object.APIVersion && currentObject.Object.Kind == relatedObject.Object.Kind {
 			if currentObject.Object.Metadata.Name == relatedObject.Object.Metadata.Name && currentObject.Object.Metadata.Namespace == relatedObject.Object.Metadata.Namespace {
-				updated = true
-				policy.Status.RelatedObjects[index] = relatedObject
+				present = true
+				if currentObject.Compliant != relatedObject.Compliant {
+					policy.Status.RelatedObjects[index] = relatedObject
+					addForUpdate(policy)
+				}
 			}
 		}
 	}
-	if !updated {
+	if !present {
 		policy.Status.RelatedObjects = append(policy.Status.RelatedObjects, relatedObject)
 		addForUpdate(policy)
 	}
