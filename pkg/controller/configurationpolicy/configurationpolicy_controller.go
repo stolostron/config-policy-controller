@@ -484,7 +484,9 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	}
 	objShouldExist := strings.ToLower(string(objectT.ComplianceType)) != strings.ToLower(string(policyv1.MustNotHave))
 	rsrcKind = ""
-	reason := "ExistsAndMatches"
+	reason := "Resource found as expected"
+	// if the compliance is calculated by the handleSingleObj function, do not override the setting when setting the reasons
+	complianceCalculated := false
 	if len(objNames) == 1 {
 		name = objNames[0]
 		objNames, compliant, rsrcKind = handleSingleObj(policy, remediation, exists, objShouldExist, rsrc, dclient, objectT, map[string]interface{}{
@@ -494,32 +496,44 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			"index":      index,
 			"unstruct":   unstruct,
 		})
-	} else if !exists && objShouldExist {
-		compliant = false
-		rsrcKind = rsrc.Resource
-		reason = "DoesNotExist"
-	} else if exists && !objShouldExist {
-		compliant = false
-		rsrcKind = rsrc.Resource
-		reason = "ShouldNotExist"
-	} else if !exists && !objShouldExist {
-		compliant = true
-		rsrcKind = rsrc.Resource
-		reason = "DoesNotExistAsExpected"
-	} else if exists && objShouldExist {
-		compliant = true
-		rsrcKind = rsrc.Resource
-		reason = "ExistsAsExpected"
-	} else {
-		objNames = nil
+		complianceCalculated = true
 	}
-
-	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, nameLinkMap, reason)
+	if !exists && objShouldExist {
+		if !complianceCalculated {
+			compliant = false
+			rsrcKind = rsrc.Resource
+		}
+		reason = "Resource not found but expected"
+	} else if exists && !objShouldExist {
+		if !complianceCalculated {
+			compliant = false
+			rsrcKind = rsrc.Resource
+		}
+		reason = "Resource found but not expected"
+	} else if !exists && !objShouldExist {
+		if !complianceCalculated {
+			compliant = true
+			rsrcKind = rsrc.Resource
+		}
+		reason = "Resource found as expected"
+	} else if exists && objShouldExist {
+		if !complianceCalculated {
+			compliant = true
+			rsrcKind = rsrc.Resource
+		}
+	}
+	if complianceCalculated {
+		// enforce could clear the objNames array so use name instead
+		addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, nameLinkMap, reason)
+	} else {
+		addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, nameLinkMap, reason)
+	}
 	return objNames, compliant, rsrcKind
 }
 
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
-// details on whether the object is compliant or not compliant with the policy.
+// details on whether the object is compliant or not compliant with the policy.  The results are updated in the
+// policy's Status information so content is returned.
 func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
 	namespace string, namespaced bool, objNames []string, nameLinkMap map[string]string, reason string) {
 
