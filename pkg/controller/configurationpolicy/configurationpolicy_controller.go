@@ -468,7 +468,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		exists = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
 		objNames = append(objNames, name)
 	} else if kind != "" {
-		objNames = append(objNames, getNamesOfKind(rsrc, namespaced, namespace, dclient)...)
+		objNames = append(objNames, getNamesOfKind(unstruct, rsrc, namespaced, namespace, dclient, strings.ToLower(string(objectT.ComplianceType)))...)
 		remediation = "inform"
 		if len(objNames) == 0 {
 			exists = false
@@ -719,8 +719,8 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 	return name, kind, namespace
 }
 
-func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string,
-	dclient dynamic.Interface) (kindNameList []string) {
+func getNamesOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersionResource,
+	namespaced bool, ns string, dclient dynamic.Interface, complianceType string) (kindNameList []string) {
 	if namespaced {
 		res := dclient.Resource(rsrc).Namespace(ns)
 		resList, err := res.List(metav1.ListOptions{})
@@ -730,7 +730,18 @@ func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string
 		}
 		kindNameList = []string{}
 		for _, uObj := range resList.Items {
-			kindNameList = append(kindNameList, uObj.Object["metadata"].(map[string]interface{})["name"].(string))
+			match := true
+			for key := range unstruct.Object {
+				errorMsg, updateNeeded, _, skipped := handleSingleKey(key, unstruct, &uObj, complianceType)
+				if !skipped {
+					if errorMsg != "" || updateNeeded {
+						match = false
+					}
+				}
+			}
+			if match {
+				kindNameList = append(kindNameList, uObj.Object["metadata"].(map[string]interface{})["name"].(string))
+			}
 		}
 		return kindNameList
 	}
@@ -742,7 +753,18 @@ func getNamesOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string
 	}
 	kindNameList = []string{}
 	for _, uObj := range resList.Items {
-		kindNameList = append(kindNameList, uObj.Object["metadata"].(map[string]interface{})["name"].(string))
+		match := true
+		for key := range unstruct.Object {
+			errorMsg, updateNeeded, _, skipped := handleSingleKey(key, unstruct, &uObj, complianceType)
+			if !skipped {
+				if errorMsg != "" || updateNeeded {
+					match = false
+				}
+			}
+		}
+		if match {
+			kindNameList = append(kindNameList, uObj.Object["metadata"].(map[string]interface{})["name"].(string))
+		}
 	}
 	return kindNameList
 }
