@@ -485,17 +485,19 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	objShouldExist := strings.ToLower(string(objectT.ComplianceType)) != strings.ToLower(string(policyv1.MustNotHave))
 	rsrcKind = ""
 	reason := "Resource found as expected"
-	// if the compliance is calculated by the handleSingleObj function, do not override the setting when setting the reasons
+	// if the compliance is calculated by the handleSingleObj function, do not override the setting
+	// when setting the reasons
 	complianceCalculated := false
 	if len(objNames) == 1 {
 		name = objNames[0]
-		objNames, compliant, rsrcKind = handleSingleObj(policy, remediation, exists, objShouldExist, rsrc, dclient, objectT, map[string]interface{}{
-			"name":       name,
-			"namespace":  namespace,
-			"namespaced": namespaced,
-			"index":      index,
-			"unstruct":   unstruct,
-		})
+		objNames, compliant, rsrcKind = handleSingleObj(policy, remediation, exists, objShouldExist, rsrc,
+			dclient, objectT, map[string]interface{}{
+				"name":       name,
+				"namespace":  namespace,
+				"namespaced": namespaced,
+				"index":      index,
+				"unstruct":   unstruct,
+			})
 		complianceCalculated = true
 	}
 	if !exists && objShouldExist {
@@ -515,7 +517,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			compliant = true
 			rsrcKind = rsrc.Resource
 		}
-		reason = "Resource found as expected"
+		reason = "Resource not found as expected"
 	} else if exists && objShouldExist {
 		if !complianceCalculated {
 			compliant = true
@@ -533,7 +535,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
 // details on whether the object is compliant or not compliant with the policy.  The results are updated in the
-// policy's Status information so content is returned.
+// policy's Status information.
 func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
 	namespace string, namespaced bool, objNames []string, nameLinkMap map[string]string, reason string) {
 
@@ -568,11 +570,15 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 	}
 }
 
+// updateRelatedObjectsStatus adds or updates the RelatedObject in the policy status.
 func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObject policyv1.RelatedObject) {
 	present := false
 	for index, currentObject := range policy.Status.RelatedObjects {
-		if currentObject.Object.APIVersion == relatedObject.Object.APIVersion && currentObject.Object.Kind == relatedObject.Object.Kind {
-			if currentObject.Object.Metadata.Name == relatedObject.Object.Metadata.Name && currentObject.Object.Metadata.Namespace == relatedObject.Object.Metadata.Namespace {
+		if currentObject.Object.APIVersion ==
+			relatedObject.Object.APIVersion && currentObject.Object.Kind == relatedObject.Object.Kind {
+			if currentObject.Object.Metadata.Name ==
+				relatedObject.Object.Metadata.Name && currentObject.Object.Metadata.Namespace ==
+				relatedObject.Object.Metadata.Namespace {
 				present = true
 				if currentObject.Compliant != relatedObject.Compliant {
 					policy.Status.RelatedObjects[index] = relatedObject
@@ -803,6 +809,8 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 	return name, kind, namespace
 }
 
+// getNamesAndLinksOfKind returns a map with all of the resources found matching the GVK
+// specified.  The key is the resource name and the value is the selfLink to the resource.
 func getNamesAndLinksOfKind(rsrc schema.GroupVersionResource, namespaced bool, ns string,
 	dclient dynamic.Interface) (kindNameList map[string]string) {
 	kindNameList = make(map[string]string)
@@ -814,7 +822,8 @@ func getNamesAndLinksOfKind(rsrc schema.GroupVersionResource, namespaced bool, n
 			return kindNameList
 		}
 		for _, uObj := range resList.Items {
-			kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] = uObj.Object["metadata"].(map[string]interface{})["selfLink"].(string)
+			kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] =
+				uObj.Object["metadata"].(map[string]interface{})["selfLink"].(string)
 		}
 		return kindNameList
 	}
@@ -825,7 +834,8 @@ func getNamesAndLinksOfKind(rsrc schema.GroupVersionResource, namespaced bool, n
 		return kindNameList
 	}
 	for _, uObj := range resList.Items {
-		kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] = uObj.Object["metadata"].(map[string]interface{})["selfLink"].(string)
+		kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] =
+			uObj.Object["metadata"].(map[string]interface{})["selfLink"].(string)
 	}
 	return kindNameList
 }
@@ -965,6 +975,7 @@ func checkMessageSimilarity(conditions []policyv1.Condition, cond *policyv1.Cond
 	return same
 }
 
+// objectExists returns true if the object is found.  If it is found the selfLink is also returned.
 func objectExists(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
 	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, selfLink string) {
 	exists := false
