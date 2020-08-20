@@ -468,7 +468,8 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		exists = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
 		objNames = append(objNames, name)
 	} else if kind != "" {
-		objNames = append(objNames, getNamesOfKind(unstruct, rsrc, namespaced, namespace, dclient, strings.ToLower(string(objectT.ComplianceType)))...)
+		objNames = append(objNames, getNamesOfKind(unstruct, rsrc, namespaced,
+			namespace, dclient, strings.ToLower(string(objectT.ComplianceType)))...)
 		remediation = "inform"
 		if len(objNames) == 0 {
 			exists = false
@@ -719,40 +720,11 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 	return name, kind, namespace
 }
 
-func getNamesOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersionResource,
-	namespaced bool, ns string, dclient dynamic.Interface, complianceType string) (kindNameList []string) {
-	if namespaced {
-		res := dclient.Resource(rsrc).Namespace(ns)
-		resList, err := res.List(metav1.ListOptions{})
-		if err != nil {
-			glog.Error(err)
-			return []string{}
-		}
-		kindNameList = []string{}
-		for _, uObj := range resList.Items {
-			match := true
-			for key := range unstruct.Object {
-				errorMsg, updateNeeded, _, skipped := handleSingleKey(key, unstruct, &uObj, complianceType)
-				if !skipped {
-					if errorMsg != "" || updateNeeded {
-						match = false
-					}
-				}
-			}
-			if match {
-				kindNameList = append(kindNameList, uObj.Object["metadata"].(map[string]interface{})["name"].(string))
-			}
-		}
-		return kindNameList
-	}
-	res := dclient.Resource(rsrc)
-	resList, err := res.List(metav1.ListOptions{})
-	if err != nil {
-		glog.Error(err)
-		return []string{}
-	}
-	kindNameList = []string{}
-	for _, uObj := range resList.Items {
+func buildNameList(unstruct unstructured.Unstructured, complianceType string,
+	resList *unstructured.UnstructuredList) (list []string) {
+	kindNameList := []string{}
+	for i := range resList.Items {
+		uObj := resList.Items[i]
 		match := true
 		for key := range unstruct.Object {
 			errorMsg, updateNeeded, _, skipped := handleSingleKey(key, unstruct, &uObj, complianceType)
@@ -767,6 +739,26 @@ func getNamesOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersion
 		}
 	}
 	return kindNameList
+}
+
+func getNamesOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersionResource,
+	namespaced bool, ns string, dclient dynamic.Interface, complianceType string) (kindNameList []string) {
+	if namespaced {
+		res := dclient.Resource(rsrc).Namespace(ns)
+		resList, err := res.List(metav1.ListOptions{})
+		if err != nil {
+			glog.Error(err)
+			return []string{}
+		}
+		return buildNameList(unstruct, complianceType, resList)
+	}
+	res := dclient.Resource(rsrc)
+	resList, err := res.List(metav1.ListOptions{})
+	if err != nil {
+		glog.Error(err)
+		return []string{}
+	}
+	return buildNameList(unstruct, complianceType, resList)
 }
 
 func handleMissingMustNotHave(plc *policyv1.ConfigurationPolicy, rsrc schema.GroupVersionResource,
