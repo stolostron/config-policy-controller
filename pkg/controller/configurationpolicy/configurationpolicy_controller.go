@@ -464,7 +464,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		}
 		return nil, false, ""
 	}
-	var nameLinkMap map[string]string
+	nameLinkMap := make(map[string]string)
 	var selfLink string
 	if name != "" {
 		exists, selfLink = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
@@ -484,6 +484,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	}
 	objShouldExist := strings.ToLower(string(objectT.ComplianceType)) != strings.ToLower(string(policyv1.MustNotHave))
 	rsrcKind = ""
+	reason := "ExistsAndMatches"
 	if len(objNames) == 1 {
 		name = objNames[0]
 		objNames, compliant, rsrcKind = handleSingleObj(policy, remediation, exists, objShouldExist, rsrc, dclient, objectT, map[string]interface{}{
@@ -496,27 +497,31 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	} else if !exists && objShouldExist {
 		compliant = false
 		rsrcKind = rsrc.Resource
+		reason = "DoesNotExist"
 	} else if exists && !objShouldExist {
 		compliant = false
 		rsrcKind = rsrc.Resource
+		reason = "ShouldNotExist"
 	} else if !exists && !objShouldExist {
 		compliant = true
 		rsrcKind = rsrc.Resource
+		reason = "DoesNotExistAsExpected"
 	} else if exists && objShouldExist {
 		compliant = true
 		rsrcKind = rsrc.Resource
+		reason = "ExistsAsExpected"
 	} else {
 		objNames = nil
 	}
 
-	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, nameLinkMap)
+	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, nameLinkMap, reason)
 	return objNames, compliant, rsrcKind
 }
 
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
 // details on whether the object is compliant or not compliant with the policy.
 func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
-	namespace string, namespaced bool, objNames []string, nameLinkMap map[string]string) {
+	namespace string, namespaced bool, objNames []string, nameLinkMap map[string]string, reason string) {
 
 	for _, name := range objNames {
 		// Initialize the related object from the object handling
@@ -527,7 +532,7 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 			relatedObject.Compliant = string(policyv1.NonCompliant)
 		}
 
-		relatedObject.Reason = "TODO" // TODO
+		relatedObject.Reason = reason
 
 		var metadata policyv1.ObjectMetadata
 		metadata.Name = name
