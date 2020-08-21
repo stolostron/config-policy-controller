@@ -472,8 +472,8 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		nameLinkMap[name] = selfLink
 	} else if kind != "" {
 		var allNames []string
-		nameLinkMap = getNamesAndLinksOfKind(unstruct, rsrc, namespaced, 
-      namespace, dclient, strings.ToLower(string(objectT.ComplianceType)))...)
+		nameLinkMap = getNamesAndLinksOfKind(unstruct, rsrc, namespaced,
+			namespace, dclient, strings.ToLower(string(objectT.ComplianceType)))
 		for k := range nameLinkMap {
 			allNames = append(allNames, k)
 		}
@@ -813,7 +813,7 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 
 func buildNameList(unstruct unstructured.Unstructured, complianceType string,
 	resList *unstructured.UnstructuredList) (kindNameList map[string]string) {
-  kindNameList = make(map[string]string)
+	kindNameList = make(map[string]string)
 	for i := range resList.Items {
 		uObj := resList.Items[i]
 		match := true
@@ -826,8 +826,7 @@ func buildNameList(unstruct unstructured.Unstructured, complianceType string,
 			}
 		}
 		if match {
-			kindNameList = append(kindNameList, uObj.Object["metadata"].(map[string]interface{})["name"].(string))
-      kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] =
+			kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] =
 				uObj.Object["metadata"].(map[string]interface{})["selfLink"].(string)
 		}
 	}
@@ -836,8 +835,8 @@ func buildNameList(unstruct unstructured.Unstructured, complianceType string,
 
 // getNamesAndLinksOfKind returns a map with all of the resources found matching the GVK
 // specified.  The key is the resource name and the value is the selfLink to the resource.
-func getNamesAndLinksOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersionResource, 
-  namespaced bool, ns string,	dclient dynamic.Interface, complianceType string) (kindNameList map[string]string) {
+func getNamesAndLinksOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersionResource,
+	namespaced bool, ns string, dclient dynamic.Interface, complianceType string) (kindNameList map[string]string) {
 	if namespaced {
 		res := dclient.Resource(rsrc).Namespace(ns)
 		resList, err := res.List(metav1.ListOptions{})
