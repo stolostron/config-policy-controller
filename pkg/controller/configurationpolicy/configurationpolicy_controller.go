@@ -563,7 +563,7 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 		} else {
 			metadata.SelfLink = ""
 		}
-		relatedObject.Object.APIVersion = fmt.Sprintf("%s/%s", rsrc.Group, rsrc.Version)
+		relatedObject.Object.APIVersion = rsrc.GroupVersion().String()
 		relatedObject.Object.Kind = rsrc.Resource
 		relatedObject.Object.Metadata = metadata
 		updateRelatedObjectsStatus(policy, relatedObject)
