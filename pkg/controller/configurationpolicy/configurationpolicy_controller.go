@@ -284,6 +284,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		}
 		return
 	}
+	// initialize the RelatedObjects for this Configuration Policy
+	plc.Status.RelatedObjects = []policyv1.RelatedObject{}
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
 		compliantObjects := map[string][]string{}
