@@ -534,6 +534,18 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	} else {
 		addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, nameLinkMap, reason)
 	}
+	sort.SliceStable(policy.Status.RelatedObjects, func(i, j int) bool {
+		valuei := fmt.Sprintf("%s:%s:%s",
+			policy.Status.RelatedObjects[i].Object.Kind,
+			policy.Status.RelatedObjects[i].Object.Metadata.Namespace,
+			policy.Status.RelatedObjects[i].Object.Metadata.Name)
+		valuej := fmt.Sprintf("%s:%s:%s",
+			policy.Status.RelatedObjects[j].Object.Kind,
+			policy.Status.RelatedObjects[j].Object.Metadata.Namespace,
+			policy.Status.RelatedObjects[j].Object.Metadata.Name)
+		return valuei < valuej
+	})
+	addForUpdate(policy)
 	return objNames, compliant, rsrcKind
 }
 
@@ -571,18 +583,6 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 		relatedObject.Object.Kind = rsrc.Resource
 		relatedObject.Object.Metadata = metadata
 		updateRelatedObjectsStatus(policy, relatedObject)
-		sort.SliceStable(policy.Status.RelatedObjects, func(i, j int) bool {
-			valuei := fmt.Sprintf("%s:%s:%s",
-				policy.Status.RelatedObjects[i].Object.Kind,
-				policy.Status.RelatedObjects[i].Object.Metadata.Namespace,
-				policy.Status.RelatedObjects[i].Object.Metadata.Name)
-			valuej := fmt.Sprintf("%s:%s:%s",
-				policy.Status.RelatedObjects[j].Object.Kind,
-				policy.Status.RelatedObjects[j].Object.Metadata.Namespace,
-				policy.Status.RelatedObjects[j].Object.Metadata.Name)
-			return valuei < valuej
-		})
-		addForUpdate(policy)
 	}
 }
 
