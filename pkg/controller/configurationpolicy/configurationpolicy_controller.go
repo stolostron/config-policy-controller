@@ -598,7 +598,6 @@ func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObj
 				present = true
 				if currentObject.Compliant != relatedObject.Compliant {
 					policy.Status.RelatedObjects[index] = relatedObject
-					update = true
 				}
 			}
 		}
