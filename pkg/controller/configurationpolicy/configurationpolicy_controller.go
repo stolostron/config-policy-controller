@@ -598,11 +598,11 @@ func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObj
 	}
 	if update {
 		sort.SliceStable(policy.Status.RelatedObjects, func(i, j int) bool {
-			valuei := fmt.Sprintf("%s%s%s",
+			valuei := fmt.Sprintf("%s:%s:%s",
 				policy.Status.RelatedObjects[i].Object.Kind,
 				policy.Status.RelatedObjects[i].Object.Metadata.Namespace,
 				policy.Status.RelatedObjects[i].Object.Metadata.Name)
-			valuej := fmt.Sprintf("%s%s%s",
+			valuej := fmt.Sprintf("%s:%s:%s",
 				policy.Status.RelatedObjects[j].Object.Kind,
 				policy.Status.RelatedObjects[j].Object.Metadata.Namespace,
 				policy.Status.RelatedObjects[j].Object.Metadata.Name)
