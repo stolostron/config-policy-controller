@@ -571,6 +571,7 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 		relatedObject.Object.Kind = rsrc.Resource
 		relatedObject.Object.Metadata = metadata
 		updateRelatedObjectsStatus(policy, relatedObject)
+		addForUpdate(policy)
 	}
 }
 
@@ -608,7 +609,6 @@ func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObj
 				policy.Status.RelatedObjects[j].Object.Metadata.Name)
 			return valuei < valuej
 		})
-		// addForUpdate(policy) - determine if this call is causing the modified object errors
 	}
 }
 
