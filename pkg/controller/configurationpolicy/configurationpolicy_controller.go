@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -576,6 +577,7 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 // updateRelatedObjectsStatus adds or updates the RelatedObject in the policy status.
 func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObject policyv1.RelatedObject) {
 	present := false
+	update := false
 	for index, currentObject := range policy.Status.RelatedObjects {
 		if currentObject.Object.APIVersion ==
 			relatedObject.Object.APIVersion && currentObject.Object.Kind == relatedObject.Object.Kind {
@@ -585,13 +587,27 @@ func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObj
 				present = true
 				if currentObject.Compliant != relatedObject.Compliant {
 					policy.Status.RelatedObjects[index] = relatedObject
-					addForUpdate(policy)
+					update = true
 				}
 			}
 		}
 	}
 	if !present {
 		policy.Status.RelatedObjects = append(policy.Status.RelatedObjects, relatedObject)
+		update = true
+	}
+	if update {
+		sort.SliceStable(policy.Status.RelatedObjects, func(i, j int) bool {
+			valuei := fmt.Sprintf("%s%s%s",
+				policy.Status.RelatedObjects[i].Object.Kind,
+				policy.Status.RelatedObjects[i].Object.Metadata.Namespace,
+				policy.Status.RelatedObjects[i].Object.Metadata.Name)
+			valuej := fmt.Sprintf("%s%s%s",
+				policy.Status.RelatedObjects[j].Object.Kind,
+				policy.Status.RelatedObjects[j].Object.Metadata.Namespace,
+				policy.Status.RelatedObjects[j].Object.Metadata.Name)
+			return valuei < valuej
+		})
 		addForUpdate(policy)
 	}
 }
