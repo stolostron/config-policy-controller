@@ -289,7 +289,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 	// initialize the RelatedObjects for this Configuration Policy
 	oldRelated := []policyv1.RelatedObject{}
 	for i := range plc.Status.RelatedObjects {
-		oldRelated[i] = plc.Status.RelatedObjects[i]
+		oldRelated = append(oldRelated, plc.Status.RelatedObjects[i])
 	}
 	plc.Status.RelatedObjects = []policyv1.RelatedObject{}
 	for indx, objectT := range plc.Spec.ObjectTemplates {
