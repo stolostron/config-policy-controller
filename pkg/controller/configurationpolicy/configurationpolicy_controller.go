@@ -399,7 +399,14 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	if mustNotHave && numNonCompliant > 0 {
 		//noncompliant; mustnothave and objects exist
 		nameStr := ""
-		for ns, names := range nonCompliantObjects {
+		sortedNamespaces := []string{}
+		for n := range nonCompliantObjects {
+			sortedNamespaces = append(sortedNamespaces, n)
+		}
+		sort.Strings(sortedNamespaces)
+		for i := range sortedNamespaces {
+			ns := sortedNamespaces[i]
+			names := nonCompliantObjects[ns]
 			sort.Strings(names)
 			nameStr += "["
 			for i, name := range names {
@@ -417,7 +424,14 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	if !mustNotHave && numCompliant > 0 {
 		//compliant; musthave and objects exist
 		nameStr := ""
-		for ns, names := range compliantObjects {
+		sortedNamespaces := []string{}
+		for n := range compliantObjects {
+			sortedNamespaces = append(sortedNamespaces, n)
+		}
+		sort.Strings(sortedNamespaces)
+		for i := range sortedNamespaces {
+			ns := sortedNamespaces[i]
+			names := compliantObjects[ns]
 			sort.Strings(names)
 			nameStr += "["
 			for i, name := range names {
