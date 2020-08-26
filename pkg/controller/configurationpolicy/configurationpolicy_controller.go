@@ -390,7 +390,7 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	}
 	if !mustNotHave && numCompliant == 0 {
 		//noncompliant; musthave and objects do not exist
-		message := fmt.Sprintf("No instances of `%v` exist as specified, and one should be created", kind)
+		message := fmt.Sprintf("No instances of `%v` exist as specified", kind)
 		if desiredName != "" {
 			message = fmt.Sprintf("%v `%v` does not exist as specified", kind, desiredName)
 		}
