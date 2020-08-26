@@ -375,7 +375,6 @@ func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, related, oldR
 		return related[i].Object.Metadata.Name < related[j].Object.Metadata.Name
 	})
 	update := false
-	plc.Status.RelatedObjects = related
 	if len(oldRelated) == len(related) {
 		for i, entry := range oldRelated {
 			if gocmp.Equal(entry, related[i]) == false {
@@ -386,6 +385,7 @@ func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, related, oldR
 		update = true
 	}
 	if update {
+		plc.Status.RelatedObjects = related
 		addForUpdate(&plc)
 	}
 }
@@ -626,7 +626,7 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 		relatedObject.Object.APIVersion = rsrc.GroupVersion().String()
 		relatedObject.Object.Kind = rsrc.Resource
 		relatedObject.Object.Metadata = metadata
-		relatedObjects = append(relatedObjects, updateRelatedObjectsStatus(relatedObjects, relatedObject)...)
+		relatedObjects = updateRelatedObjectsStatus(relatedObjects, relatedObject)
 	}
 	return relatedObjects
 }
