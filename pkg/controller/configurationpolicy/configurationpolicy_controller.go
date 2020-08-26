@@ -327,7 +327,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		handled := false
 
 		for _, ns := range relevantNamespaces {
-			names, compliant, objKind, related := handleObjects(objectT, ns, indx, &plc, config, recorder, apiresourcelist, apigroups)
+			names, compliant, objKind, related := handleObjects(objectT, ns, indx, &plc, config, recorder,
+				apiresourcelist, apigroups)
 			if objKind != "" {
 				kind = objKind
 			}
@@ -478,7 +479,8 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 
 func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int, policy *policyv1.ConfigurationPolicy,
 	config *rest.Config, recorder record.EventRecorder, apiresourcelist []*metav1.APIResourceList,
-	apigroups []*restmapper.APIGroupResources) (objNameList []string, compliant bool, rsrcKind string, relatedObjects []policyv1.RelatedObject) {
+	apigroups []*restmapper.APIGroupResources) (objNameList []string, compliant bool,
+	rsrcKind string, relatedObjects []policyv1.RelatedObject) {
 	if namespace != "" {
 		fmt.Println(fmt.Sprintf("handling object template [%d] in namespace %s", index, namespace))
 	} else {
@@ -585,72 +587,13 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 
 	if complianceCalculated {
 		// enforce could clear the objNames array so use name instead
-		relatedObjects = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, nameLinkMap, reason)
+		relatedObjects = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name},
+			nameLinkMap, reason)
 	} else {
-		relatedObjects = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, nameLinkMap, reason)
+		relatedObjects = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames,
+			nameLinkMap, reason)
 	}
 	return objNames, compliant, rsrcKind, relatedObjects
-}
-
-// addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
-// details on whether the object is compliant or not compliant with the policy.  The results are updated in the
-// policy's Status information.
-func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
-	namespace string, namespaced bool, objNames []string,
-	nameLinkMap map[string]string, reason string) (relatedObjects []policyv1.RelatedObject) {
-
-	for _, name := range objNames {
-		// Initialize the related object from the object handling
-		var relatedObject policyv1.RelatedObject
-		if compliant {
-			relatedObject.Compliant = string(policyv1.Compliant)
-		} else {
-			relatedObject.Compliant = string(policyv1.NonCompliant)
-		}
-
-		relatedObject.Reason = reason
-
-		var metadata policyv1.ObjectMetadata
-		metadata.Name = name
-		if namespaced {
-			metadata.Namespace = namespace
-		} else {
-			metadata.Namespace = ""
-		}
-		selfLink, ok := nameLinkMap[name]
-		if ok {
-			metadata.SelfLink = selfLink
-		} else {
-			metadata.SelfLink = ""
-		}
-		relatedObject.Object.APIVersion = rsrc.GroupVersion().String()
-		relatedObject.Object.Kind = rsrc.Resource
-		relatedObject.Object.Metadata = metadata
-		relatedObjects = updateRelatedObjectsStatus(relatedObjects, relatedObject)
-	}
-	return relatedObjects
-}
-
-// updateRelatedObjectsStatus adds or updates the RelatedObject in the policy status.
-func updateRelatedObjectsStatus(list []policyv1.RelatedObject, relatedObject policyv1.RelatedObject) (result []policyv1.RelatedObject) {
-	present := false
-	for index, currentObject := range list {
-		if currentObject.Object.APIVersion ==
-			relatedObject.Object.APIVersion && currentObject.Object.Kind == relatedObject.Object.Kind {
-			if currentObject.Object.Metadata.Name ==
-				relatedObject.Object.Metadata.Name && currentObject.Object.Metadata.Namespace ==
-				relatedObject.Object.Metadata.Namespace {
-				present = true
-				if currentObject.Compliant != relatedObject.Compliant {
-					list[index] = relatedObject
-				}
-			}
-		}
-	}
-	if !present {
-		list = append(list, relatedObject)
-	}
-	return list
 }
 
 func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.RemediationAction, exists bool,
