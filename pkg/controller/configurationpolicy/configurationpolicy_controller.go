@@ -352,6 +352,10 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			createInformStatus(mustNotHave, numCompliant, numNonCompliant, compliantObjects, nonCompliantObjects, &plc, objData)
 		}
 	}
+	sortRelatedObjectsAndUpdate(plc, oldRelated)
+}
+
+func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, oldRelated []policyv1.RelatedObject) {
 	sort.SliceStable(plc.Status.RelatedObjects, func(i, j int) bool {
 		valuei := fmt.Sprintf("%s:%s:%s",
 			plc.Status.RelatedObjects[i].Object.Kind,

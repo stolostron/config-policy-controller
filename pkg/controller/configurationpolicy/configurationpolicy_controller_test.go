@@ -383,6 +383,105 @@ func TestHandleAddingPolicy(t *testing.T) {
 	handleRemovingPolicy(samplePolicy.GetName())
 }
 
+func TestAddRelatedObject(t *testing.T) {
+
+	policy := &policiesv1alpha1.ConfigurationPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "default",
+		},
+		Spec: policiesv1alpha1.ConfigurationPolicySpec{
+			Severity: "low",
+			NamespaceSelector: policiesv1alpha1.Target{
+				Include: []string{"default", "kube-*"},
+				Exclude: []string{"kube-system"},
+			},
+			RemediationAction: "inform",
+			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
+				&policiesv1alpha1.ObjectTemplate{
+					ComplianceType:   "musthave",
+					ObjectDefinition: runtime.RawExtension{},
+				},
+			},
+		},
+	}
+	compliant := true
+	rsrc := policiesv1alpha1.SchemeBuilder.GroupVersion.WithResource("ConfigurationPolicy")
+	namespace := "default"
+	namespaced := true
+	name := "foo"
+	nameLinkMap := map[string]string{}
+	nameLinkMap[name] = "link"
+	reason := "reason"
+	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, nameLinkMap, reason)
+
+	// get the related object and validate what we added is in the status
+	related := policy.Status.RelatedObjects[0]
+	assert.True(t, related.Compliant == string(policiesv1alpha1.Compliant))
+	assert.True(t, related.Reason == "reason")
+	assert.True(t, related.Object.APIVersion == rsrc.GroupVersion().String())
+	assert.True(t, related.Object.Kind == rsrc.Resource)
+	assert.True(t, related.Object.Metadata.Name == name)
+	assert.True(t, related.Object.Metadata.Namespace == namespace)
+	assert.True(t, related.Object.Metadata.SelfLink == "link")
+
+	// add the same object and make sure the existing one is overwritten
+	reason = "new"
+	compliant = false
+	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, nameLinkMap, reason)
+	related = policy.Status.RelatedObjects[0]
+	assert.True(t, len(policy.Status.RelatedObjects) == 1)
+	assert.True(t, related.Compliant == string(policiesv1alpha1.NonCompliant))
+	assert.True(t, related.Reason == "new")
+
+	// add a new related object and make sure the entry is appended
+	name = "bar"
+	addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, nameLinkMap, reason)
+	assert.True(t, len(policy.Status.RelatedObjects) == 2)
+	related = policy.Status.RelatedObjects[1]
+	assert.True(t, related.Object.Metadata.Name == name)
+}
+
+func TestSortRelatedObjectsAndUpdate(t *testing.T) {
+	policy := &policiesv1alpha1.ConfigurationPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "default",
+		},
+		Spec: policiesv1alpha1.ConfigurationPolicySpec{
+			Severity: "low",
+			NamespaceSelector: policiesv1alpha1.Target{
+				Include: []string{"default", "kube-*"},
+				Exclude: []string{"kube-system"},
+			},
+			RemediationAction: "inform",
+			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
+				&policiesv1alpha1.ObjectTemplate{
+					ComplianceType:   "musthave",
+					ObjectDefinition: runtime.RawExtension{},
+				},
+			},
+		},
+	}
+	rsrc := policiesv1alpha1.SchemeBuilder.GroupVersion.WithResource("ConfigurationPolicy")
+	name := "foo"
+	nameLinkMap := map[string]string{}
+	nameLinkMap[name] = "link"
+	addRelatedObjects(policy, true, rsrc, "default", true, []string{name}, nameLinkMap, "reason")
+
+	// add the same object but after sorting it should be first
+	name = "bar"
+	addRelatedObjects(policy, true, rsrc, "default", true, []string{name}, nameLinkMap, "reason")
+
+	sortRelatedObjectsAndUpdate(*policy, policy.Status.RelatedObjects)
+	assert.True(t, policy.Status.RelatedObjects[0].Object.Metadata.Name == "bar")
+
+	// append another object named bar but also with namespace bar
+	addRelatedObjects(policy, true, rsrc, "bar", true, []string{name}, nameLinkMap, "reason")
+	sortRelatedObjectsAndUpdate(*policy, policy.Status.RelatedObjects)
+	assert.True(t, policy.Status.RelatedObjects[0].Object.Metadata.Namespace == "bar")
+}
+
 func newRule(verbs, apiGroups, resources, nonResourceURLs string) rbacv1.PolicyRule {
 	return rbacv1.PolicyRule{
 		Verbs:           strings.Split(verbs, ","),
