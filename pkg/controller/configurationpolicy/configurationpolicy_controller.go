@@ -291,7 +291,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 	for i := range plc.Status.RelatedObjects {
 		oldRelated = append(oldRelated, plc.Status.RelatedObjects[i])
 	}
-	plc.Status.RelatedObjects = []policyv1.RelatedObject{}
+	relatedObjects := []policyv1.RelatedObject{}
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
 		compliantObjects := map[string][]string{}
@@ -327,7 +327,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		handled := false
 
 		for _, ns := range relevantNamespaces {
-			names, compliant, objKind := handleObjects(objectT, ns, indx, &plc, config, recorder, apiresourcelist, apigroups)
+			names, compliant, objKind, related := handleObjects(objectT, ns, indx, &plc, config, recorder, apiresourcelist, apigroups)
 			if objKind != "" {
 				kind = objKind
 			}
@@ -344,6 +344,11 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 					compliantObjects[ns] = names
 				}
 			}
+			if related != nil {
+				for _, object := range related {
+					relatedObjects = append(relatedObjects, object)
+				}
+			}
 		}
 
 		if !handled && !enforce {
@@ -355,11 +360,11 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			createInformStatus(mustNotHave, numCompliant, numNonCompliant, compliantObjects, nonCompliantObjects, &plc, objData)
 		}
 	}
-	sortRelatedObjectsAndUpdate(plc, oldRelated)
+
+	sortRelatedObjectsAndUpdate(plc, relatedObjects, oldRelated)
 }
 
-func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, oldRelated []policyv1.RelatedObject) {
-	related := plc.Status.RelatedObjects
+func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, related, oldRelated []policyv1.RelatedObject) {
 	sort.SliceStable(related, func(i, j int) bool {
 		if related[i].Object.Kind != related[j].Object.Kind {
 			return related[i].Object.Kind < related[j].Object.Kind
@@ -370,6 +375,7 @@ func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, oldRelated []
 		return related[i].Object.Metadata.Name < related[j].Object.Metadata.Name
 	})
 	update := false
+	plc.Status.RelatedObjects = related
 	if len(oldRelated) == len(related) {
 		for i, entry := range oldRelated {
 			if gocmp.Equal(entry, related[i]) == false {
@@ -456,7 +462,7 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 
 func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int, policy *policyv1.ConfigurationPolicy,
 	config *rest.Config, recorder record.EventRecorder, apiresourcelist []*metav1.APIResourceList,
-	apigroups []*restmapper.APIGroupResources) (objNameList []string, compliant bool, rsrcKind string) {
+	apigroups []*restmapper.APIGroupResources) (objNameList []string, compliant bool, rsrcKind string, relatedObjects []policyv1.RelatedObject) {
 	if namespace != "" {
 		fmt.Println(fmt.Sprintf("handling object template [%d] in namespace %s", index, namespace))
 	} else {
@@ -466,7 +472,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	ext := objectT.ObjectDefinition
 	mapping := getMapping(apigroups, ext, policy, index)
 	if mapping == nil {
-		return nil, false, ""
+		return nil, false, "", nil
 	}
 	var unstruct unstructured.Unstructured
 	unstruct.Object = make(map[string]interface{})
@@ -497,7 +503,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 				convertPolicyStatusToString(policy))
 			addForUpdate(policy)
 		}
-		return nil, false, ""
+		return nil, false, "", nil
 	}
 	nameLinkMap := make(map[string]string)
 	var selfLink string
@@ -560,20 +566,22 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			rsrcKind = rsrc.Resource
 		}
 	}
+
 	if complianceCalculated {
 		// enforce could clear the objNames array so use name instead
-		addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, nameLinkMap, reason)
+		relatedObjects = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, nameLinkMap, reason)
 	} else {
-		addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, nameLinkMap, reason)
+		relatedObjects = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, nameLinkMap, reason)
 	}
-	return objNames, compliant, rsrcKind
+	return objNames, compliant, rsrcKind, relatedObjects
 }
 
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
 // details on whether the object is compliant or not compliant with the policy.  The results are updated in the
 // policy's Status information.
 func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
-	namespace string, namespaced bool, objNames []string, nameLinkMap map[string]string, reason string) {
+	namespace string, namespaced bool, objNames []string,
+	nameLinkMap map[string]string, reason string) (relatedObjects []policyv1.RelatedObject) {
 
 	for _, name := range objNames {
 		// Initialize the related object from the object handling
@@ -602,14 +610,15 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 		relatedObject.Object.APIVersion = rsrc.GroupVersion().String()
 		relatedObject.Object.Kind = rsrc.Resource
 		relatedObject.Object.Metadata = metadata
-		updateRelatedObjectsStatus(policy, relatedObject)
+		relatedObjects = append(relatedObjects, updateRelatedObjectsStatus(relatedObjects, relatedObject)...)
 	}
+	return relatedObjects
 }
 
 // updateRelatedObjectsStatus adds or updates the RelatedObject in the policy status.
-func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObject policyv1.RelatedObject) {
+func updateRelatedObjectsStatus(list []policyv1.RelatedObject, relatedObject policyv1.RelatedObject) (result []policyv1.RelatedObject) {
 	present := false
-	for index, currentObject := range policy.Status.RelatedObjects {
+	for index, currentObject := range list {
 		if currentObject.Object.APIVersion ==
 			relatedObject.Object.APIVersion && currentObject.Object.Kind == relatedObject.Object.Kind {
 			if currentObject.Object.Metadata.Name ==
@@ -617,14 +626,15 @@ func updateRelatedObjectsStatus(policy *policyv1.ConfigurationPolicy, relatedObj
 				relatedObject.Object.Metadata.Namespace {
 				present = true
 				if currentObject.Compliant != relatedObject.Compliant {
-					policy.Status.RelatedObjects[index] = relatedObject
+					list[index] = relatedObject
 				}
 			}
 		}
 	}
 	if !present {
-		policy.Status.RelatedObjects = append(policy.Status.RelatedObjects, relatedObject)
+		list = append(list, relatedObject)
 	}
+	return list
 }
 
 func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.RemediationAction, exists bool,
