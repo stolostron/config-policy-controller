@@ -287,7 +287,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		return
 	}
 	// initialize the RelatedObjects for this Configuration Policy
-	oldRelated := plc.Status.RelatedObjects
+	oldRelated := &plc.Status.RelatedObjects
 	plc.Status.RelatedObjects = []policyv1.RelatedObject{}
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
@@ -352,25 +352,24 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			createInformStatus(mustNotHave, numCompliant, numNonCompliant, compliantObjects, nonCompliantObjects, &plc, objData)
 		}
 	}
-	sortRelatedObjectsAndUpdate(plc, oldRelated)
+	sortRelatedObjectsAndUpdate(plc, *oldRelated)
 }
 
 func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, oldRelated []policyv1.RelatedObject) {
-	sort.SliceStable(plc.Status.RelatedObjects, func(i, j int) bool {
-		valuei := fmt.Sprintf("%s:%s:%s",
-			plc.Status.RelatedObjects[i].Object.Kind,
-			plc.Status.RelatedObjects[i].Object.Metadata.Namespace,
-			plc.Status.RelatedObjects[i].Object.Metadata.Name)
-		valuej := fmt.Sprintf("%s:%s:%s",
-			plc.Status.RelatedObjects[j].Object.Kind,
-			plc.Status.RelatedObjects[j].Object.Metadata.Namespace,
-			plc.Status.RelatedObjects[j].Object.Metadata.Name)
-		return valuei < valuej
+	related := plc.Status.RelatedObjects
+	sort.SliceStable(related, func(i, j int) bool {
+		if related[i].Object.Kind != related[j].Object.Kind {
+			return related[i].Object.Kind < related[j].Object.Kind
+		}
+		if related[i].Object.Metadata.Namespace != related[j].Object.Metadata.Namespace {
+			return related[i].Object.Metadata.Namespace < related[j].Object.Metadata.Namespace
+		}
+		return related[i].Object.Metadata.Name < related[j].Object.Metadata.Name
 	})
 	update := false
-	if len(oldRelated) == len(plc.Status.RelatedObjects) {
+	if len(oldRelated) == len(related) {
 		for i, entry := range oldRelated {
-			if gocmp.Equal(entry, plc.Status.RelatedObjects[i]) == false {
+			if gocmp.Equal(entry, related[i]) == false {
 				update = true
 			}
 		}

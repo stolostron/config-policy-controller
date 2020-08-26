@@ -480,6 +480,15 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 	addRelatedObjects(policy, true, rsrc, "bar", true, []string{name}, nameLinkMap, "reason")
 	sortRelatedObjectsAndUpdate(*policy, policy.Status.RelatedObjects)
 	assert.True(t, policy.Status.RelatedObjects[0].Object.Metadata.Namespace == "bar")
+
+	// clear related objects and test sorting with no namespace
+	policy.Status.RelatedObjects = []policiesv1alpha1.RelatedObject{}
+	name = "foo"
+	addRelatedObjects(policy, true, rsrc, "", false, []string{name}, nameLinkMap, "reason")
+	name = "bar"
+	addRelatedObjects(policy, true, rsrc, "", false, []string{name}, nameLinkMap, "reason")
+	sortRelatedObjectsAndUpdate(*policy, policy.Status.RelatedObjects)
+	assert.True(t, policy.Status.RelatedObjects[0].Object.Metadata.Name == "bar")
 }
 
 func newRule(verbs, apiGroups, resources, nonResourceURLs string) rbacv1.PolicyRule {
