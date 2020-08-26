@@ -392,7 +392,7 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 		//noncompliant; musthave and objects do not exist
 		message := fmt.Sprintf("No instances of `%v` exist as specified, and one should be created", kind)
 		if desiredName != "" {
-			message = fmt.Sprintf("%v `%v` does not exist as specified, and should be created", kind, desiredName)
+			message = fmt.Sprintf("%v `%v` does not exist as specified", kind, desiredName)
 		}
 		update = createViolation(plc, indx, "K8s missing a must have object", message)
 	}
@@ -400,6 +400,7 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 		//noncompliant; mustnothave and objects exist
 		nameStr := ""
 		for ns, names := range nonCompliantObjects {
+			sort.Strings(names)
 			nameStr += "["
 			for i, name := range names {
 				nameStr += name
@@ -410,13 +411,14 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 			nameStr += "] in namespace " + ns + "; "
 		}
 		nameStr = nameStr[:len(nameStr)-2]
-		message := fmt.Sprintf("%v exist and should be deleted: %v", kind, nameStr)
+		message := fmt.Sprintf("%v exist: %v", kind, nameStr)
 		update = createViolation(plc, indx, "K8s has a must `not` have object", message)
 	}
 	if !mustNotHave && numCompliant > 0 {
 		//compliant; musthave and objects exist
 		nameStr := ""
 		for ns, names := range compliantObjects {
+			sort.Strings(names)
 			nameStr += "["
 			for i, name := range names {
 				nameStr += name
