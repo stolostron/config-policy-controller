@@ -287,7 +287,10 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		return
 	}
 	// initialize the RelatedObjects for this Configuration Policy
-	oldRelated := &plc.Status.RelatedObjects
+	oldRelated := []policyv1.RelatedObject{}
+	for i := range plc.Status.RelatedObjects {
+		oldRelated[i] = plc.Status.RelatedObjects[i]
+	}
 	plc.Status.RelatedObjects = []policyv1.RelatedObject{}
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string][]string{}
@@ -352,7 +355,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			createInformStatus(mustNotHave, numCompliant, numNonCompliant, compliantObjects, nonCompliantObjects, &plc, objData)
 		}
 	}
-	sortRelatedObjectsAndUpdate(plc, *oldRelated)
+	sortRelatedObjectsAndUpdate(plc, oldRelated)
 }
 
 func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, oldRelated []policyv1.RelatedObject) {
