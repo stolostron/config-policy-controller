@@ -59,6 +59,11 @@ var eventWarning = "Warning"
 var eventFmtStr = "policy: %s/%s"
 var plcFmtStr = "policy: %s"
 
+var reasonWantFoundExists = "Resource found as expected"
+var reasonWantFoundDNE = "Resource not found but expected"
+var reasonWantNotFoundExists = "Resource found but not expected"
+var reasonWantNotFoundDNE = "Resource not found as expected"
+
 const getObjError = "object `%v` cannot be retrieved from the api server\n"
 const convertJSONError = "Error converting updated %s to JSON: %s"
 
@@ -563,31 +568,31 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 
 	if complianceCalculated {
 		if objShouldExist && compliant {
-			reason = "Resource found as expected"
+			reason = reasonWantFoundExists
 		} else if objShouldExist && !compliant {
-			reason = "Resource not found but expected"
+			reason = reasonWantFoundDNE
 		} else if !objShouldExist && compliant {
-			reason = "Resource not found as expected"
+			reason = reasonWantNotFoundDNE
 		} else if !objShouldExist && !compliant {
-			reason = "Resource found but not expected"
+			reason = reasonWantNotFoundExists
 		}
 	} else {
 		if !exists && objShouldExist {
 			compliant = false
 			rsrcKind = rsrc.Resource
-			reason = "Resource not found but expected"
+			reason = reasonWantFoundDNE
 		} else if exists && !objShouldExist {
 			compliant = false
 			rsrcKind = rsrc.Resource
-			reason = "Resource found but not expected"
+			reason = reasonWantNotFoundExists
 		} else if !exists && !objShouldExist {
 			compliant = true
 			rsrcKind = rsrc.Resource
-			reason = "Resource not found as expected"
+			reason = reasonWantNotFoundDNE
 		} else if exists && objShouldExist {
 			compliant = true
 			rsrcKind = rsrc.Resource
-			reason = "Resource found as expected"
+			reason = reasonWantFoundExists
 		}
 	}
 
