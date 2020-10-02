@@ -544,7 +544,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	}
 	objShouldExist := strings.ToLower(string(objectT.ComplianceType)) != strings.ToLower(string(policyv1.MustNotHave))
 	rsrcKind = ""
-	reason := "Resource found as expected"
+	reason := ""
 	// if the compliance is calculated by the handleSingleObj function, do not override the setting
 	// when setting the reasons
 	complianceCalculated := false
@@ -560,28 +560,34 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			})
 		complianceCalculated = true
 	}
-	if !exists && objShouldExist {
-		if !complianceCalculated {
+
+	if complianceCalculated {
+		if objShouldExist && compliant {
+			reason = "Resource found as expected"
+		} else if objShouldExist && !compliant {
+			reason = "Resource not found but expected"
+		} else if !objShouldExist && compliant {
+			reason = "Resource not found as expected"
+		} else if !objShouldExist && !compliant {
+			reason = "Resource found but not expected"
+		}
+	} else {
+		if !exists && objShouldExist {
 			compliant = false
 			rsrcKind = rsrc.Resource
-		}
-		reason = "Resource not found but expected"
-	} else if exists && !objShouldExist {
-		if !complianceCalculated {
+			reason = "Resource not found but expected"
+		} else if exists && !objShouldExist {
 			compliant = false
 			rsrcKind = rsrc.Resource
-		}
-		reason = "Resource found but not expected"
-	} else if !exists && !objShouldExist {
-		if !complianceCalculated {
+			reason = "Resource found but not expected"
+		} else if !exists && !objShouldExist {
 			compliant = true
 			rsrcKind = rsrc.Resource
-		}
-		reason = "Resource not found as expected"
-	} else if exists && objShouldExist {
-		if !complianceCalculated {
+			reason = "Resource not found as expected"
+		} else if exists && objShouldExist {
 			compliant = true
 			rsrcKind = rsrc.Resource
+			reason = "Resource found as expected"
 		}
 	}
 
