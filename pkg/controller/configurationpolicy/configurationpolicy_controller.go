@@ -326,12 +326,9 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				desiredName = objectname.(string)
 			}
 		}
-
 		numCompliant := 0
 		numNonCompliant := 0
-
 		handled := false
-
 		for _, ns := range relevantNamespaces {
 			names, compliant, objKind, related, update := handleObjects(objectT, ns, indx, &plc, config, recorder,
 				apiresourcelist, apigroups)
@@ -360,24 +357,20 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				}
 			}
 		}
-
 		if !handled && !enforce {
 			objData := map[string]interface{}{
 				"indx":        indx,
 				"kind":        kind,
 				"desiredName": desiredName,
 			}
-			statusUpdate := createInformStatus(mustNotHave, numCompliant, numNonCompliant, compliantObjects, nonCompliantObjects, &plc, objData)
+			statusUpdate := createInformStatus(mustNotHave, numCompliant, numNonCompliant,
+				compliantObjects, nonCompliantObjects, &plc, objData)
 			if statusUpdate {
 				parentUpdate = true
 			}
 		}
 	}
 
-	//TODO add parent event generation here
-	// return update needed from each template and compile
-	// then call addForUpdate once per configpolicy
-	//one update for related objects and status, if possible
 	if parentUpdate {
 		addForUpdate(&plc)
 	}
@@ -494,7 +487,6 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 			eventType = eventWarning
 		}
 		recorder.Event(plc, eventType, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(plc))
-		//addForUpdate(plc)
 	}
 	return update
 }
@@ -545,7 +537,6 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			}
 			recorder.Event(policy, eventType, fmt.Sprintf(eventFmtStr, policy.GetName(), name),
 				convertPolicyStatusToString(policy))
-			//addForUpdate(policy)
 			needUpdate = true
 		}
 		return nil, false, "", nil, needUpdate
@@ -700,7 +691,6 @@ func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.
 		}
 		recorder.Event(policy, eventType, fmt.Sprintf(eventFmtStr, policy.GetName(), name),
 			convertPolicyStatusToString(policy))
-		// addForUpdate(policy)
 		return nil, compliant, "", updateNeeded
 	}
 
@@ -771,7 +761,6 @@ func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtens
 				Message:            decodeErr,
 			},
 		}
-		//addForUpdate(policy)
 		return nil, true
 	}
 	mapping, err = restmapper.RESTMapping(gvk.GroupKind(), gvk.Version)
@@ -816,7 +805,6 @@ func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtens
 		}
 		if updateNeeded {
 			recorder.Event(policy, eventWarning, fmt.Sprintf(plcFmtStr, policy.GetName()), errMsg)
-			//addForUpdate(policy)
 		}
 		return nil, updateNeeded
 	}
@@ -1507,8 +1495,6 @@ func IsSimilarToLastCondition(oldCond policyv1.Condition, newCond policyv1.Condi
 }
 
 func addForUpdate(policy *policyv1.ConfigurationPolicy) {
-	fmt.Println("--------- AFU " + policy.GetName() + " -----------")
-	fmt.Println(policy)
 	compliant := true
 	for index := range policy.Spec.ObjectTemplates {
 		if index < len(policy.Status.CompliancyDetails) {
