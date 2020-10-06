@@ -581,17 +581,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	}
 
 	if complianceCalculated {
-		if objShouldExist && compliant {
-			reason = reasonWantFoundExists
-		} else if objShouldExist && !compliant && exists {
-			reason = reasonWantFoundNoMatch
-		} else if objShouldExist && !compliant {
-			reason = reasonWantFoundDNE
-		} else if !objShouldExist && compliant {
-			reason = reasonWantNotFoundDNE
-		} else if !objShouldExist && !compliant {
-			reason = reasonWantNotFoundExists
-		}
+		reason = generateSingleObjReason(objShouldExist, compliant, exists)
 	} else {
 		if !exists && objShouldExist {
 			compliant = false
@@ -621,6 +611,22 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 			nameLinkMap, reason)
 	}
 	return objNames, compliant, rsrcKind, relatedObjects, needUpdate
+}
+
+func generateSingleObjReason(objShouldExist bool, compliant bool, exists bool) (rsn string) {
+	reason := ""
+	if objShouldExist && compliant {
+		reason = reasonWantFoundExists
+	} else if objShouldExist && !compliant && exists {
+		reason = reasonWantFoundNoMatch
+	} else if objShouldExist && !compliant {
+		reason = reasonWantFoundDNE
+	} else if !objShouldExist && compliant {
+		reason = reasonWantNotFoundDNE
+	} else if !objShouldExist && !compliant {
+		reason = reasonWantNotFoundExists
+	}
+	return reason
 }
 
 func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.RemediationAction, exists bool,
