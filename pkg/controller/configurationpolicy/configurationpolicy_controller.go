@@ -60,8 +60,9 @@ var eventFmtStr = "policy: %s/%s"
 var plcFmtStr = "policy: %s"
 
 var reasonWantFoundExists = "Resource found as expected"
-var reasonWantFoundDNE = "Resource not found but expected"
-var reasonWantNotFoundExists = "Resource found but not expected"
+var reasonWantFoundNoMatch = "Resource found but does not match"
+var reasonWantFoundDNE = "Resource not found but should exist"
+var reasonWantNotFoundExists = "Resource found but should not exist"
 var reasonWantNotFoundDNE = "Resource not found as expected"
 
 const getObjError = "object `%v` cannot be retrieved from the api server\n"
@@ -569,6 +570,8 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	if complianceCalculated {
 		if objShouldExist && compliant {
 			reason = reasonWantFoundExists
+		} else if objShouldExist && !compliant && exists {
+			reason = reasonWantFoundNoMatch
 		} else if objShouldExist && !compliant {
 			reason = reasonWantFoundDNE
 		} else if !objShouldExist && compliant {
