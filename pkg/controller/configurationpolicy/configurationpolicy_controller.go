@@ -508,11 +508,8 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	needUpdate := false
 	ext := objectT.ObjectDefinition
 	mapping, mappingUpdate := getMapping(apigroups, ext, policy, index)
-	if mappingUpdate {
-		needUpdate = true
-	}
 	if mapping == nil {
-		return nil, false, "", nil, needUpdate
+		return nil, false, "", nil, (needUpdate || mappingUpdate)
 	}
 	var unstruct unstructured.Unstructured
 	unstruct.Object = make(map[string]interface{})
