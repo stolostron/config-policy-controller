@@ -552,7 +552,6 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	rsrcKind = ""
 	reason := ""
 	// if the compliance is calculated by the handleSingleObj function, do not override the setting
-	// when setting the reasons
 	complianceCalculated := false
 	if len(objNames) == 1 {
 		name = objNames[0]
