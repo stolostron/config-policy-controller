@@ -370,15 +370,19 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			}
 		}
 	}
-
-	if parentUpdate {
-		addForUpdate(&plc)
-	}
-
-	sortRelatedObjectsAndUpdate(plc, relatedObjects, oldRelated)
+	checkRelatedAndUpdate(parentUpdate, plc, relatedObjects, oldRelated)
 }
 
-func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, related, oldRelated []policyv1.RelatedObject) {
+func checkRelatedAndUpdate(update bool, plc policyv1.ConfigurationPolicy, related,
+	oldRelated []policyv1.RelatedObject) {
+	sortUpdate := sortRelatedObjectsAndUpdate(&plc, related, oldRelated)
+	if update || sortUpdate {
+		addForUpdate(&plc)
+	}
+}
+
+func sortRelatedObjectsAndUpdate(plc *policyv1.ConfigurationPolicy, related,
+	oldRelated []policyv1.RelatedObject) (updateNeeded bool) {
 	sort.SliceStable(related, func(i, j int) bool {
 		if related[i].Object.Kind != related[j].Object.Kind {
 			return related[i].Object.Kind < related[j].Object.Kind
@@ -399,9 +403,9 @@ func sortRelatedObjectsAndUpdate(plc policyv1.ConfigurationPolicy, related, oldR
 		update = true
 	}
 	if update {
-		plc.Status.RelatedObjects = related
-		addForUpdate(&plc)
+		(*plc).Status.RelatedObjects = related
 	}
+	return update
 }
 
 func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int, compliantObjects map[string][]string,
