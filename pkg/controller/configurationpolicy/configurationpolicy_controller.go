@@ -1208,8 +1208,6 @@ func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
 			return x2
 		}
 	}
-	fmt.Println("---- default case -----")
-	fmt.Println(x1)
 	_, ok := x1.(string)
 	if !ok {
 		return x1
@@ -1218,11 +1216,6 @@ func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
 }
 
 func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []interface{}) {
-	fmt.Println("------ MERGING ARRAYS ------")
-	fmt.Println(new)
-	fmt.Println(".......")
-	fmt.Println(old)
-	fmt.Println("????????????????????????????")
 	newCopy := append([]interface{}{}, new...)
 	for _, val2 := range old {
 		found := false
@@ -1234,19 +1227,12 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 					mergedObj, _ = compareSpecs(val1.(map[string]interface{}), val2, ctype)
 					if v2, ok := val2["reason"]; ok {
 						if v2 == "EncryptionCompleted" {
-							fmt.Println("------ ISSUE HERE -------")
-							fmt.Println(mergedObj)
-							fmt.Println(val1)
-							fmt.Println(val2)
 						}
 					}
 				default:
-					fmt.Println(":::::: default")
 					mergedObj = val1
 				}
-				fmt.Println("CHECKING FOUND")
 				if reflect.DeepEqual(mergedObj, val2) {
-					fmt.Println("FOUND!!!!")
 					found = true
 					if ctype == "musthave" {
 						new[newIdx] = mergedObj
@@ -1261,9 +1247,6 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 			new = append(new, val2)
 		}
 	}
-	fmt.Println("----- merged -------")
-	fmt.Println(len(new))
-	fmt.Println(len(old))
 	return new
 }
 
@@ -1391,12 +1374,6 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 			oldObj = formatMetadata(oldObj.(map[string]interface{}))
 			mergedObj = formatMetadata(mergedObj.(map[string]interface{}))
 		}
-		if key == "status" {
-			fmt.Println("------ status check --------")
-			fmt.Println(oldObj)
-			fmt.Println("///////////////////////////")
-			fmt.Println(mergedObj)
-		}
 		//check if merged spec has changed
 		nJSON, err := json.Marshal(mergedObj)
 		if err != nil {
@@ -1411,14 +1388,7 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 		switch mergedObj := mergedObj.(type) {
 		case (map[string]interface{}):
 			if !checkFieldsWithSort(mergedObj, oldObj.(map[string]interface{})) {
-				fmt.Println(key)
-				fmt.Println("$$$$$$$$$$$$$$$$$$")
-				fmt.Println("NO MATCH FOUND :(")
 				updateNeeded = true
-			} else {
-				fmt.Println(key)
-				fmt.Println("$$$$$$$$$$$$$$$$$$")
-				fmt.Println("MATCH FOUND!!!!!!!")
 			}
 		default:
 			if !reflect.DeepEqual(nJSON, oJSON) {
@@ -1443,15 +1413,11 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 			sort.Slice(mVal, func(x, y int) bool {
 				return fmt.Sprintf("%v", mVal[x]) < fmt.Sprintf("%v", mVal[y])
 			})
-			fmt.Println("-------- in check sort ---------")
 			if len(mVal) != len(oVal) {
 				match = false
 			} else {
 				for idx, oNestedVal := range oVal {
 					if fmt.Sprint(oNestedVal) != fmt.Sprint(mVal[idx]) {
-						fmt.Println(mVal[idx])
-						fmt.Println(">>>>>>>>>>>>>>>>>>>>>>")
-						fmt.Println(oNestedVal)
 						match = false
 					}
 				}
@@ -1459,9 +1425,6 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 		default:
 			oVal := oldObj[i]
 			if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
-				fmt.Println(oVal)
-				fmt.Println(">>>>>>>>>>>>>>>>>>>>>>")
-				fmt.Println(mVal)
 				match = false
 			}
 		}
