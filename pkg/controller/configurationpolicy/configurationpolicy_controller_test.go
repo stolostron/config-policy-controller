@@ -400,13 +400,12 @@ func TestMerge(t *testing.T) {
 			"b": "boy",
 		},
 	}
-	merged1 := mergeArrays(oldList, newList, "musthave")
+	merged1 := mergeArrays(newList, oldList, "musthave")
 	assert.Equal(t, checkListsMatch(oldList, merged1), true)
-	merged2 := mergeArrays(oldList, newList, "mustonlyhave")
+	merged2 := mergeArrays(newList, oldList, "mustonlyhave")
 	assert.Equal(t, checkListsMatch(newList, merged2), true)
 	newList2 := []interface{}{
 		map[string]interface{}{
-			"a": "airplane",
 			"b": "boy",
 		},
 	}
@@ -422,7 +421,7 @@ func TestMerge(t *testing.T) {
 	}
 	checkList2 := []interface{}{
 		map[string]interface{}{
-			"a": "airplane",
+			"a": "apple",
 			"b": "boy",
 		},
 		map[string]interface{}{
@@ -430,28 +429,18 @@ func TestMerge(t *testing.T) {
 			"d": "dog",
 		},
 	}
-	merged3 := mergeArrays(oldList2, newList2, "musthave")
+	merged3 := mergeArrays(newList2, oldList2, "musthave")
 	assert.Equal(t, checkListsMatch(checkList2, merged3), true)
 	newList3 := []interface{}{
 		map[string]interface{}{
-			"a": "airplane",
+			"a": "apple",
 		},
 		map[string]interface{}{
-			"c": "cook",
+			"c": "candy",
 		},
 	}
-	checkList3 := []interface{}{
-		map[string]interface{}{
-			"a": "airplane",
-			"b": "boy",
-		},
-		map[string]interface{}{
-			"c": "cook",
-			"d": "dog",
-		},
-	}
-	merged4 := mergeArrays(oldList2, newList3, "musthave")
-	assert.Equal(t, checkListsMatch(checkList3, merged4), true)
+	merged4 := mergeArrays(newList3, oldList2, "musthave")
+	assert.Equal(t, checkListsMatch(checkList2, merged4), true)
 }
 
 func TestAddRelatedObject(t *testing.T) {
