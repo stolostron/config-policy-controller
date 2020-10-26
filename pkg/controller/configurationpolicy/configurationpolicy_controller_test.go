@@ -383,6 +383,77 @@ func TestHandleAddingPolicy(t *testing.T) {
 	handleRemovingPolicy(samplePolicy.GetName())
 }
 
+func TestMerge(t *testing.T) {
+	oldList := []interface{}{
+		map[string]interface{}{
+			"a": "apple",
+			"b": "boy",
+		},
+		map[string]interface{}{
+			"c": "candy",
+			"d": "dog",
+		},
+	}
+	newList := []interface{}{
+		map[string]interface{}{
+			"a": "apple",
+			"b": "boy",
+		},
+	}
+	merged1 := mergeArrays(oldList, newList, "musthave")
+	assert.Equal(t, checkListsMatch(oldList, merged1), true)
+	merged2 := mergeArrays(oldList, newList, "mustonlyhave")
+	assert.Equal(t, checkListsMatch(newList, merged2), true)
+	newList2 := []interface{}{
+		map[string]interface{}{
+			"a": "airplane",
+			"b": "boy",
+		},
+	}
+	oldList2 := []interface{}{
+		map[string]interface{}{
+			"a": "apple",
+			"b": "boy",
+		},
+		map[string]interface{}{
+			"c": "candy",
+			"d": "dog",
+		},
+	}
+	checkList2 := []interface{}{
+		map[string]interface{}{
+			"a": "airplane",
+			"b": "boy",
+		},
+		map[string]interface{}{
+			"c": "candy",
+			"d": "dog",
+		},
+	}
+	merged3 := mergeArrays(oldList2, newList2, "musthave")
+	assert.Equal(t, checkListsMatch(checkList2, merged3), true)
+	newList3 := []interface{}{
+		map[string]interface{}{
+			"a": "airplane",
+		},
+		map[string]interface{}{
+			"c": "cook",
+		},
+	}
+	checkList3 := []interface{}{
+		map[string]interface{}{
+			"a": "airplane",
+			"b": "boy",
+		},
+		map[string]interface{}{
+			"c": "cook",
+			"d": "dog",
+		},
+	}
+	merged4 := mergeArrays(oldList2, newList3, "musthave")
+	assert.Equal(t, checkListsMatch(checkList3, merged4), true)
+}
+
 func TestAddRelatedObject(t *testing.T) {
 
 	policy := &policiesv1alpha1.ConfigurationPolicy{
