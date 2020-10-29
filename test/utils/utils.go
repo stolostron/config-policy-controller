@@ -154,3 +154,11 @@ func GetComplianceState(managedPlc *unstructured.Unstructured) (result interface
 	}
 	return nil
 }
+
+// GetStatusMessage parses status field to get message
+func GetStatusMessage(managedPlc *unstructured.Unstructured) (result interface{}) {
+	if managedPlc.Object["status"] != nil {
+		return managedPlc.Object["status"].(map[string]interface{})["message"]
+	}
+	return nil
+}
