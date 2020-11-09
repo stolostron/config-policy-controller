@@ -18,5 +18,5 @@ export WATCH_NAMESPACE=cluster_namespace_on_hub
 operator-sdk run --local
 ```
 <!---
-Date: 9/09/2020
+Date: Nov/9/2020
 -->
