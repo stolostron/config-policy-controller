@@ -330,14 +330,18 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		numCompliant := 0
 		numNonCompliant := 0
 		handled := false
+		objNamespaced := false
 		for _, ns := range relevantNamespaces {
-			names, compliant, objKind, related, update := handleObjects(objectT, ns, indx, &plc, config, recorder,
+			names, compliant, objKind, related, update, namespaced := handleObjects(objectT, ns, indx, &plc, config, recorder,
 				apiresourcelist, apigroups)
 			if update {
 				parentUpdate = true
 			}
 			if objKind != "" {
 				kind = objKind
+			}
+			if namespaced {
+				objNamespaced = true
 			}
 			if names == nil {
 				//object template enforced, already handled in handleObjects
@@ -354,7 +358,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			}
 			if related != nil {
 				for _, object := range related {
-					relatedObjects = append(relatedObjects, object)
+					relatedObjects = updateRelatedObjectsStatus(relatedObjects, object)
 				}
 			}
 		}
@@ -363,6 +367,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				"indx":        indx,
 				"kind":        kind,
 				"desiredName": desiredName,
+				"namespaced":  objNamespaced,
 			}
 			statusUpdate := createInformStatus(mustNotHave, numCompliant, numNonCompliant,
 				compliantObjects, nonCompliantObjects, &plc, objData)
@@ -417,6 +422,7 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	desiredName := objData["desiredName"].(string)
 	indx := objData["indx"].(int)
 	kind := objData["kind"].(string)
+	namespaced := objData["namespaced"].(bool)
 	if kind == "" {
 		return
 	}
@@ -430,13 +436,14 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	}
 	if mustNotHave && numNonCompliant > 0 {
 		//noncompliant; mustnothave and objects exist
-		nameStr := ""
+		nameList := []string{}
 		sortedNamespaces := []string{}
 		for n := range nonCompliantObjects {
 			sortedNamespaces = append(sortedNamespaces, n)
 		}
 		sort.Strings(sortedNamespaces)
 		for i := range sortedNamespaces {
+			nameStr := ""
 			ns := sortedNamespaces[i]
 			names := nonCompliantObjects[ns]
 			sort.Strings(names)
@@ -447,21 +454,28 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 					nameStr += ", "
 				}
 			}
-			nameStr += "] in namespace " + ns + "; "
+			nameStr += "]"
+			if namespaced {
+				nameStr += " in namespace " + ns
+			}
+			if !stringInSlice(nameStr, nameList) {
+				nameList = append(nameList, nameStr)
+			}
 		}
-		nameStr = nameStr[:len(nameStr)-2]
-		message := fmt.Sprintf("%v exist: %v", kind, nameStr)
+		names := strings.Join(nameList, "; ")
+		message := fmt.Sprintf("%v exist: %v", kind, names)
 		update = createViolation(plc, indx, "K8s has a must `not` have object", message)
 	}
 	if !mustNotHave && numCompliant > 0 {
 		//compliant; musthave and objects exist
-		nameStr := ""
+		nameList := []string{}
 		sortedNamespaces := []string{}
 		for n := range compliantObjects {
 			sortedNamespaces = append(sortedNamespaces, n)
 		}
 		sort.Strings(sortedNamespaces)
 		for i := range sortedNamespaces {
+			nameStr := ""
 			ns := sortedNamespaces[i]
 			names := compliantObjects[ns]
 			sort.Strings(names)
@@ -472,10 +486,16 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 					nameStr += ", "
 				}
 			}
-			nameStr += "] in namespace " + ns + "; "
+			nameStr += "]"
+			if namespaced {
+				nameStr += " in namespace " + ns
+			}
+			if !stringInSlice(nameStr, nameList) {
+				nameList = append(nameList, nameStr)
+			}
 		}
-		nameStr = nameStr[:len(nameStr)-2]
-		message := fmt.Sprintf("%v %v exist as specified, therefore this Object template is compliant", kind, nameStr)
+		names := strings.Join(nameList, "; ")
+		message := fmt.Sprintf("%v %v exist as specified, therefore this Object template is compliant", kind, names)
 		update = createNotification(plc, indx, "K8s `must have` object already exists", message)
 		compliant = true
 	}
@@ -499,7 +519,7 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int, policy *policyv1.ConfigurationPolicy,
 	config *rest.Config, recorder record.EventRecorder, apiresourcelist []*metav1.APIResourceList,
 	apigroups []*restmapper.APIGroupResources) (objNameList []string, compliant bool,
-	rsrcKind string, relatedObjects []policyv1.RelatedObject, pUpdate bool) {
+	rsrcKind string, relatedObjects []policyv1.RelatedObject, pUpdate bool, isNamespaced bool) {
 	if namespace != "" {
 		fmt.Println(fmt.Sprintf("handling object template [%d] in namespace %s", index, namespace))
 	} else {
@@ -510,7 +530,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	ext := objectT.ObjectDefinition
 	mapping, mappingUpdate := getMapping(apigroups, ext, policy, index)
 	if mapping == nil {
-		return nil, false, "", nil, (needUpdate || mappingUpdate)
+		return nil, false, "", nil, (needUpdate || mappingUpdate), namespaced
 	}
 	var unstruct unstructured.Unstructured
 	unstruct.Object = make(map[string]interface{})
@@ -541,7 +561,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 				convertPolicyStatusToString(policy))
 			needUpdate = true
 		}
-		return nil, false, "", nil, needUpdate
+		return nil, false, "", nil, needUpdate, namespaced
 	}
 	nameLinkMap := make(map[string]string)
 	var selfLink string
@@ -610,7 +630,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		relatedObjects = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames,
 			nameLinkMap, reason)
 	}
-	return objNames, compliant, rsrcKind, relatedObjects, needUpdate
+	return objNames, compliant, rsrcKind, relatedObjects, needUpdate, namespaced
 }
 
 func generateSingleObjReason(objShouldExist bool, compliant bool, exists bool) (rsn string) {
@@ -1182,7 +1202,7 @@ func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
 		}
 		if len(x2) > len(x1) {
 			if ctype == "musthave" {
-				return mergeArrays(x1, x2)
+				return mergeArrays(x1, x2, ctype)
 			}
 			return x1
 		}
@@ -1195,7 +1215,7 @@ func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
 				}
 			} else {
 				if ctype == "musthave" {
-					return mergeArrays(x1, x2)
+					return mergeArrays(x1, x2, ctype)
 				}
 				return x1
 			}
@@ -1208,14 +1228,36 @@ func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
 			return x2
 		}
 	}
-	return x1
+	_, ok := x1.(string)
+	if !ok {
+		return x1
+	}
+	return strings.TrimSpace(x1.(string))
 }
 
-func mergeArrays(new []interface{}, old []interface{}) (result []interface{}) {
+func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []interface{}) {
+	newCopy := append([]interface{}{}, new...)
 	for _, val2 := range old {
 		found := false
-		for _, val1 := range new {
-			if reflect.DeepEqual(val1, val2) {
+		for newIdx, val1 := range newCopy {
+			matches := false
+			if ctype == "musthave" {
+				var mergedObj interface{}
+				switch val2 := val2.(type) {
+				case map[string]interface{}:
+					mergedObj, _ = compareSpecs(val1.(map[string]interface{}), val2, ctype)
+				default:
+					mergedObj = val1
+				}
+				if reflect.DeepEqual(mergedObj, val2) {
+					found = true
+					matches = true
+				}
+				if matches && ctype == "musthave" {
+					new[newIdx] = mergedObj
+				}
+
+			} else if reflect.DeepEqual(val1, val2) {
 				found = true
 			}
 		}
@@ -1228,7 +1270,7 @@ func mergeArrays(new []interface{}, old []interface{}) (result []interface{}) {
 
 func compareLists(newList []interface{}, oldList []interface{}, ctype string) (updatedList []interface{}, err error) {
 	if ctype == "musthave" {
-		return mergeArrays(newList, oldList), nil
+		return mergeArrays(newList, oldList, ctype), nil
 	}
 	//mustonlyhave
 	mergedList := []interface{}{}
@@ -1256,53 +1298,6 @@ func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{}
 		return merged.(map[string]interface{}), err
 	}
 	return merged.(map[string]interface{}), nil
-}
-
-func isDenylisted(key string) (result bool) {
-	denylist := []string{"apiVersion", "kind"}
-	for _, val := range denylist {
-		if key == val {
-			return true
-		}
-	}
-	return false
-}
-
-func isAutogenerated(key string) (result bool) {
-	denylist := []string{"kubectl.kubernetes.io/last-applied-configuration"}
-	for _, val := range denylist {
-		if key == val {
-			return true
-		}
-	}
-	return false
-}
-
-func formatTemplate(unstruct unstructured.Unstructured, key string) (obj interface{}) {
-	if key == "metadata" {
-		metadata := unstruct.Object[key].(map[string]interface{})
-		return formatMetadata(metadata)
-	}
-	return unstruct.Object[key]
-}
-
-func formatMetadata(metadata map[string]interface{}) (formatted map[string]interface{}) {
-	md := map[string]interface{}{}
-	if labels, ok := metadata["labels"]; ok {
-		md["labels"] = labels
-	}
-	if annos, ok := metadata["annotations"]; ok {
-		noAutogenerated := map[string]interface{}{}
-		for key := range annos.(map[string]interface{}) {
-			if !isAutogenerated(key) {
-				noAutogenerated[key] = annos.(map[string]interface{})[key]
-			}
-		}
-		if len(noAutogenerated) > 0 {
-			md["annotations"] = noAutogenerated
-		}
-	}
-	return md
 }
 
 func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
@@ -1361,8 +1356,15 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 			message := fmt.Sprintf(convertJSONError, key, err)
 			return message, false, mergedObj, false
 		}
-		if !reflect.DeepEqual(nJSON, oJSON) {
-			updateNeeded = true
+		switch mergedObj := mergedObj.(type) {
+		case (map[string]interface{}):
+			if !checkFieldsWithSort(mergedObj, oldObj.(map[string]interface{})) {
+				updateNeeded = true
+			}
+		default:
+			if !reflect.DeepEqual(nJSON, oJSON) {
+				updateNeeded = true
+			}
 		}
 		return "", updateNeeded, mergedObj, false
 	}
