@@ -15,5 +15,8 @@ spec:
         metadata:
           name: nginx-pod-e2e-empty
         spec:
-          containers: []
+          containers:
+            - image: nginx:1.7.9
+              name: nginx
+              ports: []
           
