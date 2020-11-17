@@ -15,5 +15,5 @@ spec:
         metadata:
           name: nginx-pod-e2e-empty
         spec:
-          containers: {}
+          containers: []
           
