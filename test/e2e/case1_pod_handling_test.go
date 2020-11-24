@@ -101,13 +101,6 @@ var _ = Describe("Test pod obj template handling", func() {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-multiple-mh", testNamespace, true, defaultTimeoutSeconds)
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
-			utils.Kubectl("apply", "-f", case1PolicyYamlMultipleCheckMOH, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-multiple-moh", testNamespace, true, defaultTimeoutSeconds)
-			Expect(plc).NotTo(BeNil())
-			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "policy-pod-check-multiple-moh", testNamespace, true, defaultTimeoutSeconds)
-				return utils.GetComplianceState(managedPlc)
-			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})
 	})
 })

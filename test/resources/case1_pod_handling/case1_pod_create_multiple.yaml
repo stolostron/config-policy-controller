@@ -20,13 +20,6 @@ spec:
               name: nginx
               ports:
                 - containerPort: 80
-            - image: nginx:1.7.9
-              name: nginx
-              ports:
                 - containerPort: 80
-                      containers:
-            - image: nginx:1.8.9
-              name: nginx
-              ports:
-                - containerPort: 80
+                - containerPort: 90
           
