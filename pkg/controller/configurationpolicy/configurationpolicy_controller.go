@@ -430,129 +430,26 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	indx := objData["indx"].(int)
 	kind := objData["kind"].(string)
 	namespaced := objData["namespaced"].(bool)
-	message := ""
 	if kind == "" {
 		return
 	}
 	if !mustNotHave && numCompliant == 0 {
 		//noncompliant; musthave and objects do not exist
-		if desiredName == "" {
-			message = fmt.Sprintf("No instances of `%v` exist as specified", kind)
-		} else {
-			nameList := []string{}
-			sortedNamespaces := []string{}
-			for n := range nonCompliantObjects {
-				sortedNamespaces = append(sortedNamespaces, n)
-			}
-			sort.Strings(sortedNamespaces)
-			for i := range sortedNamespaces {
-				nameStr := ""
-				ns := sortedNamespaces[i]
-				names := nonCompliantObjects[ns]["names"].([]string)
-				reason := nonCompliantObjects[ns]["reason"].(string)
-				sort.Strings(names)
-				nameStr += "["
-				for i, name := range names {
-					nameStr += name
-					if i != len(names)-1 {
-						nameStr += ", "
-					}
-				}
-				nameStr += "]"
-				single := false
-				if len(names) == 1 {
-					single = true
-				}
-				if reason == reasonWantFoundNoMatch && single {
-					nameStr += " exists but doesn't match"
-				} else if reason == reasonWantFoundNoMatch && !single {
-					nameStr += " exist but don't match"
-				} else if reason != reasonWantFoundNoMatch && single {
-					nameStr += " does not exist"
-				} else {
-					nameStr += " do not exist"
-				}
-				if namespaced {
-					nameStr += " in namespace " + ns
-				}
-				if !stringInSlice(nameStr, nameList) {
-					nameList = append(nameList, nameStr)
-				}
-			}
-			names := strings.Join(nameList, "; ")
-			message = fmt.Sprintf("%v not found: %v", kind, names)
-		}
-		update = createViolation(plc, indx, "K8s has a must `not` have object", message)
+		update = createNonCompliantMustHaveStatus(desiredName, kind, nonCompliantObjects, namespaced,
+			plc, indx)
 	}
 	if mustNotHave && numNonCompliant > 0 {
 		//noncompliant; mustnothave and objects exist
-		nameList := []string{}
-		sortedNamespaces := []string{}
-		for n := range nonCompliantObjects {
-			sortedNamespaces = append(sortedNamespaces, n)
-		}
-		sort.Strings(sortedNamespaces)
-		for i := range sortedNamespaces {
-			nameStr := ""
-			ns := sortedNamespaces[i]
-			names := nonCompliantObjects[ns]["names"].([]string)
-			sort.Strings(names)
-			nameStr += "["
-			for i, name := range names {
-				nameStr += name
-				if i != len(names)-1 {
-					nameStr += ", "
-				}
-			}
-			nameStr += "]"
-			if namespaced {
-				nameStr += " in namespace " + ns
-			}
-			if !stringInSlice(nameStr, nameList) {
-				nameList = append(nameList, nameStr)
-			}
-		}
-		names := strings.Join(nameList, "; ")
-		message := fmt.Sprintf("%v exist: %v", kind, names)
-		update = createViolation(plc, indx, "K8s has a must `not` have object", message)
+		update = createNonCompliantMustNotHaveStatus(kind, nonCompliantObjects, namespaced, plc, indx)
 	}
 	if !mustNotHave && numCompliant > 0 {
 		//compliant; musthave and objects exist
-		nameList := []string{}
-		sortedNamespaces := []string{}
-		for n := range compliantObjects {
-			sortedNamespaces = append(sortedNamespaces, n)
-		}
-		sort.Strings(sortedNamespaces)
-		for i := range sortedNamespaces {
-			nameStr := ""
-			ns := sortedNamespaces[i]
-			names := compliantObjects[ns]["names"].([]string)
-			sort.Strings(names)
-			nameStr += "["
-			for i, name := range names {
-				nameStr += name
-				if i != len(names)-1 {
-					nameStr += ", "
-				}
-			}
-			nameStr += "]"
-			if namespaced {
-				nameStr += " in namespace " + ns
-			}
-			if !stringInSlice(nameStr, nameList) {
-				nameList = append(nameList, nameStr)
-			}
-		}
-		names := strings.Join(nameList, "; ")
-		message := fmt.Sprintf("%v %v exist as specified, therefore this Object template is compliant", kind, names)
-		update = createNotification(plc, indx, "K8s `must have` object already exists", message)
+		update = createCompliantMustHaveStatus(kind, compliantObjects, namespaced, plc, indx)
 		compliant = true
 	}
 	if mustNotHave && numNonCompliant == 0 {
 		//compliant; mustnothave and no objects exist
-		message := fmt.Sprintf("no instances of `%v` exist as specified, therefore this Object template is compliant", kind)
-		update = createNotification(plc, indx, "K8s must `not` have object already missing", message)
+		update = createCompliantMustNotHaveStatus(kind, plc, indx)
 		compliant = true
 	}
 	if update {
