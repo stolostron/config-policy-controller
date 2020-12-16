@@ -12,6 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+var statusNamespaceString = " in namespace "
+
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
 // details on whether the object is compliant or not compliant with the policy.  The results are updated in the
 // policy's Status information.
@@ -197,7 +199,7 @@ func createCompliantMustHaveStatus(kind string, compliantObjects map[string]map[
 		}
 		nameStr += "]"
 		if namespaced {
-			nameStr += " in namespace " + ns
+			nameStr += statusNamespaceString + ns
 		}
 		if !stringInSlice(nameStr, nameList) {
 			nameList = append(nameList, nameStr)
@@ -231,7 +233,7 @@ func createNonCompliantMustNotHaveStatus(kind string, nonCompliantObjects map[st
 		}
 		nameStr += "]"
 		if namespaced {
-			nameStr += " in namespace " + ns
+			nameStr += statusNamespaceString + ns
 		}
 		if !stringInSlice(nameStr, nameList) {
 			nameList = append(nameList, nameStr)
@@ -243,8 +245,9 @@ func createNonCompliantMustNotHaveStatus(kind string, nonCompliantObjects map[st
 }
 
 //createNonCompliantMustHaveStatus generates a status for a musthave/mustonlyhave policy that is noncompliant
-func createNonCompliantMustHaveStatus(desiredName string, kind string, nonCompliantObjects map[string]map[string]interface{},
-	namespaced bool, plc *policyv1.ConfigurationPolicy, indx int) (update bool) {
+func createNonCompliantMustHaveStatus(desiredName string, kind string,
+	nonCompliantObjects map[string]map[string]interface{}, namespaced bool, plc *policyv1.ConfigurationPolicy,
+	indx int) (update bool) {
 	message := ""
 	if desiredName == "" {
 		message = fmt.Sprintf("No instances of `%v` exist as specified", kind)
@@ -283,7 +286,7 @@ func createNonCompliantMustHaveStatus(desiredName string, kind string, nonCompli
 				nameStr += " do not exist"
 			}
 			if namespaced {
-				nameStr += " in namespace " + ns
+				nameStr += statusNamespaceString + ns
 			}
 			if !stringInSlice(nameStr, nameList) {
 				nameList = append(nameList, nameStr)

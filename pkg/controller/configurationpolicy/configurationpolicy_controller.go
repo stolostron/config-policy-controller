@@ -332,9 +332,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		handled := false
 		objNamespaced := false
 		for _, ns := range relevantNamespaces {
-			names, compliant, reason, objKind, related, update, namespaced := handleObjects(objectT, ns, indx, &plc, config, recorder,
-				apiresourcelist, apigroups)
-			//TODO pull reason out here
+			names, compliant, reason, objKind, related, update, namespaced := handleObjects(objectT, ns, indx, &plc, config,
+				recorder, apiresourcelist, apigroups)
 			if update {
 				parentUpdate = true
 			}
@@ -421,9 +420,9 @@ func sortRelatedObjectsAndUpdate(plc *policyv1.ConfigurationPolicy, related,
 	return update
 }
 
-func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int, compliantObjects map[string]map[string]interface{},
-	nonCompliantObjects map[string]map[string]interface{}, plc *policyv1.ConfigurationPolicy,
-	objData map[string]interface{}) (updateNeeded bool) {
+func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
+	compliantObjects map[string]map[string]interface{}, nonCompliantObjects map[string]map[string]interface{},
+	plc *policyv1.ConfigurationPolicy, objData map[string]interface{}) (updateNeeded bool) {
 	update := false
 	compliant := false
 	desiredName := objData["desiredName"].(string)
