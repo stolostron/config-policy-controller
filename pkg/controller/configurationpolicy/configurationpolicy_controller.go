@@ -448,7 +448,7 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	}
 	if mustNotHave && numNonCompliant == 0 {
 		//compliant; mustnothave and no objects exist
-		update = createCompliantMustNotHaveStatus(kind, plc, indx)
+		update = createCompliantMustNotHaveStatus(kind, compliantObjects, namespaced, plc, indx)
 		compliant = true
 	}
 	if update {
@@ -857,20 +857,22 @@ func handleMissingMustNotHave(plc *policyv1.ConfigurationPolicy, rsrc schema.Gro
 	metadata map[string]interface{}) bool {
 	glog.V(7).Infof("entering `does not exists` & ` must not have`")
 	name := metadata["name"].(string)
+	namespace := metadata["namespace"].(string)
 	index := metadata["index"].(int)
 
-	message := fmt.Sprintf("%v `%v` is missing as it should be, therefore this Object template is compliant",
-		rsrc.Resource, name)
+	message := fmt.Sprintf("%v [%v] in namespace %v is missing as expected, therefore this Object template is compliant",
+		rsrc.Resource, name, namespace)
 	return createNotification(plc, index, "K8s must `not` have object already missing", message)
 }
 
 func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, rsrc schema.GroupVersionResource,
 	metadata map[string]interface{}) (updateNeeded bool) {
 	name := metadata["name"].(string)
+	namespace := metadata["namespace"].(string)
 	index := metadata["index"].(int)
 
-	message := fmt.Sprintf("%v `%v` exists as it should be, therefore this Object template is compliant",
-		rsrc.Resource, name)
+	message := fmt.Sprintf("%v [%v] in namespace %v exist as specified, therefore this Object template is compliant",
+		rsrc.Resource, name, namespace)
 	return createNotification(plc, index, "K8s must have object already exists", message)
 }
 
@@ -889,10 +891,10 @@ func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.
 
 	if strings.ToLower(string(action)) == strings.ToLower(string(policyv1.Enforce)) {
 		if deleted, err = deleteObject(namespaced, namespace, name, rsrc, dclient); !deleted {
-			message := fmt.Sprintf("%v `%v` exists, and cannot be deleted, reason: `%v`", rsrc.Resource, name, err)
+			message := fmt.Sprintf("%v [%v] in namespace %v exist, and cannot be deleted, reason: `%v`", rsrc.Resource, name, namespace, err)
 			update = createViolation(plc, index, "K8s deletion error", message)
 		} else { //deleted successfully
-			message := fmt.Sprintf("%v `%v` existed, and was deleted successfully", rsrc.Resource, name)
+			message := fmt.Sprintf("%v [%v] in namespace %v existed, and was deleted successfully", rsrc.Resource, namespace, name)
 			update = createNotification(plc, index, "K8s deletion success", message)
 		}
 	}
@@ -914,11 +916,11 @@ func handleMissingMustHave(plc *policyv1.ConfigurationPolicy, action policyv1.Re
 	var err error
 	if strings.ToLower(string(action)) == strings.ToLower(string(policyv1.Enforce)) {
 		if created, err = createObject(namespaced, namespace, name, rsrc, unstruct, dclient); !created {
-			message := fmt.Sprintf("%v `%v` is missing, and cannot be created, reason: `%v`", rsrc.Resource, name, err)
+			message := fmt.Sprintf("%v [%v] in namespace %v is missing, and cannot be created, reason: `%v`", rsrc.Resource, name, namespace, err)
 			update = createViolation(plc, index, "K8s creation error", message)
 		} else { //created successfully
-			glog.V(8).Infof("entering `%v` created successfully", name)
-			message := fmt.Sprintf("%v `%v` was missing, and was created successfully", rsrc.Resource, name)
+			glog.V(8).Infof("entering [%v] created successfully", name)
+			message := fmt.Sprintf("%v [%v] in namespace %v was missing, and was created successfully", rsrc.Resource, name, namespace)
 			update = createNotification(plc, index, "K8s creation success", message)
 		}
 	}

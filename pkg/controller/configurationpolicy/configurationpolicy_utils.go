@@ -272,21 +272,13 @@ func createNonCompliantMustHaveStatus(desiredName string, kind string,
 				}
 			}
 			nameStr += "]"
-			single := false
-			if len(names) == 1 {
-				single = true
-			}
-			if reason == reasonWantFoundNoMatch && single {
-				nameStr += " exists but doesn't match"
-			} else if reason == reasonWantFoundNoMatch && !single {
-				nameStr += " exist but don't match"
-			} else if reason != reasonWantFoundNoMatch && single {
-				nameStr += " does not exist"
-			} else {
-				nameStr += " do not exist"
-			}
 			if namespaced {
 				nameStr += statusNamespaceString + ns
+			}
+			if reason == reasonWantFoundNoMatch {
+				nameStr += " exist but don't match"
+			} else {
+				nameStr += " do not exist"
 			}
 			if !stringInSlice(nameStr, nameList) {
 				nameList = append(nameList, nameStr)
@@ -299,7 +291,35 @@ func createNonCompliantMustHaveStatus(desiredName string, kind string,
 }
 
 //createCompliantMustNotHaveStatus generates a status for a mustnothave policy that is compliant
-func createCompliantMustNotHaveStatus(kind string, plc *policyv1.ConfigurationPolicy, indx int) (update bool) {
-	message := fmt.Sprintf("no instances of `%v` exist as specified, therefore this Object template is compliant", kind)
-	return createNotification(plc, indx, "K8s must `not` have object already missing", message)
+func createCompliantMustNotHaveStatus(kind string, compliantObjects map[string]map[string]interface{},
+	namespaced bool, plc *policyv1.ConfigurationPolicy, indx int) (update bool) {
+	nameList := []string{}
+	sortedNamespaces := []string{}
+	for n := range compliantObjects {
+		sortedNamespaces = append(sortedNamespaces, n)
+	}
+	sort.Strings(sortedNamespaces)
+	for i := range sortedNamespaces {
+		nameStr := ""
+		ns := sortedNamespaces[i]
+		names := compliantObjects[ns]["names"].([]string)
+		sort.Strings(names)
+		nameStr += "["
+		for i, name := range names {
+			nameStr += name
+			if i != len(names)-1 {
+				nameStr += ", "
+			}
+		}
+		nameStr += "]"
+		if namespaced {
+			nameStr += statusNamespaceString + ns
+		}
+		if !stringInSlice(nameStr, nameList) {
+			nameList = append(nameList, nameStr)
+		}
+	}
+	names := strings.Join(nameList, "; ")
+	message := fmt.Sprintf("%v %v is missing as expected, therefore this Object template is compliant", kind, names)
+	return createNotification(plc, indx, "K8s `must have` object already exists", message)
 }
