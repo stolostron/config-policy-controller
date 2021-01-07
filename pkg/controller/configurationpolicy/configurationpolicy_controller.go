@@ -871,7 +871,7 @@ func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, rsrc schema.GroupVe
 	namespace := metadata["namespace"].(string)
 	index := metadata["index"].(int)
 
-	message := fmt.Sprintf("%v [%v] in namespace %v exist as specified, therefore this Object template is compliant",
+	message := fmt.Sprintf("%v [%v] in namespace %v exists as specified, therefore this Object template is compliant",
 		rsrc.Resource, name, namespace)
 	return createNotification(plc, index, "K8s must have object already exists", message)
 }
@@ -891,7 +891,7 @@ func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.
 
 	if strings.ToLower(string(action)) == strings.ToLower(string(policyv1.Enforce)) {
 		if deleted, err = deleteObject(namespaced, namespace, name, rsrc, dclient); !deleted {
-			message := fmt.Sprintf("%v [%v] in namespace %v exist, and cannot be deleted, reason: `%v`", rsrc.Resource, name, namespace, err)
+			message := fmt.Sprintf("%v [%v] in namespace %v exists, and cannot be deleted, reason: `%v`", rsrc.Resource, name, namespace, err)
 			update = createViolation(plc, index, "K8s deletion error", message)
 		} else { //deleted successfully
 			message := fmt.Sprintf("%v [%v] in namespace %v existed, and was deleted successfully", rsrc.Resource, namespace, name)
