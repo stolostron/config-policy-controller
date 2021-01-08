@@ -19,7 +19,6 @@ TRAVIS_BRANCH=$1
 
 ADDED_SINCE_1_MAR_2020=$(git log --name-status --pretty=oneline --since "1 Mar 2020" | egrep "^A\t" | awk '{print $2}' | sort | uniq |  grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore))
 MODIFIED_SINCE_1_MAR_2020=$(diff --new-line-format="" --unchanged-line-format="" <(git log --name-status --pretty=oneline --since "1 Mar 2020" | egrep "^A\t|^M\t" | awk '{print $2}' | sort | uniq | grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore)) <(git log --name-status --pretty=oneline --since "1 Mar 2020" | egrep "^A\t" | awk '{print $2}' | sort | uniq | grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore)))
-MODIFIED_SINCE_1_JAN_2021=$(diff --new-line-format="" --unchanged-line-format="" <(git log --name-status --pretty=oneline --since "1 Mar 2020" | egrep "^A\t|^M\t" | awk '{print $2}' | sort | uniq | grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore)) <(git log --name-status --pretty=oneline --since "1 Jan 2021" | egrep "^A\t" | awk '{print $2}' | sort | uniq | grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore)))
 OLDER_GIT_FILES=$(git log --name-status --pretty=oneline | egrep "^A\t|^M\t" | awk '{print $2}' | sort | uniq |  grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore))
 
 if [[ "x${TRAVIS_BRANCH}" != "x" ]]; then
