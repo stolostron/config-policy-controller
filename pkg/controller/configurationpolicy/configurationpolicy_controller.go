@@ -602,6 +602,16 @@ func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.
 	var compliant bool
 	updateNeeded := false
 	name := data["name"].(string)
+	namespace := data["namespace"].(string)
+	index := data["index"].(int)
+	namespaced := data["namespaced"].(bool)
+
+	compliantObject := map[string]map[string]interface{}{
+		namespace: map[string]interface{}{
+			"names": []string{name},
+		},
+	}
+
 	unstruct := data["unstruct"].(unstructured.Unstructured)
 	if !exists && objShouldExist {
 		//it is a musthave and it does not exist, so it must be created
@@ -630,7 +640,8 @@ func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.
 	if !exists && !objShouldExist {
 		//it is a must not have and it does not exist, so it is compliant
 		if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Enforce)) {
-			updateNeeded = handleMissingMustNotHave(policy, rsrc, data)
+			glog.V(7).Infof("entering `does not exists` & ` must not have`")
+			updateNeeded = createCompliantMustNotHaveStatus(rsrc.Resource, compliantObject, namespaced, policy, index)
 		}
 		compliant = true
 	}
@@ -650,7 +661,8 @@ func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.
 		} else if objShouldExist {
 			//it is a must have and it does exist, so it is compliant
 			if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Enforce)) {
-				updateNeeded = handleExistsMustHave(policy, rsrc, data)
+				glog.V(7).Infof("entering `exists` & ` must have`")
+				updateNeeded = createCompliantMustHaveStatus(rsrc.Resource, compliantObject, namespaced, policy, index)
 			}
 			compliant = true
 		}
@@ -853,39 +865,6 @@ func getNamesAndLinksOfKind(unstruct unstructured.Unstructured, rsrc schema.Grou
 	return buildNameList(unstruct, complianceType, resList)
 }
 
-func handleMissingMustNotHave(plc *policyv1.ConfigurationPolicy, rsrc schema.GroupVersionResource,
-	metadata map[string]interface{}) bool {
-	glog.V(7).Infof("entering `does not exists` & ` must not have`")
-	name := metadata["name"].(string)
-	namespace := metadata["namespace"].(string)
-	index := metadata["index"].(int)
-	namespaced := metadata["namespaced"].(bool)
-
-	nameStr := "[" + name + "]"
-	if namespaced {
-		nameStr += " in namespace " + namespace
-	}
-	message := fmt.Sprintf("%v %v is missing as expected, therefore this Object template is compliant",
-		rsrc.Resource, nameStr)
-	return createNotification(plc, index, "K8s must `not` have object already missing", message)
-}
-
-func handleExistsMustHave(plc *policyv1.ConfigurationPolicy, rsrc schema.GroupVersionResource,
-	metadata map[string]interface{}) (updateNeeded bool) {
-	name := metadata["name"].(string)
-	namespace := metadata["namespace"].(string)
-	index := metadata["index"].(int)
-	namespaced := metadata["namespaced"].(bool)
-
-	nameStr := "[" + name + "]"
-	if namespaced {
-		nameStr += " in namespace " + namespace
-	}
-	message := fmt.Sprintf("%v %v exists as specified, therefore this Object template is compliant",
-		rsrc.Resource, nameStr)
-	return createNotification(plc, index, "K8s must have object already exists", message)
-}
-
 func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.RemediationAction,
 	rsrc schema.GroupVersionResource, dclient dynamic.Interface,
 	metadata map[string]interface{}) (result bool, erro error) {
@@ -900,10 +879,7 @@ func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.
 	var err error
 
 	if strings.ToLower(string(action)) == strings.ToLower(string(policyv1.Enforce)) {
-		nameStr := "[" + name + "]"
-		if namespaced {
-			nameStr += " in namespace " + namespace
-		}
+		nameStr := createResourceNameStr([]string{name}, namespace, namespaced)
 		if deleted, err = deleteObject(namespaced, namespace, name, rsrc, dclient); !deleted {
 			message := fmt.Sprintf("%v %v exists, and cannot be deleted, reason: `%v`", rsrc.Resource, nameStr, err)
 			update = createViolation(plc, index, "K8s deletion error", message)
@@ -929,10 +905,7 @@ func handleMissingMustHave(plc *policyv1.ConfigurationPolicy, action policyv1.Re
 	var update, created bool
 	var err error
 	if strings.ToLower(string(action)) == strings.ToLower(string(policyv1.Enforce)) {
-		nameStr := "[" + name + "]"
-		if namespaced {
-			nameStr += " in namespace " + namespace
-		}
+		nameStr := createResourceNameStr([]string{name}, namespace, namespaced)
 		if created, err = createObject(namespaced, namespace, name, rsrc, unstruct, dclient); !created {
 			message := fmt.Sprintf("%v %v is missing, and cannot be created, reason: `%v`", rsrc.Resource, nameStr, err)
 			update = createViolation(plc, index, "K8s creation error", message)

@@ -12,8 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var statusNamespaceString = " in namespace "
-
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
 // details on whether the object is compliant or not compliant with the policy.  The results are updated in the
 // policy's Status information.
@@ -176,6 +174,23 @@ func formatMetadata(metadata map[string]interface{}) (formatted map[string]inter
 	return md
 }
 
+// Format name of resource with its namespace (if it has one)
+func createResourceNameStr(names []string, namespace string, namespaced bool) (nameStr string) {
+	sort.Strings(names)
+	nameStr = "["
+	for i, name := range names {
+		nameStr += name
+		if i != len(names)-1 {
+			nameStr += ", "
+		}
+	}
+	nameStr += "]"
+	if namespaced {
+		nameStr += " in namespace " + namespace
+	}
+	return nameStr
+}
+
 //createCompliantMustHaveStatus generates a status for a musthave/mustonlyhave policy that is compliant
 func createCompliantMustHaveStatus(kind string, compliantObjects map[string]map[string]interface{},
 	namespaced bool, plc *policyv1.ConfigurationPolicy, indx int) (update bool) {
@@ -186,21 +201,9 @@ func createCompliantMustHaveStatus(kind string, compliantObjects map[string]map[
 	}
 	sort.Strings(sortedNamespaces)
 	for i := range sortedNamespaces {
-		nameStr := ""
 		ns := sortedNamespaces[i]
 		names := compliantObjects[ns]["names"].([]string)
-		sort.Strings(names)
-		nameStr += "["
-		for i, name := range names {
-			nameStr += name
-			if i != len(names)-1 {
-				nameStr += ", "
-			}
-		}
-		nameStr += "]"
-		if namespaced {
-			nameStr += statusNamespaceString + ns
-		}
+		nameStr := createResourceNameStr(names, ns, namespaced)
 		if len(names) == 1 {
 			nameStr += " exists"
 		} else {
@@ -230,22 +233,10 @@ func createNonCompliantMustHaveStatus(desiredName string, kind string,
 		}
 		sort.Strings(sortedNamespaces)
 		for i := range sortedNamespaces {
-			nameStr := ""
 			ns := sortedNamespaces[i]
 			names := nonCompliantObjects[ns]["names"].([]string)
 			reason := nonCompliantObjects[ns]["reason"].(string)
-			sort.Strings(names)
-			nameStr += "["
-			for i, name := range names {
-				nameStr += name
-				if i != len(names)-1 {
-					nameStr += ", "
-				}
-			}
-			nameStr += "]"
-			if namespaced {
-				nameStr += statusNamespaceString + ns
-			}
+			nameStr := createResourceNameStr(names, ns, namespaced)
 			single := false
 			if len(names) == 1 {
 				single = true
@@ -279,21 +270,9 @@ func createCompliantMustNotHaveStatus(kind string, compliantObjects map[string]m
 	}
 	sort.Strings(sortedNamespaces)
 	for i := range sortedNamespaces {
-		nameStr := ""
 		ns := sortedNamespaces[i]
 		names := compliantObjects[ns]["names"].([]string)
-		sort.Strings(names)
-		nameStr += "["
-		for i, name := range names {
-			nameStr += name
-			if i != len(names)-1 {
-				nameStr += ", "
-			}
-		}
-		nameStr += "]"
-		if namespaced {
-			nameStr += statusNamespaceString + ns
-		}
+		nameStr := createResourceNameStr(names, ns, namespaced)
 		if len(names) == 1 {
 			nameStr += " is"
 		} else {
@@ -318,21 +297,9 @@ func createNonCompliantMustNotHaveStatus(kind string, nonCompliantObjects map[st
 	}
 	sort.Strings(sortedNamespaces)
 	for i := range sortedNamespaces {
-		nameStr := ""
 		ns := sortedNamespaces[i]
 		names := nonCompliantObjects[ns]["names"].([]string)
-		sort.Strings(names)
-		nameStr += "["
-		for i, name := range names {
-			nameStr += name
-			if i != len(names)-1 {
-				nameStr += ", "
-			}
-		}
-		nameStr += "]"
-		if namespaced {
-			nameStr += statusNamespaceString + ns
-		}
+		nameStr := createResourceNameStr(names, ns, namespaced)
 		if !stringInSlice(nameStr, nameList) {
 			nameList = append(nameList, nameStr)
 		}
