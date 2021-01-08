@@ -112,7 +112,7 @@ for f in $FILES_TO_SCAN; do
     must_have_redhat_license=true
   fi
 
-  if [[ "${must_have_redhat_license}" == "true" ]] && [[ "$header" != *"${lic_redhat_identifier_2020}"* || "$header" != *"${lic_redhat_identifier_2021}"* ]]; then
+  if [[ "${must_have_redhat_license}" == "true" && "$header" != *"${lic_redhat_identifier_2020}"* && "$header" != *"${lic_redhat_identifier_2021}"* ]]; then
     printf " Missing copyright\n >> Could not find [${lic_redhat_identifier_2021}] in the file.\n"
     ERROR=1
   fi
