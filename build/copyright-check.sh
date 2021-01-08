@@ -19,6 +19,7 @@ TRAVIS_BRANCH=$1
 
 ADDED_SINCE_1_MAR_2020=$(git log --name-status --pretty=oneline --since "1 Mar 2020" | egrep "^A\t" | awk '{print $2}' | sort | uniq |  grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore))
 MODIFIED_SINCE_1_MAR_2020=$(diff --new-line-format="" --unchanged-line-format="" <(git log --name-status --pretty=oneline --since "1 Mar 2020" | egrep "^A\t|^M\t" | awk '{print $2}' | sort | uniq | grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore)) <(git log --name-status --pretty=oneline --since "1 Mar 2020" | egrep "^A\t" | awk '{print $2}' | sort | uniq | grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore)))
+MODIFIED_SINCE_1_JAN_2021=$(diff --new-line-format="" --unchanged-line-format="" <(git log --name-status --pretty=oneline --since "1 Mar 2020" | egrep "^A\t|^M\t" | awk '{print $2}' | sort | uniq | grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore)) <(git log --name-status --pretty=oneline --since "1 Jan 2021" | egrep "^A\t" | awk '{print $2}' | sort | uniq | grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore)))
 OLDER_GIT_FILES=$(git log --name-status --pretty=oneline | egrep "^A\t|^M\t" | awk '{print $2}' | sort | uniq |  grep -v -f <(sed 's/\([.|]\)/\\\1/g; s/\?/./g ; s/\*/.*/g' .copyrightignore))
 
 if [[ "x${TRAVIS_BRANCH}" != "x" ]]; then
@@ -33,7 +34,8 @@ if [ -z "$current_year" ] || [ $current_year -lt $origin_year ]; then
 fi
 
 lic_ibm_identifier=" (c) Copyright IBM Corporation"
-lic_redhat_identifier=" Copyright (c) ${current_year} Red Hat, Inc."
+lic_redhat_identifier_2020=" Copyright (c) 2020 Red Hat, Inc."
+lic_redhat_identifier_2021=" Copyright (c) ${current_year} Red Hat, Inc."
 
 lic_year=()
 #All possible combination within [origin_year, current_year] range is valid format
@@ -110,8 +112,8 @@ for f in $FILES_TO_SCAN; do
     must_have_redhat_license=true
   fi
 
-  if [[ "${must_have_redhat_license}" == "true" ]] && [[ "$header" != *"${lic_redhat_identifier}"* ]]; then
-    printf " Missing copyright\n >> Could not find [${lic_redhat_identifier}] in the file.\n"
+  if [[ "${must_have_redhat_license}" == "true" ]] && [[ "$header" != *"${lic_redhat_identifier_2020}"* || "$header" != *"${lic_redhat_identifier_2021}"* ]]; then
+    printf " Missing copyright\n >> Could not find [${lic_redhat_identifier_2021}] in the file.\n"
     ERROR=1
   fi
 
