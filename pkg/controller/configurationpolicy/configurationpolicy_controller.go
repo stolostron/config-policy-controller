@@ -434,22 +434,22 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	}
 	if !mustNotHave && numCompliant == 0 {
 		//noncompliant; musthave and objects do not exist
-		update = createNonCompliantMustHaveStatus(desiredName, kind, nonCompliantObjects, namespaced,
-			plc, indx)
+		update = createMustHaveStatus(desiredName, kind, nonCompliantObjects, namespaced,
+			plc, indx, compliant)
 	}
 	if mustNotHave && numNonCompliant > 0 {
 		//noncompliant; mustnothave and objects exist
-		update = createNonCompliantMustNotHaveStatus(kind, nonCompliantObjects, namespaced, plc, indx)
+		update = createMustNotHaveStatus(kind, nonCompliantObjects, namespaced, plc, indx, compliant)
 	}
 	if !mustNotHave && numCompliant > 0 {
 		//compliant; musthave and objects exist
-		update = createCompliantMustHaveStatus(kind, compliantObjects, namespaced, plc, indx)
 		compliant = true
+		update = createMustHaveStatus("", kind, compliantObjects, namespaced, plc, indx, compliant)
 	}
 	if mustNotHave && numNonCompliant == 0 {
 		//compliant; mustnothave and no objects exist
-		update = createCompliantMustNotHaveStatus(kind, compliantObjects, namespaced, plc, indx)
 		compliant = true
+		update = createMustNotHaveStatus(kind, compliantObjects, namespaced, plc, indx, compliant)
 	}
 	if update {
 		//update parent policy with violation
@@ -639,11 +639,11 @@ func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.
 	}
 	if !exists && !objShouldExist {
 		//it is a must not have and it does not exist, so it is compliant
+		compliant = true
 		if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Enforce)) {
 			glog.V(7).Infof("entering `does not exists` & ` must not have`")
-			updateNeeded = createCompliantMustNotHaveStatus(rsrc.Resource, compliantObject, namespaced, policy, index)
+			updateNeeded = createMustNotHaveStatus(rsrc.Resource, compliantObject, namespaced, policy, index, compliant)
 		}
-		compliant = true
 	}
 
 	processingErr := false
@@ -660,11 +660,11 @@ func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.
 			updateNeeded = createViolation(policy, data["index"].(int), "K8s update template error", msg)
 		} else if objShouldExist {
 			//it is a must have and it does exist, so it is compliant
+			compliant = true
 			if strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Enforce)) {
 				glog.V(7).Infof("entering `exists` & ` must have`")
-				updateNeeded = createCompliantMustHaveStatus(rsrc.Resource, compliantObject, namespaced, policy, index)
+				updateNeeded = createMustHaveStatus("", rsrc.Resource, compliantObject, namespaced, policy, index, compliant)
 			}
-			compliant = true
 		}
 		processingErr = pErr
 	}
