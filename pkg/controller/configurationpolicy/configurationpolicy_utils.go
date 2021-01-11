@@ -209,12 +209,11 @@ func createMustHaveStatus(desiredName string, kind string, complianceObjects map
 	for i := range sortedNamespaces {
 		ns := sortedNamespaces[i]
 		names := complianceObjects[ns]["names"].([]string)
-		reason := complianceObjects[ns]["reason"].(string)
 		nameStr := createResourceNameStr(names, ns, namespaced)
 		if compliant {
 			nameStr += " found"
 		} else {
-			if reason == reasonWantFoundNoMatch {
+			if complianceObjects[ns]["reason"] == reasonWantFoundNoMatch {
 				nameStr += " found but not as specified"
 			} else {
 				nameStr += " missing"
