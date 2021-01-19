@@ -210,6 +210,7 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 		apigroups, apigroupsErr := restmapper.GetAPIGroupResources(dd)
 
 		if !skipLoop && apigroupsErr != nil {
+			skipLoop = true
 			glog.Errorf("Failed to retrieve apigroups with err: %v", apigroupsErr)
 
 		}
