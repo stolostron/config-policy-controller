@@ -210,7 +210,7 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 			glog.Errorf("Failed to retrieve apigroups with err: %v", apigroupsErr)
 		}
 		if apiresourcelistErr != nil || apigroupsErr != nil {
-			glog.Errorf("Failed to retrieve apiresourcelist or apigroups, skipping to next loop...")
+			glog.Errorf("Failed to retrieve apiresourcelist or apigroups, waiting for next loop...")
 		} else {
 			//flattenedpolicylist only contains 1 of each policy instance
 			for _, policy := range flattenedPolicyList {
