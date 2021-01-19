@@ -214,7 +214,7 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 
 		}
 		if skipLoop {
-			glog.Errorf("Failed to retrieve apiresourcelist or apigroups, waiting for next loop...")
+			glog.Errorf("Unexpected failure happend. You api server might not stable. Waiting for next loop...")
 		} else {
 			//flattenedpolicylist only contains 1 of each policy instance
 			for _, policy := range flattenedPolicyList {
