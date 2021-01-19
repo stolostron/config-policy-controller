@@ -204,12 +204,12 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 		apiresourcelist, err := dd.ServerResources()
 		if err != nil {
 			glog.Warning("Failed to retrieve apiresourcelist with err: ", err)
-			return
+			continue
 		}
 		apigroups, err := restmapper.GetAPIGroupResources(dd)
 		if err != nil {
 			glog.Warning("Failed to retrieve apigroups with err: ", err)
-			return
+			continue
 		}
 
 		//flattenedpolicylist only contains 1 of each policy instance
