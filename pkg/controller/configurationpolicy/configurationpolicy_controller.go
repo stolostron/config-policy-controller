@@ -204,19 +204,21 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 		apiresourcelist, err := dd.ServerResources()
 		if err != nil {
 			glog.Warning("Failed to retrieve apiresourcelist with err: ", err)
-			continue
 		}
 		apigroups, err := restmapper.GetAPIGroupResources(dd)
 		if err != nil {
 			glog.Warning("Failed to retrieve apigroups with err: ", err)
-			continue
 		}
 
-		//flattenedpolicylist only contains 1 of each policy instance
-		for _, policy := range flattenedPolicyList {
-			Mx.Lock()
-			handleObjectTemplates(*policy, apiresourcelist, apigroups)
-			Mx.Unlock()
+		if err != nil {
+			glog.Warning("Failed to retrieve apiresourcelist or apigroups, skipping to next reconcile...")
+		} else {
+			//flattenedpolicylist only contains 1 of each policy instance
+			for _, policy := range flattenedPolicyList {
+				Mx.Lock()
+				handleObjectTemplates(*policy, apiresourcelist, apigroups)
+				Mx.Unlock()
+			}
 		}
 
 		// making sure that if processing is > freq we don't sleep
