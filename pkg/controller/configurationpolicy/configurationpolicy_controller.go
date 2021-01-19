@@ -203,11 +203,13 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 		dd := clientSet.Discovery()
 		apiresourcelist, err := dd.ServerResources()
 		if err != nil {
-			glog.Fatal(err)
+			glog.Warning(err)
+			return
 		}
 		apigroups, err := restmapper.GetAPIGroupResources(dd)
 		if err != nil {
-			glog.Fatal(err)
+			glog.Warning(err)
+			return
 		}
 
 		//flattenedpolicylist only contains 1 of each policy instance
