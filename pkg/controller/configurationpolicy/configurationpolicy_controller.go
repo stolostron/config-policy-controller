@@ -202,14 +202,18 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 		//get resources once per cycle to avoid hanging
 		dd := clientSet.Discovery()
 		apiresourcelist, apiresourcelistErr := dd.ServerResources()
+		skipLoop := false
 		if apiresourcelistErr != nil {
+			skipLoop = true
 			glog.Errorf("Failed to retrieve apiresourcelist with err: %v", apiresourcelistErr)
 		}
 		apigroups, apigroupsErr := restmapper.GetAPIGroupResources(dd)
-		if apigroupsErr != nil {
+
+		if !skipLoop && apigroupsErr != nil {
 			glog.Errorf("Failed to retrieve apigroups with err: %v", apigroupsErr)
+
 		}
-		if apiresourcelistErr != nil || apigroupsErr != nil {
+		if skipLoop {
 			glog.Errorf("Failed to retrieve apiresourcelist or apigroups, waiting for next loop...")
 		} else {
 			//flattenedpolicylist only contains 1 of each policy instance
