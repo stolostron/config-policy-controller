@@ -203,12 +203,12 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 		dd := clientSet.Discovery()
 		apiresourcelist, err := dd.ServerResources()
 		if err != nil {
-			glog.Warning("Failed to retrieve apiresourcelist with err: %s", err)
+			glog.Warning("Failed to retrieve apiresourcelist with err: ", err)
 			return
 		}
 		apigroups, err := restmapper.GetAPIGroupResources(dd)
 		if err != nil {
-			glog.Warning("Failed to retrieve apigroups with err: %s", err)
+			glog.Warning("Failed to retrieve apigroups with err: ", err)
 			return
 		}
 
