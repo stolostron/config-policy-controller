@@ -3,7 +3,7 @@ ARG COMPONENT=config-policy-controller
 ARG REPO_PATH=/go/src/github.com/open-cluster-management/${COMPONENT}
 
 # Stage 1: Use image builder to build the target binaries
-FROM registry.ci.openshift.org/open-cluster-management/builder:go1.14-linux-amd64 AS builder
+FROM golang:1.14 AS builder
 
 ARG REPO_PATH
 WORKDIR ${REPO_PATH}
