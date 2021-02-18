@@ -1,5 +1,5 @@
-# Stage 1: Use image builder to build the target binaries
 FROM golang:1.14 AS builder
+# Stage 1: Use image builder to build the target binaries
 
 ENV COMPONENT=config-policy-controller
 ENV REPO_PATH=/go/src/github.com/open-cluster-management/${COMPONENT}
