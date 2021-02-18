@@ -1,11 +1,8 @@
-# Set global args
-ARG COMPONENT=config-policy-controller
-ARG REPO_PATH=/go/src/github.com/open-cluster-management/${COMPONENT}
-
 # Stage 1: Use image builder to build the target binaries
 FROM golang:1.14 AS builder
 
-ARG REPO_PATH
+ENV COMPONENT=config-policy-controller
+ENV REPO_PATH=/go/src/github.com/open-cluster-management/${COMPONENT}
 WORKDIR ${REPO_PATH}
 COPY . .
 RUN make build
@@ -13,8 +10,8 @@ RUN make build
 # Stage 2: Copy the binaries from the image builder to the base image
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
-ARG COMPONENT
-ARG REPO_PATH
+ENV COMPONENT=config-policy-controller
+ENV REPO_PATH=/go/src/github.com/open-cluster-management/${COMPONENT}
 ENV OPERATOR=/usr/local/bin/${COMPONENT} \
     USER_UID=1001 \
     USER_NAME=${COMPONENT}
