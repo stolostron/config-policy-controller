@@ -37,6 +37,8 @@ jobs:
     - stage: build
       name: "Build the image for pr and push it"
       if: type = pull_request
+      script:
+        - set -e
         - make copyright-check TRAVIS_BRANCH=${TRAVIS_BRANCH}
         - export COMPONENT_TAG_EXTENSION="-PR${TRAVIS_PULL_REQUEST}-${TRAVIS_COMMIT}"
         - |
