@@ -3,14 +3,14 @@ Red Hat Advanced Cluster Management - Governance - Configuration Policy Controll
 
 ## How it works
 
-The Configuration Policy Controller operator watches for triggers to execute a reconcile:
+The Configuration Policy Controller watches for the following triggers to execute a reconcile:
 
 1. ConfigurationPolicy changes in all watched namespaces on the hub cluster
 
-Every reconcile:
+Every reconcile the controller will:
 
 1. Create/update/delete the replicated policy on the managed cluster in the cluster namespace
-2. Handles the object template specified in the ConfigurationPolicy and creates an object and/or status update depending on the details of the object template
+2. Handle the object template specified in the ConfigurationPolicy and create an object and/or status update depending on the details of the object template
 
 ## Run
 
