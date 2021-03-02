@@ -1,3 +1,6 @@
+# Copyright (c) 2020 Red Hat, Inc.
+# Copyright Contributors to the Open Cluster Management project
+
 #!/bin/bash
 ###############################################################################
 # (c) Copyright IBM Corporation 2019, 2020. All Rights Reserved.
@@ -5,7 +8,6 @@
 # U.S. Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule
 # Contract with IBM Corp.
 # Licensed Materials - Property of IBM
-# Copyright (c) 2020 Red Hat, Inc.
 ###############################################################################
 
 #Project start year
