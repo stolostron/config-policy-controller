@@ -60,7 +60,10 @@ jobs:
     #     make kind-deploy-controller-dev
 
     - name: E2E Tests
-      run: make e2e-test
+      run: |
+        go get github.com/onsi/ginkgo/ginkgo
+        go get github.com/onsi/gomega/...
+        make e2e-test
 
     - name: Clean up cluster
       run: make kind-delete-cluster
