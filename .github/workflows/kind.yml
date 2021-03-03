@@ -41,16 +41,19 @@ jobs:
         make fmt
         git diff --exit-code
 
-    - name: Create K8s KinD Cluster
-      run: make kind-bootstrap-cluster-dev
-
-    - name: Build and Push Test Container Image to KinD node
-      run: |
-        make build-images
-        make kind-deploy-controller-dev
-
     - name: Unit and Integration Tests
       run: make test
+
+    - name: Create K8s KinD Cluster
+      run: |
+        make build-instrumented
+        make kind-bootstrap-cluster-dev
+        make run-instrumented
+
+    # - name: Build and Push Test Container Image to KinD node
+    #   run: |
+    #     make build-images
+    #     make kind-deploy-controller-dev
 
     - name: E2E Tests
       run: make e2e-test
