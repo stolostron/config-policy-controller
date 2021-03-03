@@ -17,15 +17,15 @@ jobs:
     strategy:
       matrix:
         go: [ '1.14' ]
-    name: Go ${{ matrix.go }}
+    name: Test on Go ${{ matrix.go }}
     steps:
     - name: Checkout Config Policy Controller
       uses: actions/checkout@v2
       with:
-        path: gatekeeper-operator
+        path: config-policy-controller
         fetch-depth: 0 # Fetch all history for all tags and branches
 
-    - name: Set up Go
+    - name: Set up Go ${{ matrix.go }}
       uses: actions/setup-go@v2
       id: go
       with:
