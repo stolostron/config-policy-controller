@@ -63,7 +63,7 @@ jobs:
       run: |
         go get github.com/onsi/ginkgo/ginkgo
         go get github.com/onsi/gomega/...
-        export GOPATH=${go env GOPATH}
+        export GOPATH=$(go env GOPATH)
         make e2e-test
 
     - name: Clean up cluster
