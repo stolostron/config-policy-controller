@@ -1,4 +1,4 @@
-name: Run KinD tests
+name: KinD tests
 
 on:
   push:
@@ -14,10 +14,12 @@ defaults:
 jobs:
   main:
     runs-on: ubuntu-18.04
+    env:
+      REGISTRY: localhost:5000
     strategy:
       matrix:
         go: [ '1.14' ]
-    name: Test on Go ${{ matrix.go }}
+    name: KinD tests
     steps:
     - name: Checkout Config Policy Controller
       uses: actions/checkout@v2
@@ -40,11 +42,12 @@ jobs:
         git diff --exit-code
 
     - name: Create K8s KinD Cluster
-      run: make kind-bootstrap-cluster
+      run: make kind-bootstrap-cluster-dev
 
-    - name: Build and Push Test Container Image to KIND node
+    - name: Build and Push Test Container Image to KinD node
       run: |
         make build-images
+        make kind-deploy-controller-dev
 
     - name: Unit and Integration Tests
       run: make test
@@ -52,6 +55,6 @@ jobs:
     - name: E2E Tests
       run: make e2e-test
 
-    - name: Clean up
+    - name: Clean up cluster
       run: make kind-delete-cluster
 

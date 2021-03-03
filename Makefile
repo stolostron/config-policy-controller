@@ -162,6 +162,15 @@ kind-deploy-controller: check-env
 	kubectl create secret -n multicluster-endpoint docker-registry multiclusterhub-operator-pull-secret --docker-server=quay.io --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS}
 	kubectl apply -f deploy/ -n multicluster-endpoint
 
+kind-deploy-controller-dev:
+	@echo installing config policy controller
+	kubectl create ns multicluster-endpoint
+	kubectl apply -f deploy/ -n multicluster-endpoint
+	@echo "patch image"
+	kubectl patch deployment config-policy-ctrl -n multicluster-endpoint -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"image\":\"$(REGISTRY)/$(IMG):latest\"}]}}}}"
+	kubectl rollout status -n multicluster-endpoint deployment config-policy-ctrl --timeout=90s
+	sleep 10
+
 kind-create-cluster:
 	@echo "creating cluster"
 	kind create cluster --name test-managed
