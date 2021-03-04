@@ -48,8 +48,8 @@ jobs:
         export PATH=$PATH:/usr/local/kubebuilder/bin
         make test
 
-    - name: Create K8s KinD Cluster
-      run: make kind-bootstrap-cluster-dev
+    # - name: Create K8s KinD Cluster
+    #   run: make kind-bootstrap-cluster-dev
 
     # - name: Build and Push Test Container Image to KinD node
     #   run: |
@@ -62,6 +62,7 @@ jobs:
         go get github.com/onsi/gomega/...
         export GOPATH=$(go env GOPATH)
         make build-instrumented
+        make kind-bootstrap-cluster-dev
         make run-instrumented
         make e2e-test
 
