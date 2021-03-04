@@ -49,10 +49,7 @@ jobs:
         make test
 
     - name: Create K8s KinD Cluster
-      run: |
-        make build-instrumented
-        make kind-bootstrap-cluster-dev
-        make run-instrumented
+      run: make kind-bootstrap-cluster-dev
 
     # - name: Build and Push Test Container Image to KinD node
     #   run: |
