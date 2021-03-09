@@ -1,5 +1,3 @@
-[comment]: # ( Copyright Contributors to the Open Cluster Management project )
-
 **Table of Contents**
 - [Run configuration policy controller locally](#run-configuration-policy-controller-locally)
 - [Build a local container image](#build-a-local-container)
