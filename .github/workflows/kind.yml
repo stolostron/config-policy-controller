@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       REGISTRY: localhost:5000
+      WATCH_NAMESPACE: "managed"
     strategy:
       matrix:
         go: [ '1.14' ]
@@ -58,16 +59,22 @@ jobs:
 
     - name: E2E Tests
       run: |
+        export GOPATH=$(go env GOPATH)
         go get github.com/onsi/ginkgo/ginkgo
         go get github.com/onsi/gomega/...
-        export GOPATH=$(go env GOPATH)
         make kind-bootstrap-cluster-dev
         make build-instrumented
         make run-instrumented
         make e2e-test
         make stop-instrumented
-        make coverage-merge
 
+    - name: Coverage Report
+      run: |
+        export GOPATH=$(go env GOPATH)
+        go get github.com/wadey/gocovmerge
+        ${GOPATH}/bin/gocovmerge $(PWD)/coverage_* >> coverage.out
+        cat coverage.out
+    
     - name: Clean up cluster
       run: make kind-delete-cluster
 
