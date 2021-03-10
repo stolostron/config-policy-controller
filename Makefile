@@ -22,6 +22,7 @@ TRAVIS_BUILD ?= 1
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
 IMG ?= $(shell cat COMPONENT_NAME 2> /dev/null)
 REGISTRY ?= quay.io/open-cluster-management
+TAG ?= latest
 
 # Github host to use for checking the source tree;
 # Override this variable ue with your own value if you're working on forked repo.
@@ -126,7 +127,7 @@ local:
 
 build-images:
 	@docker build -t ${IMAGE_NAME_AND_VERSION} -f build/Dockerfile .
-	@docker tag ${IMAGE_NAME_AND_VERSION} $(REGISTRY)/$(IMG):latest
+	@docker tag ${IMAGE_NAME_AND_VERSION} $(REGISTRY)/$(IMG):$(TAG)
 
 ############################################################
 # clean section
@@ -165,13 +166,13 @@ kind-deploy-controller: check-env
 
 kind-deploy-controller-dev:
 	@echo Pushing image to KinD cluster
-	kind load docker-image $(REGISTRY)/$(IMG):latest --name test-managed
+	kind load docker-image $(REGISTRY)/$(IMG):$(TAG) --name test-managed
 	@echo Installing config policy controller
 	kubectl create ns multicluster-endpoint
 	kubectl apply -f deploy/ -n multicluster-endpoint
 	@echo "Patch deployment image"
 	kubectl scale deployment config-policy-ctrl -n multicluster-endpoint --replicas=0
-	kubectl patch deployment config-policy-ctrl -n multicluster-endpoint -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"image\":\"$(REGISTRY)/$(IMG):latest\"}]}}}}"
+	kubectl patch deployment config-policy-ctrl -n multicluster-endpoint -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"image\":\"$(REGISTRY)/$(IMG):$(TAG)\"}]}}}}"
 	kubectl scale deployment config-policy-ctrl -n multicluster-endpoint --replicas=1
 	kubectl get all -n multicluster-endpoint
 	kubectl rollout status -n multicluster-endpoint deployment config-policy-ctrl --timeout=180s

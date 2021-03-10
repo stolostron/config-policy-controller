@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       REGISTRY: localhost:5000
+      TAG: $GITHUB_SHA
       WATCH_NAMESPACE: managed
     strategy:
       matrix:
@@ -68,6 +69,7 @@ jobs:
       if: ${{ failure() }}
       run: |
         kubectl get all -n multicluster-endpoint
+        kubectl describe pods -n multicluster-endpoint
         kubectl get all -n ${WATCH_NAMESPACE}
         kubectl get configurationpolicies.policy.open-cluster-management.io -n ${WATCH_NAMESPACE}
     
