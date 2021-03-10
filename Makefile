@@ -165,7 +165,7 @@ kind-deploy-controller: check-env
 
 kind-deploy-controller-dev:
 	@echo Pushing image to KinD cluster
-	kind load docker-image localhost:5000/gatekeeper-operator:$GITHUB_SHA
+	kind load docker-image $(REGISTRY)/$(IMG):latest
 	@echo Installing config policy controller
 	kubectl create ns multicluster-endpoint
 	kubectl apply -f deploy/ -n multicluster-endpoint
