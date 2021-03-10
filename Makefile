@@ -168,9 +168,9 @@ kind-deploy-controller-dev:
 	kubectl create ns multicluster-endpoint
 	kubectl apply -f deploy/ -n multicluster-endpoint
 	@echo "patch image"
-	kubectl scale deployment config-policy-ctrl --replicas=0
+	kubectl scale deployment config-policy-ctrl -n multicluster-endpoint --replicas=0
 	kubectl patch deployment config-policy-ctrl -n multicluster-endpoint -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"image\":\"$(REGISTRY)/$(IMG):latest\"}]}}}}"
-	kubectl scale deployment config-policy-ctrl --replicas=1
+	kubectl scale deployment config-policy-ctrl -n multicluster-endpoint --replicas=1
 	kubectl get all -n multicluster-endpoint
 	kubectl rollout status -n multicluster-endpoint deployment config-policy-ctrl --timeout=180s
 	sleep 10
