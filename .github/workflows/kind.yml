@@ -42,23 +42,24 @@ jobs:
         make fmt
         git diff --exit-code
 
-    - name: Unit and Integration Tests
-      run: |
-        curl -L https://go.kubebuilder.io/dl/2.3.0/"$(go env GOOS)"/"$(go env GOARCH)" | tar -xz -C /tmp/
-        sudo mv /tmp/kubebuilder_2.3.0_"$(go env GOOS)"_"$(go env GOARCH)" /usr/local/kubebuilder
-        export PATH=$PATH:/usr/local/kubebuilder/bin
-        make test
-
     - name: Create K8s KinD Cluster
-      run: make kind-bootstrap-cluster-dev
+      run: |
+        make kind-bootstrap-cluster-dev
 
     - name: Build and Push Test Container Image to KinD node
       env:
         TAG: ${{ github.sha }}
       run: |
         make build-images
+        docker exec -it test-managed-control-plane crictl images
         make kind-deploy-controller-dev
 
+    - name: Unit and Integration Tests
+      run: |
+        curl -L https://go.kubebuilder.io/dl/2.3.0/"$(go env GOOS)"/"$(go env GOARCH)" | tar -xz -C /tmp/
+        sudo mv /tmp/kubebuilder_2.3.0_"$(go env GOOS)"_"$(go env GOARCH)" /usr/local/kubebuilder
+        export PATH=$PATH:/usr/local/kubebuilder/bin
+        make test
     - name: E2E Tests
       run: |
         export GOPATH=$(go env GOPATH)
