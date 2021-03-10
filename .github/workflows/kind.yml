@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       REGISTRY: localhost:5000
-      WATCH_NAMESPACE: "managed"
     strategy:
       matrix:
         go: [ '1.14' ]
@@ -60,6 +59,7 @@ jobs:
     - name: E2E Tests
       run: |
         export GOPATH=$(go env GOPATH)
+        export WATCH_NAMESPACE=managed
         go get github.com/onsi/ginkgo/ginkgo
         go get github.com/onsi/gomega/...
         make kind-bootstrap-cluster-dev
