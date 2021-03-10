@@ -67,8 +67,7 @@ jobs:
     - name: Debug
       if: ${{ failure() }} || ${{ cancelled() }}
       run: |
-        kubectl get all -n multicluster-endpoint
-        kubectl describe deployment config-policy-ctrl -n multicluster-endpoint
+        kubectl describe all -n multicluster-endpoint
         kubectl get all -n ${WATCH_NAMESPACE}
         kubectl describe pods -n ${WATCH_NAMESPACE}
         kubectl describe configurationpolicies.policy.open-cluster-management.io -n ${WATCH_NAMESPACE}

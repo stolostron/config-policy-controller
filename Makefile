@@ -164,10 +164,12 @@ kind-deploy-controller: check-env
 	kubectl apply -f deploy/ -n multicluster-endpoint
 
 kind-deploy-controller-dev:
-	@echo installing config policy controller
+	@echo Pushing image to KinD cluster
+	kind load docker-image localhost:5000/gatekeeper-operator:$GITHUB_SHA
+	@echo Installing config policy controller
 	kubectl create ns multicluster-endpoint
 	kubectl apply -f deploy/ -n multicluster-endpoint
-	@echo "patch image"
+	@echo "Patch deployment image"
 	kubectl scale deployment config-policy-ctrl -n multicluster-endpoint --replicas=0
 	kubectl patch deployment config-policy-ctrl -n multicluster-endpoint -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"image\":\"$(REGISTRY)/$(IMG):latest\"}]}}}}"
 	kubectl scale deployment config-policy-ctrl -n multicluster-endpoint --replicas=1
