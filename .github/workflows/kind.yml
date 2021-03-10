@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       REGISTRY: localhost:5000
-      TAG: ${{ GITHUB_SHA }}
       WATCH_NAMESPACE: managed
     strategy:
       matrix:
@@ -54,6 +53,8 @@ jobs:
       run: make kind-bootstrap-cluster-dev
 
     - name: Build and Push Test Container Image to KinD node
+      env:
+        TAG: ${{ env.GITHUB_SHA }}
       run: |
         make build-images
         make kind-deploy-controller-dev
