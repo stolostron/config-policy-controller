@@ -54,7 +54,7 @@ jobs:
 
     - name: Build and Push Test Container Image to KinD node
       env:
-        TAG: ${{ env.GITHUB_SHA }}
+        TAG: ${{ github.sha }}
       run: |
         make build-images
         make kind-deploy-controller-dev
