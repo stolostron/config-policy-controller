@@ -167,7 +167,6 @@ kind-deploy-controller: check-env
 kind-deploy-controller-dev:
 	@echo Pushing image to KinD cluster
 	kind load docker-image $(REGISTRY)/$(IMG):$(TAG) --name test-managed
-	docker exec test-managed-control-plane crictl images
 	@echo Installing config policy controller
 	kubectl create ns multicluster-endpoint
 	kubectl apply -f deploy/ -n multicluster-endpoint
@@ -175,7 +174,6 @@ kind-deploy-controller-dev:
 	kubectl patch deployment config-policy-ctrl -n multicluster-endpoint -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"imagePullPolicy\":\"Never\"}]}}}}"
 	kubectl patch deployment config-policy-ctrl -n multicluster-endpoint -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"config-policy-ctrl\",\"image\":\"$(REGISTRY)/$(IMG):$(TAG)\"}]}}}}"
 	kubectl rollout status -n multicluster-endpoint deployment config-policy-ctrl --timeout=180s
-	sleep 10
 
 kind-create-cluster:
 	@echo "creating cluster"
