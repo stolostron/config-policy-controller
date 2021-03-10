@@ -49,35 +49,27 @@ jobs:
         export PATH=$PATH:/usr/local/kubebuilder/bin
         make test
 
-    # - name: Create K8s KinD Cluster
-    #   run: make kind-bootstrap-cluster-dev
+    - name: Create K8s KinD Cluster
+      run: make kind-bootstrap-cluster-dev
 
-    # - name: Build and Push Test Container Image to KinD node
-    #   run: |
-    #     make build-images
-    #     make kind-deploy-controller-dev
+    - name: Build and Push Test Container Image to KinD node
+      run: |
+        make build-images
+        make kind-deploy-controller-dev
 
     - name: E2E Tests
       run: |
         export GOPATH=$(go env GOPATH)
         go get github.com/onsi/ginkgo/ginkgo
         go get github.com/onsi/gomega/...
-        make kind-bootstrap-cluster-dev
-        make build-instrumented
-        make run-instrumented
         make e2e-test
-        make stop-instrumented
-
-    - name: Coverage Report
-      run: |
-        export GOPATH=$(go env GOPATH)
-        go get github.com/wadey/gocovmerge
-        ${GOPATH}/bin/gocovmerge $(PWD)/coverage_* >> coverage.out
-        cat coverage.out
     
     - name: Debug
       if: ${{ failure() }} || ${{ cancelled() }}
       run: |
+        kubectl get all -n managed-endpoint
+        kubectl describe deployment config-policy-ctrl -n multicluster-endpoint
+        kubectl get all -n ${WATCH_NAMESPACE}
         kubectl describe pods -n ${WATCH_NAMESPACE}
         kubectl describe configurationpolicies.policy.open-cluster-management.io -n ${WATCH_NAMESPACE}
     
