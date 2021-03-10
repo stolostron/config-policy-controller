@@ -76,7 +76,7 @@ jobs:
         cat coverage.out
     
     - name: Debug
-      if: ${{ failure() }}
+      if: ${{ failure() }} || ${{ cancelled() }}
       run: |
         kubectl describe pods -n ${WATCH_NAMESPACE}
         kubectl describe configurationpolicies.policy.open-cluster-management.io -n ${WATCH_NAMESPACE}

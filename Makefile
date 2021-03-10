@@ -193,7 +193,7 @@ install-resources:
 	kubectl create ns managed
 
 e2e-test:
-	${GOPATH}/bin/ginkgo -v --slowSpecThreshold=10 test/e2e
+	${GOPATH}/bin/ginkgo -v --failFast --slowSpecThreshold=10 test/e2e
 
 ############################################################
 # e2e test coverage
