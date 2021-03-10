@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       REGISTRY: localhost:5000
-      TAG: $GITHUB_SHA
+      TAG: ${{ env.GITHUB_SHA }}
       WATCH_NAMESPACE: managed
     strategy:
       matrix:
