@@ -65,12 +65,11 @@ jobs:
         make e2e-test
     
     - name: Debug
-      if: ${{ failure() }} || ${{ cancelled() }}
+      if: ${{ failure() }}
       run: |
-        kubectl describe all -n multicluster-endpoint
+        kubectl get all -n multicluster-endpoint
         kubectl get all -n ${WATCH_NAMESPACE}
-        kubectl describe pods -n ${WATCH_NAMESPACE}
-        kubectl describe configurationpolicies.policy.open-cluster-management.io -n ${WATCH_NAMESPACE}
+        kubectl get configurationpolicies.policy.open-cluster-management.io -n ${WATCH_NAMESPACE}
     
     - name: Clean up cluster
       if: ${{ always() }}
