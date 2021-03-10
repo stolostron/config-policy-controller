@@ -61,10 +61,12 @@ jobs:
         go get github.com/onsi/ginkgo/ginkgo
         go get github.com/onsi/gomega/...
         export GOPATH=$(go env GOPATH)
-        make build-instrumented
         make kind-bootstrap-cluster-dev
+        make build-instrumented
         make run-instrumented
         make e2e-test
+        make stop-instrumented
+        make coverage-merge
 
     - name: Clean up cluster
       run: make kind-delete-cluster
