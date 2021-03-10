@@ -51,7 +51,6 @@ jobs:
         TAG: ${{ github.sha }}
       run: |
         make build-images
-        docker exec -it test-managed-control-plane crictl images
         make kind-deploy-controller-dev
 
     - name: Unit and Integration Tests

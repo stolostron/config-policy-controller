@@ -167,6 +167,7 @@ kind-deploy-controller: check-env
 kind-deploy-controller-dev:
 	@echo Pushing image to KinD cluster
 	kind load docker-image $(REGISTRY)/$(IMG):$(TAG) --name test-managed
+	docker exec test-managed-control-plane crictl images
 	@echo Installing config policy controller
 	kubectl create ns multicluster-endpoint
 	kubectl apply -f deploy/ -n multicluster-endpoint
