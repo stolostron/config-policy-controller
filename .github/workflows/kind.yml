@@ -70,8 +70,8 @@ jobs:
       if: ${{ failure() }}
       run: |
         kubectl get all -n multicluster-endpoint
-        kubectl get all -n ${WATCH_NAMESPACE}
-        kubectl get configurationpolicies.policy.open-cluster-management.io -n ${WATCH_NAMESPACE}
+        kubectl get all -n managed
+        kubectl get configurationpolicies.policy.open-cluster-management.io -n managed
         kubectl describe pods -n multicluster-endpoint
         kubectl logs $(kubectl get pods -n multicluster-endpoint -o name | grep config-policy) -n multicluster-endpoint
     

@@ -177,7 +177,7 @@ kind-deploy-controller-dev:
 
 kind-create-cluster:
 	@echo "creating cluster"
-	kind create cluster --name test-managed
+	kind create cluster --name test-managed --image kindest/node:v1.19.7
 	kind get kubeconfig --name test-managed > $(PWD)/kubeconfig_managed
 
 kind-delete-cluster:
