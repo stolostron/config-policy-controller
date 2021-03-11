@@ -74,7 +74,7 @@ jobs:
         kubectl get all -n ${WATCH_NAMESPACE}
         kubectl get configurationpolicies.policy.open-cluster-management.io -n ${WATCH_NAMESPACE}
         kubectl describe pods -n multicluster-endpoint
-        kubectl logs $(kubectl get pods -o name | grep config-policy) -n multicluster-endpoint
+        kubectl logs $(kubectl get pods -n multicluster-endpoint -o name | grep config-policy) -n multicluster-endpoint
     
     - name: Clean up cluster
       if: ${{ always() }}
