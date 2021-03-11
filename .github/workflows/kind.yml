@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       REGISTRY: localhost:5000
-      WATCH_NAMESPACE: managed
     strategy:
       matrix:
         go: [ '1.14' ]
