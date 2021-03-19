@@ -41,6 +41,7 @@ export TESTARGS ?= $(TESTARGS_DEFAULT)
 DEST ?= $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 VERSION ?= $(shell cat COMPONENT_VERSION 2> /dev/null)
 IMAGE_NAME_AND_VERSION ?= $(REGISTRY)/$(IMG)
+KIND_VERSION ?= "latest"
 
 
 LOCAL_OS := $(shell uname)
@@ -177,7 +178,7 @@ kind-deploy-controller-dev:
 
 kind-create-cluster:
 	@echo "creating cluster"
-	kind create cluster --name test-managed --image kindest/node:v1.19.7
+	kind create cluster --name test-managed --image kindest/node:$(KIND_VERSION)
 	kind get kubeconfig --name test-managed > $(PWD)/kubeconfig_managed
 
 kind-delete-cluster:

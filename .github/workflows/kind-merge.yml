@@ -1,9 +1,7 @@
-name: KinD tests
+name: KinD tests - Coverage
 
 on:
   push:
-    branches: [ main, release-2.3 ]
-  pull_request:
     branches: [ main, release-2.3 ]
 
 defaults:
@@ -19,6 +17,7 @@ jobs:
     strategy:
       matrix:
         go: [ '1.14' ]
+        kind: [ 'latest' ]
     name: KinD tests
     steps:
     - name: Checkout Config Policy Controller
@@ -42,6 +41,8 @@ jobs:
         git diff --exit-code
 
     - name: Create K8s KinD Cluster
+      env:
+        KIND_VERSION: ${{ matrix.kind }}
       run: |
         make kind-bootstrap-cluster-dev
 
