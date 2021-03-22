@@ -65,7 +65,7 @@ jobs:
           make component/test/unit
         - |
           set +e
-          make stop-instrumented  
+          make stop-instrumented
           set -e
           make coverage-merge
           make go/gosec-install
