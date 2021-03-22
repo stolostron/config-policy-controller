@@ -1,8 +1,14 @@
-name: KinD tests - Coverage
+name: KinD tests
 
 on:
   push:
-    branches: [ main, release-2.3 ]
+    branches:
+      - main
+      - release-2.3
+  pull_request:
+    branches:
+      - main
+      - release-2.3
 
 defaults:
   run:
@@ -10,14 +16,17 @@ defaults:
     working-directory: config-policy-controller
 
 jobs:
-  main:
-    runs-on: ubuntu-18.04
+  kind-tests:
+    runs-on: ubuntu-latest
     env:
       REGISTRY: localhost:5000
     strategy:
       matrix:
         go: [ '1.14' ]
-        kind: [ 'latest' ]
+        # Run tests on oldest and newest supported OCP Kubernetes
+        # - OCP 4.5 runs Kubernetes v1.18
+        # KinD tags: https://hub.docker.com/r/kindest/node/tags
+        kind: [ 'v1.18.5', 'latest' ]
     name: KinD tests
     steps:
     - name: Checkout Config Policy Controller
@@ -26,27 +35,28 @@ jobs:
         path: config-policy-controller
         fetch-depth: 0 # Fetch all history for all tags and branches
 
-    - name: Set up Go ${{ matrix.go }}
+    - name: Set up Go - ${{ matrix.go }}
       uses: actions/setup-go@v2
       id: go
       with:
         go-version: ${{ matrix.go }}
 
     - name: Verify modules
-      run: go mod verify
+      run: |
+        go mod verify
 
     - name: Verify format
       run: |
         make fmt
         git diff --exit-code
 
-    - name: Create K8s KinD Cluster
+    - name: Create K8s KinD Cluster - ${{ matrix.kind }}
       env:
         KIND_VERSION: ${{ matrix.kind }}
       run: |
         make kind-bootstrap-cluster-dev
 
-    - name: Build and Push Test Container Image to KinD node
+    - name: Build and Push Image to KinD node
       env:
         TAG: ${{ github.sha }}
       run: |
@@ -67,6 +77,11 @@ jobs:
         go get github.com/onsi/gomega/...
         make e2e-test
 
+    - name: SonarCloud Analysis
+      if: ${{ github.event_name == 'push' }}
+      run: |
+        echo "SonarCloud not implemented."
+
     - name: Debug
       if: ${{ failure() }}
       run: |
@@ -78,4 +93,5 @@ jobs:
 
     - name: Clean up cluster
       if: ${{ always() }}
-      run: make kind-delete-cluster
+      run: |
+        make kind-delete-cluster
