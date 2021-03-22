@@ -1,10 +1,10 @@
 name: KinD tests
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #     - release-2.3
+  push:
+    branches:
+      - main
+      - release-2.3
   pull_request:
     branches:
       - main
@@ -81,7 +81,7 @@ jobs:
         make e2e-test
 
     - name: SonarCloud Analysis
-      if: ${{ github.event_name == 'push' }} # Be sure to enable on.push for main and release
+      if: ${{ github.event_name == 'push' }}
       run: |
         echo "SonarCloud not implemented."
 
