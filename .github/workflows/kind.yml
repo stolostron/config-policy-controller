@@ -28,7 +28,7 @@ jobs:
         # - OCP 4.5 runs Kubernetes v1.18
         # KinD tags: https://hub.docker.com/r/kindest/node/tags
         kind:
-          - 'v1.18.5'
+          - 'v1.18.15'
           - 'v1.19.7' # This should be latest, but needs to be fixed by #10364
     name: KinD tests
     steps:
