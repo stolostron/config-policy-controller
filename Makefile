@@ -36,6 +36,8 @@ GOPATH_DEFAULT := $(PWD)/.go
 export GOPATH ?= $(GOPATH_DEFAULT)
 GOBIN_DEFAULT := $(GOPATH)/bin
 export GOBIN ?= $(GOBIN_DEFAULT)
+GOARCH = $(shell go env GOARCH)
+GOOS = $(shell go env GOOS)
 TESTARGS_DEFAULT := "-v"
 export TESTARGS ?= $(TESTARGS_DEFAULT)
 DEST ?= $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
@@ -112,6 +114,11 @@ lint: lint-all
 
 test:
 	@go test ${TESTARGS} `go list ./... | grep -v test/e2e`
+
+test-dependencies:
+	curl -L https://go.kubebuilder.io/dl/2.3.0/$(GOOS)/$(GOARCH) | tar -xz -C /tmp/
+	sudo mv /tmp/kubebuilder_2.3.0_$(GOOS)_$(GOARCH) /usr/local/kubebuilder
+	export PATH=$PATH:/usr/local/kubebuilder/bin
 
 ############################################################
 # coverage section
@@ -205,6 +212,17 @@ install-resources:
 
 e2e-test:
 	${GOPATH}/bin/ginkgo -v --failFast --slowSpecThreshold=10 test/e2e
+
+e2e-dependencies:
+	go get github.com/onsi/ginkgo/ginkgo
+	go get github.com/onsi/gomega/...
+
+e2e-debug:
+	kubectl get all -n $(KIND_NAMESPACE)
+	kubectl get all -n managed
+	kubectl get configurationpolicies.policy.open-cluster-management.io --all-namespaces
+	kubectl describe pods -n $(KIND_NAMESPACE)
+	kubectl logs $(kubectl get pods -n $(KIND_NAMESPACE) -o name | grep $(IMG)) -n $(KIND_NAMESPACE)
 
 ############################################################
 # e2e test coverage
