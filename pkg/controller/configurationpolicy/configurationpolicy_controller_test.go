@@ -471,8 +471,8 @@ func TestAddRelatedObject(t *testing.T) {
 	namespace := "default"
 	namespaced := true
 	name := "foo"
-	nameLinkMap := map[string]string{}
-	nameLinkMap[name] = "link"
+	nameLinkMap := map[string]types.UID{}
+	nameLinkMap[name] = "uid"
 	reason := "reason"
 	relatedList := addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, nameLinkMap, reason)
 	related := relatedList[0]
@@ -483,7 +483,7 @@ func TestAddRelatedObject(t *testing.T) {
 	assert.True(t, related.Object.Kind == rsrc.Resource)
 	assert.True(t, related.Object.Metadata.Name == name)
 	assert.True(t, related.Object.Metadata.Namespace == namespace)
-	assert.True(t, related.Object.Metadata.SelfLink == "link")
+	assert.True(t, related.Object.Metadata.Uid == "uid")
 
 	// add the same object and make sure the existing one is overwritten
 	reason = "new"
@@ -525,7 +525,7 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 	}
 	rsrc := policiesv1alpha1.SchemeBuilder.GroupVersion.WithResource("ConfigurationPolicy")
 	name := "foo"
-	nameLinkMap := map[string]string{}
+	nameLinkMap := map[string]types.UID{}
 	nameLinkMap[name] = "link"
 	relatedList := addRelatedObjects(policy, true, rsrc, "default", true, []string{name}, nameLinkMap, "reason")
 

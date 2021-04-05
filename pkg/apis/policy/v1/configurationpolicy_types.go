@@ -8,6 +8,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // RemediationAction : enforce or inform
@@ -208,8 +209,8 @@ type ObjectMetadata struct {
 	Name string `json:"name,omitempty"`
 	// Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
 	Namespace string `json:"namespace,omitempty"`
-	// An unqualified REST API link to the referent.
-	SelfLink string `json:"selfLink,omitempty"`
+	// UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+	Uid types.UID `json:"uid,omitempty"`
 }
 
 func init() {

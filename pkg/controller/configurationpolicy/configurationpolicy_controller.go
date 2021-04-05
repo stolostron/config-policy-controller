@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -518,12 +519,12 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		}
 		return nil, false, "", "", nil, needUpdate, namespaced
 	}
-	nameLinkMap := make(map[string]string)
-	var selfLink string
+	nameLinkMap := make(map[string]types.UID)
+	var uid types.UID
 	if name != "" {
-		exists, selfLink = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
+		exists, uid = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
 		objNames = append(objNames, name)
-		nameLinkMap[name] = selfLink
+		nameLinkMap[name] = uid
 	} else if kind != "" {
 		var allNames []string
 		nameLinkMap = getNamesAndLinksOfKind(unstruct, rsrc, namespaced,
@@ -831,8 +832,8 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 }
 
 func buildNameList(unstruct unstructured.Unstructured, complianceType string,
-	resList *unstructured.UnstructuredList) (kindNameList map[string]string) {
-	kindNameList = make(map[string]string)
+	resList *unstructured.UnstructuredList) (kindNameList map[string]types.UID) {
+	kindNameList = make(map[string]types.UID)
 	for i := range resList.Items {
 		uObj := resList.Items[i]
 		match := true
@@ -846,16 +847,16 @@ func buildNameList(unstruct unstructured.Unstructured, complianceType string,
 		}
 		if match {
 			kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] =
-				uObj.Object["metadata"].(map[string]interface{})["selfLink"].(string)
+				uObj.Object["metadata"].(map[string]interface{})["uid"].(types.UID)
 		}
 	}
 	return kindNameList
 }
 
 // getNamesAndLinksOfKind returns a map with all of the resources found matching the GVK
-// specified.  The key is the resource name and the value is the selfLink to the resource.
+// specified.  The key is the resource name and the value is the UID of the resource
 func getNamesAndLinksOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersionResource,
-	namespaced bool, ns string, dclient dynamic.Interface, complianceType string) (kindNameList map[string]string) {
+	namespaced bool, ns string, dclient dynamic.Interface, complianceType string) (kindNameList map[string]types.UID) {
 	if namespaced {
 		res := dclient.Resource(rsrc).Namespace(ns)
 		resList, err := res.List(metav1.ListOptions{})
@@ -990,9 +991,9 @@ func checkMessageSimilarity(conditions []policyv1.Condition, cond *policyv1.Cond
 	return same
 }
 
-// objectExists returns true if the object is found.  If it is found the selfLink is also returned.
+// objectExists returns true if the object is found
 func objectExists(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
-	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, selfLink string) {
+	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, uid types.UID) {
 	exists := false
 	if !namespaced {
 		res := dclient.Resource(rsrc)
@@ -1007,7 +1008,7 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 
 		} else {
 			exists = true
-			selfLink = unstr.GetSelfLink()
+			uid = unstr.GetUID()
 			glog.V(6).Infof("object `%v` retrieved from the api server\n", name)
 		}
 	} else {
@@ -1022,11 +1023,11 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 			glog.Errorf(getObjError, name)
 		} else {
 			exists = true
-			selfLink = unstr.GetSelfLink()
+			uid = unstr.GetUID()
 			glog.V(6).Infof("object `%v` retrieved from the api server\n", name)
 		}
 	}
-	return exists, selfLink
+	return exists, uid
 }
 
 func createObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
