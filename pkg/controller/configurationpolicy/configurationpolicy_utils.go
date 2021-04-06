@@ -11,15 +11,13 @@ import (
 	policyv1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policy/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
 // details on whether the object is compliant or not compliant with the policy.  The results are updated in the
 // policy's Status information.
 func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
-	namespace string, namespaced bool, objNames []string,
-	nameLinkMap map[string]types.UID, reason string) (relatedObjects []policyv1.RelatedObject) {
+	namespace string, namespaced bool, objNames []string, reason string) (relatedObjects []policyv1.RelatedObject) {
 
 	for _, name := range objNames {
 		// Initialize the related object from the object handling
@@ -38,12 +36,6 @@ func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsr
 			metadata.Namespace = namespace
 		} else {
 			metadata.Namespace = ""
-		}
-		uid, ok := nameLinkMap[name]
-		if ok {
-			metadata.Uid = uid
-		} else {
-			metadata.Uid = ""
 		}
 		relatedObject.Object.APIVersion = rsrc.GroupVersion().String()
 		relatedObject.Object.Kind = rsrc.Resource
