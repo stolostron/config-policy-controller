@@ -1601,6 +1601,7 @@ func createParentPolicy(instance *policyv1.ConfigurationPolicy) policyv1.Policy 
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.OwnerReferences[0].Name,
 			Namespace: ns, // we are making an assumption here that the parent policy is in the watched-namespace passed as flag
+			UID:       instance.OwnerReferences[0].UID,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Policy",
