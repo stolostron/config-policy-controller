@@ -113,6 +113,7 @@ lint: lint-all
 ############################################################
 
 test:
+	SHELL:=/bin/bash
 	@go test ${TESTARGS} `go list ./... | grep -v test/e2e`
 
 test-dependencies:
