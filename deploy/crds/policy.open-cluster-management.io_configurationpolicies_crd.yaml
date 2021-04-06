@@ -53,7 +53,7 @@ spec:
                 description: ObjectTemplate describes how an object should look
                 properties:
                   complianceType:
-                    description: 'ComplianceType specifies wether it is a : //musthave,
+                    description: 'ComplianceType specifies whether it is: musthave,
                       mustnothave, mustonlyhave'
                     type: string
                   objectDefinition:
