@@ -847,7 +847,7 @@ func buildNameList(unstruct unstructured.Unstructured, complianceType string,
 		}
 		if match {
 			kindNameList[uObj.Object["metadata"].(map[string]interface{})["name"].(string)] =
-				uObj.Object["metadata"].(map[string]interface{})["uid"].(types.UID)
+				uObj.GetUID()
 		}
 	}
 	return kindNameList
