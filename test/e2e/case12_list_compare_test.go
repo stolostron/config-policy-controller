@@ -9,7 +9,7 @@ import (
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case12ConfigPolicyNameInform string = "policy-pod-mh-listinform" 
+const case12ConfigPolicyNameInform string = "policy-pod-mh-listinform"
 const case12ConfigPolicyNameEnforce string = "policy-pod-create-listinspec"
 const case12InformYaml string = "../resources/case12_list_compare/case12_pod_inform.yaml"
 const case12EnforceYaml string = "../resources/case12_list_compare/case12_pod_create.yaml"
