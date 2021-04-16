@@ -92,10 +92,63 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 					match = false
 				}
 			}
+		case (map[string]interface{}):
+			if !checkFieldsWithSort(mVal, oldObj[i].(map[string]interface{})) {
+				match = false
+			}
 		default:
 			oVal := oldObj[i]
 			if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
 				match = false
+			}
+		}
+	}
+	fmt.Println(match)
+	return match
+}
+
+func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[string]interface{}) (matches bool) {
+	sort.Slice(oldObj, func(i, j int) bool {
+		return fmt.Sprintf("%v", oldObj[i]) < fmt.Sprintf("%v", oldObj[j])
+	})
+	sort.Slice(mergedObj, func(x, y int) bool {
+		return fmt.Sprintf("%v", mergedObj[x]) < fmt.Sprintf("%v", mergedObj[y])
+	})
+
+	//needed to compare lists, since merge messes up the order
+	match := true
+	for listIdx, mergedItem := range mergedObj {
+		oldItem := oldObj[listIdx]
+		for i, mVal := range mergedItem {
+			switch mVal := mVal.(type) {
+			case ([]interface{}):
+				oVal, ok := oldItem[i].([]interface{})
+				if !ok {
+					match = false
+					break
+				}
+				sort.Slice(oVal, func(i, j int) bool {
+					return fmt.Sprintf("%v", oVal[i]) < fmt.Sprintf("%v", oVal[j])
+				})
+				sort.Slice(mVal, func(x, y int) bool {
+					return fmt.Sprintf("%v", mVal[x]) < fmt.Sprintf("%v", mVal[y])
+				})
+				if len(mVal) != len(oVal) {
+					match = false
+				} else {
+					if !checkListsMatch(oVal, mVal) {
+						match = false
+					}
+				}
+			case (map[string]interface{}):
+				if !checkFieldsWithSort(mVal, oldItem[i].(map[string]interface{})) {
+					match = false
+				}
+			default:
+				oVal := oldItem[i]
+				if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
+					match = false
+				}
 			}
 		}
 	}
