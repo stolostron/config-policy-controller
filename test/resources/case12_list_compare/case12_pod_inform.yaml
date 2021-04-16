@@ -16,7 +16,7 @@ spec:
           name: nginx-pod-e2e
         spec:
           containers:
-            - image: nginx:1.9.9
-              name: nginx
+            - image: nginx:1.7.9
+              name: nginx2
               ports:
                 - containerPort: 80
