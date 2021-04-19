@@ -18,6 +18,7 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20200121204235-bf4fb3bd569c // indirect
 	sigs.k8s.io/controller-runtime v0.5.2
+	sigs.k8s.io/yaml v1.1.0 // indirect
 // github.com/open-cluster-management/governance-policy-propagator v0.0.0-20200511192636-919b118d8de3
 )
 
