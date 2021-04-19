@@ -13,7 +13,7 @@ spec:
         apiVersion: v1
         kind: Pod
         metadata:
-          name: nginx-pod-e2e
+          name: nginx-pod-e2e-12
         spec:
           containers:
             - image: nginx:1.7.9

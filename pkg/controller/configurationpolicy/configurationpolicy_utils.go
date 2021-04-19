@@ -93,7 +93,11 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 				}
 			}
 		case (map[string]interface{}):
-			if !checkFieldsWithSort(mVal, oldObj[i].(map[string]interface{})) {
+			oVal, ok := oldObj[i].(map[string]interface{})
+			if !ok {
+				match = false
+				break
+			} else if !checkFieldsWithSort(mVal, oVal) {
 				match = false
 			}
 		default:
