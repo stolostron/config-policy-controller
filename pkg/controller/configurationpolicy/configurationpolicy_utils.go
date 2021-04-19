@@ -107,7 +107,6 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 			}
 		}
 	}
-	fmt.Println(match)
 	return match
 }
 
