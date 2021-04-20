@@ -8,6 +8,8 @@ import (
   "sigs.k8s.io/yaml"
 )
 
+
+
 func initFuncMap() template.FuncMap{
 	fmap := template.FuncMap{
 			"fromSecret": fromSecret,
@@ -40,6 +42,14 @@ func toYAML(v interface{}) string {
 	}
 
 	return strings.TrimSuffix(string(data), "\n")
+}
+
+func HasTemplate(templateStr string) bool{
+	glog.Errorf("hasTemplate template str  %v", templateStr)
+	if strings.Contains(templateStr, "{{") {
+		return true
+	}
+	return false
 }
 
 func ResolveTemplate(tmplMap interface{}) (interface{}, error) {

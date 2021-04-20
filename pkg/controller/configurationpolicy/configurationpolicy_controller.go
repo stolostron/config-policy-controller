@@ -329,29 +329,33 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		}
 
 
-		// TODO Add a check here to determine if the object definition has a template
+		// check here to determine if the object definition has a template
 		// and execute the below template-processing only if  there is a template
 		// to avoid unnecessary parsing when there is no template in the definition.
 
-		//resolve template here , to avoid the same template processed for every relevant ns
-		resolvedblob, tplErr := templates.ResolveTemplate(blob)
-		if (tplErr != nil){
-			glog.Errorf("error while processing template %v", tplErr)
-			//TODO createViolation EVENT here !!
-			return
-		}
+		if( templates.HasTemplate(string(ext.Raw)) ) {
+			//resolve template here , to avoid the same template processed for every relevant ns
+			resolvedblob, tplErr := templates.ResolveTemplate(blob)
+			if (tplErr != nil){
+				glog.Errorf("error while processing template %v", tplErr)
+				//TODO createViolation EVENT here !!
+				return
+			}
 
-		//marshal it back and set it on the objectTemplate so be used  in processed further down
-		resolveddata, jsonErr := json.Marshal(resolvedblob)
-		if jsonErr  != nil {
-			//TODO createViolation EVENT here !!
-			glog.Errorf("error while marshalling to json %v", jsonErr)
-			glog.Error(jsonErr)
-			return
-		}
+			//marshal it back and set it on the objectTemplate so be used  in processed further down
+			resolveddata, jsonErr := json.Marshal(resolvedblob)
+			if jsonErr  != nil {
+				//TODO createViolation EVENT here !!
+				glog.Errorf("error while marshalling to json %v", jsonErr)
+				glog.Error(jsonErr)
+				return
+			}
 
-		objectT.ObjectDefinition.Raw = resolveddata
-		blob = resolvedblob
+			//Set the resolved data for use in further processing
+			objectT.ObjectDefinition.Raw = resolveddata
+			blob = resolvedblob
+
+		}
 
 
 		unstruct.Object = blob.(map[string]interface{})
@@ -364,9 +368,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				desiredName = objectname.(string)
 			}
 		}
-
-
-
 
 		numCompliant := 0
 		numNonCompliant := 0
