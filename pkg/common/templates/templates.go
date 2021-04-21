@@ -6,9 +6,13 @@ import (
 	"strings"
 	"github.com/golang/glog"
   "sigs.k8s.io/yaml"
+	"k8s.io/client-go/kubernetes"
 )
 
-
+var kubeClient *kubernetes.Interface
+func InitializeKubeClient(kClient *kubernetes.Interface) {
+	kubeClient = kClient
+}
 
 func initFuncMap() template.FuncMap{
 	fmap := template.FuncMap{
@@ -16,6 +20,8 @@ func initFuncMap() template.FuncMap{
 			"fromConfigmap": fromConfigmap,
 			"fromClusterClaim": fromClusterClaim,
 			"lookup" : lookup,
+			"base64enc" : base64encode,
+			"base64dec" : base64decode,
 			"note" : note,
 	}
 	return fmap
