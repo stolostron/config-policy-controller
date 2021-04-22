@@ -1,8 +1,8 @@
 [comment]: # ( Copyright Contributors to the Open Cluster Management project )
 
-# Configuration Policy Controller
+# What is the Configuration Policy Controller?
 
-Red Hat Advanced Cluster Management - Governance - Configuration Policy Controller
+Open Cluster Management - Configuration Policy Controller
 
 [![Build](https://img.shields.io/badge/build-Prow-informational)](https://prow.ci.openshift.org/?repo=open-cluster-management%2Fconfig-policy-controller)
 [![KinD tests](https://github.com/open-cluster-management/config-policy-controller/actions/workflows/kind.yml/badge.svg?branch=main&event=push)](https://github.com/open-cluster-management/config-policy-controller/actions/workflows/kind.yml)
@@ -10,7 +10,9 @@ Red Hat Advanced Cluster Management - Governance - Configuration Policy Controll
 
 ## Description
 
-The Configuration Policy Controller watches `ConfigurationPolicies`, and checks if the specified objects are present in the cluster. It records compliancy details in the `status` of each ConfigurationPolicy, and as Kubernetes Events. If set to `enforce` the configuration, then the controller will attempt to create, update, or delete objects on the cluster as necessary to match the specified state. The controller can be run as a stand-alone program or as an integrated part of governing risk with Red Hat Advanced Cluster Management for Kubernetes.
+With the Configuration Policy Controller, you can create `ConfigurationPolicies` to check if the specified objects are present in the cluster. The controller records compliancy details in the `status` of each ConfigurationPolicy, and as Kubernetes Events. If the policy is set to `enforce` the configuration, then the controller will attempt to create, update, or delete objects on the cluster as necessary to match the specified state. The controller can be run as a stand-alone program or as an integrated part of governing risk with the Open Cluster Management project.
+
+Go to the [Contributing guide](CONTRIBUTING.md) to learn how to get involved.
 
 This is an example spec of a `ConfigurationPolicy` object:
 ```yaml
@@ -55,7 +57,7 @@ Additionally, each item in the `object-templates` includes these fields:
 | complianceType | Required: `musthave`, `mustnothave` or `mustonlyhave`. Determines how to decide if the cluster is compliant with the policy. |
 | objectDefinition | Required: A Kubernetes object which must (or must not) match an object on the cluster in order to comply with this policy. |
 
-## Run
+## Getting started
 
 To run the controller locally, point your CLI to a running cluster and then run:
 ```
