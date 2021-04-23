@@ -3,9 +3,41 @@
 
 package templates
 
+import (
+  metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+  apierrors "k8s.io/apimachinery/pkg/api/errors"
+)
+
 
 // retrieve Spec value for the given clusterclaim
 func fromClusterClaim(claimname string) (string , error) {
-  //TODO
-  return "", nil
+  result  := map[string]interface{}{}
+
+	dclient,  dclientErr := getDynamicClient(
+    "cluster.open-cluster-management.io/v1alpha1",
+    "ClusterClaim",
+    "",
+  )
+  if(dclientErr != nil){
+    return "", dclientErr
+  }
+
+  var lookupErr error
+  getObj, getErr := dclient.Get( claimname, metav1.GetOptions{})
+  if getErr == nil {
+    result = getObj.UnstructuredContent()
+  }
+  lookupErr = getErr
+
+  if lookupErr != nil {
+    if apierrors.IsNotFound(lookupErr) {
+      return "", lookupErr
+    }
+  }
+
+  spec := result["spec"].(map[string]interface{})
+  if _, ok := spec["value"]; ok {
+		return spec["value"].(string), lookupErr
+	}
+  return "", lookupErr
 }
