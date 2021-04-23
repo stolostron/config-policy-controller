@@ -111,7 +111,6 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 }
 
 func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[string]interface{}) (matches bool) {
-	fmt.Println("in checklistfields ---------------")
 	sort.Slice(oldObj, func(i, j int) bool {
 		return fmt.Sprintf("%v", oldObj[i]) < fmt.Sprintf("%v", oldObj[j])
 	})
