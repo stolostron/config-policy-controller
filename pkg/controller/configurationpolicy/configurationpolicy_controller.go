@@ -127,7 +127,7 @@ func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset,
 	EventOnParent = strings.ToLower(eventParent)
 	recorder, _ = common.CreateRecorder(*KubeClient, controllerName)
 	config = kubeconfig
-	templates.InitializeKubeClient(kubeClient)
+	templates.InitializeKubeClient(kubeClient,kubeconfig)
 }
 
 //InitializeClient helper function to initialize kubeclient
@@ -310,6 +310,12 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 	}
 	relatedObjects := []policyv1.RelatedObject{}
 	parentUpdate := false
+
+	// initialize apiresources for template processing before starting objectTemplate processing
+	// this is optional but since apiresourcelist is already available,
+	// use this rather than re-discovering the list for generic-lookup
+	templates.SetAPIResources(apiresourcelist)
+
 	for indx, objectT := range plc.Spec.ObjectTemplates {
 		nonCompliantObjects := map[string]map[string]interface{}{}
 		compliantObjects := map[string]map[string]interface{}{}
@@ -329,25 +335,28 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			return
 		}
 
+		// Here appears to be a  good place to hook in template processing
+		// This is at the head of objectemplate processing
+		// ( just before the perNamespace handling of objectDefinitions)
 
 		// check here to determine if the object definition has a template
-		// and execute the below template-processing only if  there is a template
+		// and execute  template-processing only if  there is a template pattern "{{" in it
 		// to avoid unnecessary parsing when there is no template in the definition.
 
 		if( templates.HasTemplate(string(ext.Raw)) ) {
-			//resolve template here , to avoid the same template processed for every relevant ns
 			resolvedblob, tplErr := templates.ResolveTemplate(blob)
 			if (tplErr != nil){
-				glog.Errorf("error while processing template %v", tplErr)
-				//TODO createViolation EVENT here !!
+				update := createViolation(&plc, 0, "Error processing template", tplErr.Error())
+				if update {
+					recorder.Event(&plc, eventWarning, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(&plc))
+					addForUpdate(&plc)
+				}
 				return
 			}
 
 			//marshal it back and set it on the objectTemplate so be used  in processed further down
 			resolveddata, jsonErr := json.Marshal(resolvedblob)
 			if jsonErr  != nil {
-				//TODO createViolation EVENT here !!
-				glog.Errorf("error while marshalling to json %v", jsonErr)
 				glog.Error(jsonErr)
 				return
 			}
@@ -355,7 +364,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			//Set the resolved data for use in further processing
 			objectT.ObjectDefinition.Raw = resolveddata
 			blob = resolvedblob
-
 		}
 
 
@@ -425,6 +433,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			}
 		}
 	}
+
 	checkRelatedAndUpdate(parentUpdate, plc, relatedObjects, oldRelated)
 }
 
