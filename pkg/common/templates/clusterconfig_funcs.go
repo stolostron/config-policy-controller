@@ -31,7 +31,7 @@ func fromClusterClaim(claimname string) (string , error) {
 
   if lookupErr != nil {
     if apierrors.IsNotFound(lookupErr) {
-      return "", lookupErr
+      return "", nil
     }
   }
 
