@@ -21,7 +21,7 @@ func fromSecret(namespace string, secretname string, key string) (string, error)
 		glog.Errorf("Error Getting secret:  %v", getErr)
 		return "", getErr
 	}
-  glog.V(2).Infof("Secret is %v", secret)
+	glog.V(2).Infof("Secret is %v", secret)
 
 	keyVal := secret.Data[key]
 	glog.V(2).Infof("Secret Key:%v, Value: %v", key, keyVal)
