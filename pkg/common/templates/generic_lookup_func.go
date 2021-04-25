@@ -4,6 +4,7 @@
 package templates
 
 import (
+  "context"
   metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
   "github.com/golang/glog"
   apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,13 +31,13 @@ func lookup (apiversion string, kind string, namespace string, rsrcname string) 
 
   var lookupErr error
 	if rsrcname != "" {
-    getObj, getErr := dclient.Get( rsrcname, metav1.GetOptions{})
+    getObj, getErr := dclient.Get( context.TODO(), rsrcname, metav1.GetOptions{})
     if getErr == nil {
       result = getObj.UnstructuredContent()
     }
     lookupErr = getErr
   }else{
-    listObj, listErr := dclient.List( metav1.ListOptions{})
+    listObj, listErr := dclient.List( context.TODO(), metav1.ListOptions{})
     if listErr == nil {
       result = listObj.UnstructuredContent()
     }

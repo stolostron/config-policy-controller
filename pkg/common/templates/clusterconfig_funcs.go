@@ -4,6 +4,7 @@
 package templates
 
 import (
+  "context"
   metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
   apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -23,7 +24,7 @@ func fromClusterClaim(claimname string) (string , error) {
   }
 
   var lookupErr error
-  getObj, getErr := dclient.Get( claimname, metav1.GetOptions{})
+  getObj, getErr := dclient.Get( context.TODO(), claimname, metav1.GetOptions{})
   if getErr == nil {
     result = getObj.UnstructuredContent()
   }

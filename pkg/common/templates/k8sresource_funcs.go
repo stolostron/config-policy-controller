@@ -4,6 +4,7 @@
 package templates
 
 import (
+  "context"
   metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
   "github.com/golang/glog"
   base64 "encoding/base64"
@@ -15,7 +16,7 @@ func fromSecret(namespace string, secretname string,  key string) (string , erro
   glog.V(2).Infof("fromSecret for namespace: %v, secretname: %v, key:%v", namespace, secretname, key)
 
   secretsClient := (*kubeClient).CoreV1().Secrets(namespace)
-  secret, getErr := secretsClient.Get(secretname, metav1.GetOptions{})
+  secret, getErr := secretsClient.Get(context.TODO(), secretname, metav1.GetOptions{})
 
   if getErr != nil {
     glog.Errorf("Error Getting secret:  %v", getErr)
@@ -38,7 +39,7 @@ func fromConfigMap(namespace string, cmapname string,  key string) (string , err
   glog.V(2).Infof("fromConfigMap for namespace: %v, configmap name: %v, key:%v", namespace, cmapname, key)
 
   configmapsClient := (*kubeClient).CoreV1().ConfigMaps(namespace)
-  configmap, getErr := configmapsClient.Get(cmapname, metav1.GetOptions{})
+  configmap, getErr := configmapsClient.Get(context.TODO(), cmapname, metav1.GetOptions{})
 
   if getErr != nil {
       glog.Errorf("Error getting configmap:  %v", getErr)
