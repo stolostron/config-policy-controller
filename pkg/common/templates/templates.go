@@ -4,13 +4,13 @@
 package templates
 
 import (
-	"text/template"
-	"strings"
 	"github.com/golang/glog"
-  "sigs.k8s.io/yaml"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
+	"strings"
+	"text/template"
 )
 
 var kubeClient *kubernetes.Interface
@@ -29,7 +29,7 @@ func SetAPIResources(apiresList []*metav1.APIResourceList) {
 }
 
 // just does a simple check for {{ string to indicate if it has a template
-func HasTemplate(templateStr string) bool{
+func HasTemplate(templateStr string) bool {
 	glog.V(2).Infof("hasTemplate template str:  %v", templateStr)
 
 	hasTemplate := false
@@ -44,21 +44,20 @@ func HasTemplate(templateStr string) bool{
 // Main Template Processing func
 func ResolveTemplate(tmplMap interface{}) (interface{}, error) {
 
-  glog.V(2).Infof("ResolveTemplate for: %v", tmplMap)
+	glog.V(2).Infof("ResolveTemplate for: %v", tmplMap)
 
-  // Build Map of supported template functions
+	// Build Map of supported template functions
 	funcMap := template.FuncMap{
-			"fromSecret": fromSecret,
-			"fromConfigMap": fromConfigMap,
-			"fromClusterClaim": fromClusterClaim,
-			"lookup" : lookup,
-			"base64enc" : base64encode,
-			"base64dec" : base64decode,
+		"fromSecret":       fromSecret,
+		"fromConfigMap":    fromConfigMap,
+		"fromClusterClaim": fromClusterClaim,
+		"lookup":           lookup,
+		"base64enc":        base64encode,
+		"base64dec":        base64decode,
 	}
 
-  // create template processor and Initialize function map
+	// create template processor and Initialize function map
 	tmpl := template.New("tmpl").Funcs(funcMap)
-
 
 	//convert the interface to yaml to string
 	// ext.raw is jsonMarshalled data which the template processor is not accepting
@@ -76,7 +75,7 @@ func ResolveTemplate(tmplMap interface{}) (interface{}, error) {
 	err = tmpl.Execute(&buf, "")
 	if err != nil {
 		glog.Errorf("error executing the template %v", err)
-	  return "", err
+		return "", err
 	}
 
 	resolvedTemplateStr := buf.String()
@@ -85,7 +84,6 @@ func ResolveTemplate(tmplMap interface{}) (interface{}, error) {
 	//unmarshall before returning
 	return fromYAML(resolvedTemplateStr), nil
 }
-
 
 // fromYAML converts a YAML document into a map[string]interface{}.
 func fromYAML(str string) map[string]interface{} {

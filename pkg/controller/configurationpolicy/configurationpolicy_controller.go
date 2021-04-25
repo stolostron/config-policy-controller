@@ -127,7 +127,7 @@ func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset,
 	EventOnParent = strings.ToLower(eventParent)
 	recorder, _ = common.CreateRecorder(*KubeClient, controllerName)
 	config = kubeconfig
-	templates.InitializeKubeClient(kubeClient,kubeconfig)
+	templates.InitializeKubeClient(kubeClient, kubeconfig)
 }
 
 //InitializeClient helper function to initialize kubeclient
@@ -343,9 +343,9 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		// and execute  template-processing only if  there is a template pattern "{{" in it
 		// to avoid unnecessary parsing when there is no template in the definition.
 
-		if( templates.HasTemplate(string(ext.Raw)) ) {
+		if templates.HasTemplate(string(ext.Raw)) {
 			resolvedblob, tplErr := templates.ResolveTemplate(blob)
-			if (tplErr != nil){
+			if tplErr != nil {
 				update := createViolation(&plc, 0, "Error processing template", tplErr.Error())
 				if update {
 					recorder.Event(&plc, eventWarning, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(&plc))
@@ -356,7 +356,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 
 			//marshal it back and set it on the objectTemplate so be used  in processed further down
 			resolveddata, jsonErr := json.Marshal(resolvedblob)
-			if jsonErr  != nil {
+			if jsonErr != nil {
 				glog.Error(jsonErr)
 				return
 			}
@@ -365,7 +365,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			objectT.ObjectDefinition.Raw = resolveddata
 			blob = resolvedblob
 		}
-
 
 		unstruct.Object = blob.(map[string]interface{})
 		if md, ok := unstruct.Object["metadata"]; ok {
