@@ -21,6 +21,7 @@ func fromSecret(namespace string, secretname string, key string) (string, error)
 		glog.Errorf("Error Getting secret:  %v", getErr)
 		return "", getErr
 	}
+  glog.V(2).Infof("Secret is %v", secret)
 
 	keyVal := secret.Data[key]
 	glog.V(2).Infof("Secret Key:%v, Value: %v", key, keyVal)
@@ -44,7 +45,7 @@ func fromConfigMap(namespace string, cmapname string, key string) (string, error
 		glog.Errorf("Error getting configmap:  %v", getErr)
 		return "", getErr
 	}
-	//glog.Errorf("Configmap is %v", configmap)
+	glog.V(2).Infof("Configmap is %v", configmap)
 
 	keyVal := configmap.Data[key]
 	glog.V(2).Infof("Configmap Key:%v, Value: %v", key, keyVal)
