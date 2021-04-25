@@ -890,7 +890,7 @@ func getNamesOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersion
 	namespaced bool, ns string, dclient dynamic.Interface, complianceType string) (kindNameList []string) {
 	if namespaced {
 		res := dclient.Resource(rsrc).Namespace(ns)
-		resList, err := res.List(metav1.ListOptions{})
+		resList, err := res.List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			glog.Error(err)
 			return kindNameList
@@ -898,7 +898,7 @@ func getNamesOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersion
 		return buildNameList(unstruct, complianceType, resList)
 	}
 	res := dclient.Resource(rsrc)
-	resList, err := res.List(metav1.ListOptions{})
+	resList, err := res.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		glog.Error(err)
 		return kindNameList
@@ -994,7 +994,7 @@ func getPolicyNamespaces(policy policyv1.ConfigurationPolicy) []string {
 func getAllNamespaces() (list []string) {
 	listOpt := &metav1.ListOptions{}
 
-	nsList, err := (*KubeClient).CoreV1().Namespaces().List(*listOpt)
+	nsList, err := (*KubeClient).CoreV1().Namespaces().List(context.TODO(), *listOpt)
 	if err != nil {
 		glog.Errorf("Error fetching namespaces from the API server: %v", err)
 	}
@@ -1028,7 +1028,7 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 	exists := false
 	if !namespaced {
 		res := dclient.Resource(rsrc)
-		_, err := res.Get(name, metav1.GetOptions{})
+		_, err := res.Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				glog.V(6).Infof("response to retrieve a non namespaced object `%v` from the api-server: %v", name, err)
@@ -1043,7 +1043,7 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 		}
 	} else {
 		res := dclient.Resource(rsrc).Namespace(namespace)
-		_, err := res.Get(name, metav1.GetOptions{})
+		_, err := res.Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				exists = false
@@ -1070,7 +1070,7 @@ func createObject(namespaced bool, namespace string, name string, rsrc schema.Gr
 	if !namespaced {
 		res := dclient.Resource(rsrc)
 
-		_, err = res.Create(&unstruct, metav1.CreateOptions{})
+		_, err = res.Create(context.TODO(), &unstruct, metav1.CreateOptions{})
 		if err != nil {
 			if errors.IsAlreadyExists(err) {
 				created = true
@@ -1085,7 +1085,7 @@ func createObject(namespaced bool, namespace string, name string, rsrc schema.Gr
 		}
 	} else {
 		res := dclient.Resource(rsrc).Namespace(namespace)
-		_, err = res.Create(&unstruct, metav1.CreateOptions{})
+		_, err = res.Create(context.TODO(), &unstruct, metav1.CreateOptions{})
 		if err != nil {
 			if errors.IsAlreadyExists(err) {
 				created = true
@@ -1109,7 +1109,7 @@ func deleteObject(namespaced bool, namespace string, name string, rsrc schema.Gr
 	var err error
 	if !namespaced {
 		res := dclient.Resource(rsrc)
-		err = res.Delete(name, &metav1.DeleteOptions{})
+		err = res.Delete(context.TODO(), name, metav1.DeleteOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				deleted = true
@@ -1122,7 +1122,7 @@ func deleteObject(namespaced bool, namespace string, name string, rsrc schema.Gr
 		}
 	} else {
 		res := dclient.Resource(rsrc).Namespace(namespace)
-		err = res.Delete(name, &metav1.DeleteOptions{})
+		err = res.Delete(context.TODO(), name, metav1.DeleteOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				deleted = true
@@ -1214,6 +1214,10 @@ func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
 }
 
 func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []interface{}) {
+	if ctype == "mustonlyhave" {
+		return new
+	}
+
 	newCopy := append([]interface{}{}, new...)
 	indexesSkipped := map[int]bool{}
 	for i := range newCopy {
@@ -1346,6 +1350,14 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 			if oldObj == nil || !checkFieldsWithSort(mergedObj, oldObj.(map[string]interface{})) {
 				updateNeeded = true
 			}
+		case ([]map[string]interface{}):
+			if oldObj == nil || !checkListFieldsWithSort(mergedObj, oldObj.([]map[string]interface{})) {
+				updateNeeded = true
+			}
+		case ([]interface{}):
+			if oldObj == nil || !checkListsMatch(mergedObj, oldObj.([]interface{})) {
+				updateNeeded = true
+			}
 		default:
 			if !reflect.DeepEqual(nJSON, oJSON) {
 				updateNeeded = true
@@ -1387,7 +1399,7 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 			}
 			//enforce
 			glog.V(4).Infof("Updating %v template `%v`...", typeStr, name)
-			_, err = res.Update(existingObj, metav1.UpdateOptions{})
+			_, err = res.Update(context.TODO(), existingObj, metav1.UpdateOptions{})
 			if errors.IsNotFound(err) {
 				message := fmt.Sprintf("`%v` is not present and must be created", typeStr)
 				return false, false, message, true
@@ -1418,7 +1430,7 @@ func updateTemplate(
 	} else {
 		res = dclient.Resource(rsrc)
 	}
-	existingObj, err := res.Get(name, metav1.GetOptions{})
+	existingObj, err := res.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorf(getObjError, name)
 	} else {
