@@ -47,7 +47,7 @@ var (
 	gvrNS                 schema.GroupVersionResource
 	gvrSCC                schema.GroupVersionResource
 	gvrSecret             schema.GroupVersionResource
-	gvrClusterClaim		  schema.GroupVersionResource
+	gvrClusterClaim       schema.GroupVersionResource
 
 	defaultImageRegistry string
 )
