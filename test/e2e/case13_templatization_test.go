@@ -27,7 +27,7 @@ var _ = Describe("Test templatization", func() {
 			Expect(secret).NotTo(BeNil())
 			//create copy with password from original secret using a templatized policy
 			utils.Kubectl("apply", "-f", case13CfgPolCreateSecretYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolCreateSecret, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolCreateSecret, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolCreateSecret, testNamespace, true, defaultTimeoutSeconds)
