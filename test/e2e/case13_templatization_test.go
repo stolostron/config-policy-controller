@@ -126,8 +126,8 @@ var _ = Describe("Test templatization", func() {
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13LookupClusterClaim, testNamespace, true, defaultTimeoutSeconds)
-				return utils.GetComplianceState(managedPlc)
-			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
+				return utils.GetStatusMessage(managedPlc)
+			}, defaultTimeoutSeconds, 1).Should(Equal("pods [testvalue] in namespace default found as specified, therefore this Object template is compliant"))
 			utils.Kubectl("delete", "configurationpolicy", case13LookupSecretYaml, "-n", testNamespace)
 			utils.Kubectl("delete", "configurationpolicy", case13LookupClusterClaim, "-n", testNamespace)
 		})
