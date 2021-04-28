@@ -29,6 +29,11 @@ const case13LookupSecretYaml string = "../resources/case13_templatization/case13
 const case13LookupClusterClaim string = "policy-pod-lookup-verify"
 const case13LookupClusterClaimYaml string = "../resources/case13_templatization/case13_lookup_cc.yaml"
 
+const case13Unterminated string = "policy-pod-create-unterminated"
+const case13UnterminatedYaml string = "../resources/case13_templatization/case13_unterminated.yaml"
+const case13WrongArgs string = "policy-pod-create-wrong-args"
+const case13WrongArgsYaml string = "../resources/case13_templatization/case13_wrong_args.yaml"
+
 var _ = Describe("Test templatization", func() {
 	Describe("Create a secret and pull data from it into a configurationPolicy", func() {
 		It("should be created properly on the managed cluster", func() {
@@ -103,6 +108,27 @@ var _ = Describe("Test templatization", func() {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13LookupClusterClaim, testNamespace, true, defaultTimeoutSeconds)
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
+		})
+	})
+	Describe("test invalid templates", func() {
+		It("should generate noncompliant for invalid template strings", func() {
+			By("Creating policies on managed")
+			//create policy with unterminated template
+			utils.Kubectl("apply", "-f", case13UnterminatedYaml, "-n", testNamespace)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13Unterminated, testNamespace, true, defaultTimeoutSeconds)
+			Expect(plc).NotTo(BeNil())
+			Eventually(func() interface{} {
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13Unterminated, testNamespace, true, defaultTimeoutSeconds)
+				return utils.GetComplianceState(managedPlc)
+			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
+			//create policy with incomplete args in template
+			utils.Kubectl("apply", "-f", case13WrongArgsYaml, "-n", testNamespace)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13WrongArgs, testNamespace, true, defaultTimeoutSeconds)
+			Expect(plc).NotTo(BeNil())
+			Eventually(func() interface{} {
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13WrongArgs, testNamespace, true, defaultTimeoutSeconds)
+				return utils.GetComplianceState(managedPlc)
+			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 	})
 })
