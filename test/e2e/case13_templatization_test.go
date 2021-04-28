@@ -23,6 +23,10 @@ const case13CfgPolVerifyPod string = "policy-pod-templatized-name-verify"
 const case13CfgPolCreatePod string = "policy-pod-templatized-name"
 const case13CfgPolCreatePodYaml string = "../resources/case13_templatization/case13_pod_nameFromClusterClaim.yaml"
 const case13CfgPolVerifyPodYaml string = "../resources/case13_templatization/case13_pod_name_verify.yaml"
+const case13ConfigMap string = "e2e13config"
+const case13ConfigMapYaml string = "../resources/case13_templatization/case13_configmap.yaml"
+const case13CfgPolVerifyPodWithConfigMap string = "policy-pod-configmap-name"
+const case13CfgPolVerifyPodWithConfigMapYaml string = "../resources/case13_templatization/case13_pod_name_verify_configmap.yaml"
 
 const case13LookupSecret string = "tmplt-policy-secret-lookup-check"
 const case13LookupSecretYaml string = "../resources/case13_templatization/case13_lookup_secret.yaml"
@@ -85,6 +89,17 @@ var _ = Describe("Test templatization", func() {
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolVerifyPod, testNamespace, true, defaultTimeoutSeconds)
+				return utils.GetComplianceState(managedPlc)
+			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
+			//check configmap by creating an inform policy that pulls the pod name from a configmap
+			utils.Kubectl("apply", "-f", case13ConfigMapYaml, "-n", "default")
+			cm := utils.GetWithTimeout(clientManagedDynamic, gvrConfigMap, case13ConfigMap, "default", true, defaultTimeoutSeconds)
+			Expect(cm).NotTo(BeNil())
+			utils.Kubectl("apply", "-f", case13CfgPolVerifyPodWithConfigMapYaml, "-n", testNamespace)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolVerifyPodWithConfigMap, testNamespace, true, defaultTimeoutSeconds)
+			Expect(plc).NotTo(BeNil())
+			Eventually(func() interface{} {
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolVerifyPodWithConfigMap, testNamespace, true, defaultTimeoutSeconds)
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})
