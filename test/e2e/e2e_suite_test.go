@@ -48,6 +48,7 @@ var (
 	gvrSCC                schema.GroupVersionResource
 	gvrSecret             schema.GroupVersionResource
 	gvrClusterClaim       schema.GroupVersionResource
+	gvrConfigMap      	  schema.GroupVersionResource
 
 	defaultImageRegistry string
 )
@@ -68,6 +69,7 @@ var _ = BeforeSuite(func() {
 	By("Setup Hub client")
 	gvrPod = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	gvrNS = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}
+	gvrConfigMap = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
 	gvrRole = schema.GroupVersionResource{Group: "rbac.authorization.k8s.io", Version: "v1", Resource: "roles"}
 	gvrConfigPolicy = schema.GroupVersionResource{Group: "policy.open-cluster-management.io", Version: "v1", Resource: "configurationpolicies"}
 	gvrSCC = schema.GroupVersionResource{Group: "security.openshift.io", Version: "v1", Resource: "securitycontextconstraints"}
