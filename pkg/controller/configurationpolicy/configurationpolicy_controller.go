@@ -845,17 +845,17 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 
 		metadata := md.(map[string]interface{})
 		if objectName, ok := metadata["name"]; ok {
-			name = objectName.(string)
+			name = strings.TrimSpace(objectName.(string))
 		}
 		// override the namespace if specified in objectTemplates
 		if objectns, ok := metadata["namespace"]; ok {
 			glog.V(5).Infof("overriding the namespace as it is specified in objectTemplates...")
-			namespace = objectns.(string)
+			namespace = strings.TrimSpace(objectns.(string))
 		}
 	}
 
 	if objKind, ok := unstruct.Object["kind"]; ok {
-		kind = objKind.(string)
+		kind = strings.TrimSpace(objKind.(string))
 	}
 	return name, kind, namespace
 }
@@ -1038,11 +1038,6 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 			glog.V(6).Infof("object `%v` retrieved from the api server\n", name)
 		}
 	} else {
-		fmt.Println("--checking for existince of namespaced object ---")
-		fmt.Println(name)
-		fmt.Println("-----------------------------------")
-		fmt.Println(rsrc)
-		fmt.Println("-----------------------------------")
 		res := dclient.Resource(rsrc).Namespace(namespace)
 		_, err := res.Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
@@ -1057,7 +1052,6 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 			glog.V(6).Infof("object `%v` retrieved from the api server\n", name)
 		}
 	}
-	fmt.Println(exists)
 	return exists
 }
 
