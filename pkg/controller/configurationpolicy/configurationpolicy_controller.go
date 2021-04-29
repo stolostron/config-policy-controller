@@ -1038,6 +1038,11 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 			glog.V(6).Infof("object `%v` retrieved from the api server\n", name)
 		}
 	} else {
+		fmt.Println("--checking for existince of namespaced object ---")
+		fmt.Println(name)
+		fmt.Println("-----------------------------------")
+		fmt.Println(rsrc)
+		fmt.Println("-----------------------------------")
 		res := dclient.Resource(rsrc).Namespace(namespace)
 		_, err := res.Get(context.TODO(), name, metav1.GetOptions{})
 		if err != nil {
@@ -1052,6 +1057,7 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 			glog.V(6).Infof("object `%v` retrieved from the api server\n", name)
 		}
 	}
+	fmt.Println(exists)
 	return exists
 }
 

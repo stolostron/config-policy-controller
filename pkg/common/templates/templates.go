@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
+	"fmt"
 )
 
 var kubeClient *kubernetes.Interface
@@ -80,6 +81,7 @@ func ResolveTemplate(tmplMap interface{}) (interface{}, error) {
 
 	resolvedTemplateStr := buf.String()
 	glog.V(2).Infof("resolved template: %v ", resolvedTemplateStr)
+	fmt.Println(fmt.Sprintf("resolved template: %v ", resolvedTemplateStr))
 
 	//unmarshall before returning
 	return fromYAML(resolvedTemplateStr), nil
