@@ -57,7 +57,12 @@ spec:
 
 ### Templating
 
-Configuration Policies supports inclusion of Golang text templates in  ObjectDefinitions. Templates are resolved at runtime on the target cluster using configuration local to that cluster. This gives  the ability to define configuration policies customized to the target cluster. Custom template functions are available to reference kube-resources on the target cluster
+Configuration Policies supports inclusion of Golang text templates in  ObjectDefinitions. These templates are resolved at runtime on the target cluster using configuration local to that cluster giving the user the ability to define policies customized to the target cluster. Following custom template functions are available to allow referencing kube-resources on the target cluster.
+
+1. `fromSecret` - returns the value of the specified data key in the  Secret resource
+2. `fromconfigMap` - returns the values of the specified data key in the ConfigMap resource.
+3. `fromClusterClaim` - returns the value of Spec.Value field in the ClusterClaim resource.
+4. `lookup` - a generic lookup function to retreive any kube resource.
 
 Following is an example spec of a `ConfigurationPolicy` object with templates :
 
@@ -90,6 +95,7 @@ spec:
         log-file: '{{ fromConfigMap "test" "logs-config" "log-file" }}'
         appmetrics-url: |
           http://{{ (lookup "v1" "Service" "test" "appmetrics").spec.clusterIP }}:8080
+        app-version: version: '{{ fromClusterClaim "version.openshift.io" }}'
   remediationAction: enforce
   severity: low
 
