@@ -27,7 +27,7 @@ You must sign off your commit to state that you certify the [DCO](https://github
 Signed-off-by: John Smith <john@example.com>
 ```
 
-This can be done with the `--signoff` option to `git commit`. See the [Git documentation](https://git-scm.com/docs/git-commit#Documentation/git-commit.txt--s) for details. You can also mass sign-off a whole pull request with `git rebase --signoff main`, replacing `main` with the branch you are creating a pull request into.
+This can be done with the `--signoff` option to `git commit`. See the [Git documentation](https://git-scm.com/docs/git-commit#Documentation/git-commit.txt--s) for details.
 
 ## Code of Conduct
 
@@ -42,7 +42,6 @@ The Open Cluster Management project has adopted the CNCF Code of Conduct. Refer 
 ## Issue and pull request management
 
 Anyone can comment on issues and submit reviews for pull requests. In order to be assigned an issue or pull request, you can leave a `/assign <your Github ID>` comment on the issue or pull request (PR).
-
 
 ## Pre-check before submitting a PR
 
