@@ -57,7 +57,7 @@ spec:
 
 ### Templating
 
-Configuration Policies supports inclusion of Golang text templates in  ObjectDefinitions. These templates are resolved at runtime on the target cluster using configuration local to that cluster giving the user the ability to define policies customized to the target cluster. Following custom template functions are available to allow referencing kube-resources on the target cluster.
+Configuration Policies supports inclusion of [![Golang text templates](https://golang.org/pkg/text/template/)] in  ObjectDefinitions. These templates are resolved at runtime on the target cluster using configuration local to that cluster giving the user the ability to define policies customized to the target cluster. Following custom template functions are available to allow referencing kube-resources on the target cluster.
 
 1. `fromSecret` - returns the value of the specified data key in the  Secret resource
 2. `fromConfigMap` - returns the values of the specified data key in the ConfigMap resource.
