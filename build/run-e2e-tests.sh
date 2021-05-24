@@ -10,7 +10,7 @@ if ! which kubectl > /dev/null; then
 fi
 if ! which kind > /dev/null; then
     echo "installing kind"
-    curl -Lo ./kind https://github.com/kubernetes-sigs/kind/releases/download/v0.8.1/kind-$(uname)-amd64
+    curl -Lo ./kind https://github.com/kubernetes-sigs/kind/releases/download/v0.10.0/kind-$(uname)-amd64
     chmod +x ./kind
     sudo mv ./kind /usr/local/bin/kind
 fi
