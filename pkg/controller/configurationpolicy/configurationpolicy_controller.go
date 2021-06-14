@@ -70,6 +70,8 @@ var reasonWantNotFoundDNE = "Resource not found as expected"
 const getObjError = "object `%v` cannot be retrieved from the api server\n"
 const convertJSONError = "Error converting updated %s to JSON: %s"
 
+const prereqPolicyAnnotation = "policy.open-cluster-management.io/prereq-compliant"
+
 var config *rest.Config
 
 //Mx for making the map thread safe
@@ -292,6 +294,20 @@ func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason str
 
 func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*metav1.APIResourceList,
 	apigroups []*restmapper.APIGroupResources) {
+	if prereqName, ok := plc.Annotations[prereqPolicyAnnotation]; ok {
+		key := fmt.Sprintf("%s/%s", plc.Namespace, prereqName)
+		if prereqPlc, ok := availablePolicies.GetObject(key); ok {
+			if prereqPlc.Status.ComplianceState != policyv1.Compliant {
+				// we need to return because the prereq is not met
+				fmt.Println(fmt.Sprintf("skipping processing object templates for policy %s... prereq not compliant: %s", plc.GetName(), prereqName))
+				return
+			}
+		} else {
+			// the prereq is missing -- wait
+			fmt.Println(fmt.Sprintf("skipping processing object templates for policy %s... prereq does not exist: %s", plc.GetName(), prereqName))
+			return
+		}
+	}
 	fmt.Println(fmt.Sprintf("processing object templates for policy %s...", plc.GetName()))
 	plcNamespaces := getPolicyNamespaces(plc)
 	if plc.Spec.RemediationAction == "" {
