@@ -490,10 +490,14 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 		//noncompliant; mustnothave and objects exist
 		update = createMustNotHaveStatus(kind, nonCompliantObjects, namespaced, plc, indx, compliant)
 	}
-	if !mustNotHave && numCompliant > 0 {
+	if !mustNotHave && numCompliant > 0 && numNonCompliant == 0 {
 		//compliant; musthave and objects exist
 		compliant = true
 		update = createMustHaveStatus("", kind, compliantObjects, namespaced, plc, indx, compliant)
+	}
+	if !mustNotHave && numNonCompliant > 0 {
+		//noncompliant; musthave and some objects do not exist
+		update = createMustHaveStatus("", kind, nonCompliantObjects, namespaced, plc, indx, compliant)
 	}
 	if mustNotHave && numNonCompliant == 0 {
 		//compliant; mustnothave and no objects exist
@@ -506,7 +510,9 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 		if !compliant {
 			eventType = eventWarning
 		}
-		recorder.Event(plc, eventType, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(plc))
+		if recorder != nil {
+			recorder.Event(plc, eventType, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(plc))
+		}
 	}
 	return update
 }
