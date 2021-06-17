@@ -645,7 +645,8 @@ func TestCreateInformStatus(t *testing.T) {
 		"reason": "my reason",
 	}
 	numNonCompliant = 1
-	// Test 1 compliant and 1 noncompliant resource
+
+	// Test 1 compliant and 1 noncompliant resource  NOTE: This use case is the new behavior change!
 	createInformStatus(mustNotHave, numCompliant, numNonCompliant,
 		compliantObjects, nonCompliantObjects, policy, objData)
 	assert.True(t, policy.Status.CompliancyDetails[0].ComplianceState == policiesv1alpha1.NonCompliant)
@@ -657,6 +658,7 @@ func TestCreateInformStatus(t *testing.T) {
 	numCompliant = 2
 	numNonCompliant = 0
 	delete(nonCompliantObjects, "test2")
+
 	// Test 2 compliant resources
 	createInformStatus(mustNotHave, numCompliant, numNonCompliant,
 		compliantObjects, nonCompliantObjects, policy, objData)

@@ -481,24 +481,29 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	if kind == "" {
 		return
 	}
-	if !mustNotHave && numCompliant == 0 {
+	// We want resources to exist, but none were found
+	if !mustNotHave && numCompliant == 0 && numNonCompliant == 0 {
 		//noncompliant; musthave and objects do not exist
 		update = createMustHaveStatus(desiredName, kind, nonCompliantObjects, namespaced,
 			plc, indx, compliant)
 	}
+	// We want no resources, but some were found
 	if mustNotHave && numNonCompliant > 0 {
 		//noncompliant; mustnothave and objects exist
 		update = createMustNotHaveStatus(kind, nonCompliantObjects, namespaced, plc, indx, compliant)
 	}
+	// We want resources and we found them
 	if !mustNotHave && numCompliant > 0 && numNonCompliant == 0 {
 		//compliant; musthave and objects exist
 		compliant = true
 		update = createMustHaveStatus("", kind, compliantObjects, namespaced, plc, indx, compliant)
 	}
+	// We want resources and we found some that don't match what we want
 	if !mustNotHave && numNonCompliant > 0 {
 		//noncompliant; musthave and some objects do not exist
 		update = createMustHaveStatus("", kind, nonCompliantObjects, namespaced, plc, indx, compliant)
 	}
+	// We want no resources and none were found
 	if mustNotHave && numNonCompliant == 0 {
 		//compliant; mustnothave and no objects exist
 		compliant = true
