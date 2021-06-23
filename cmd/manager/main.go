@@ -146,14 +146,21 @@ func main() {
 				os.Exit(1)
 			}
 		} else {
-			hubCfg, _ := common.LoadHubConfig(hubConfigSecretNs, hubConfigSecretName)
 
 			log.Info("Starting lease controller to report status")
 			leaseUpdater := lease.NewLeaseUpdater(
 				generatedClient,
 				"config-policy-controller",
 				operatorNs,
-			).WithHubLeaseConfig(hubCfg, clusterName)
+			)
+
+			//set hubCfg on lease updated if found
+			hubCfg, _ := common.LoadHubConfig(hubConfigSecretNs, hubConfigSecretName)
+			if(hubCfg != nil){
+				leaseUpdater = leaseUpdater.WithHubLeaseConfig(hubCfg, clusterName)
+			}else{
+				log.Error(err, "HubConfig not found, HubLeaseConfig not set")
+			}
 
 			go leaseUpdater.Start(ctx)
 		}
