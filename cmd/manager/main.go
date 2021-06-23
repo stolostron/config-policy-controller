@@ -156,9 +156,9 @@ func main() {
 
 			//set hubCfg on lease updated if found
 			hubCfg, _ := common.LoadHubConfig(hubConfigSecretNs, hubConfigSecretName)
-			if(hubCfg != nil){
+			if hubCfg != nil {
 				leaseUpdater = leaseUpdater.WithHubLeaseConfig(hubCfg, clusterName)
-			}else{
+			} else {
 				log.Error(err, "HubConfig not found, HubLeaseConfig not set")
 			}
 
