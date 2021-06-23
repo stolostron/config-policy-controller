@@ -20,7 +20,8 @@ spec:
           - config-policy-controller
           args:
             - "--enable-lease=true"
-          imagePullPolicy: Always
+            - "--hubconfig-secret-name=hub-kubeconfig"
+          imagePullPolicy: Always"
           env:
             - name: WATCH_NAMESPACE
               value: managed
