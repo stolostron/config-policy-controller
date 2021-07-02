@@ -1282,7 +1282,7 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 					alreadyAppended = true
 				}
 			}
-			if (!alreadyAppended) {
+			if !alreadyAppended {
 				// fmt.Println("--appending new item ---")
 				// fmt.Println(val2)
 				new = append(new, val2)
