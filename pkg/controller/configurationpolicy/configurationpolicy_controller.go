@@ -1239,10 +1239,12 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 		found := false
 		for newIdx, val1 := range newCopy {
 			matches := false
+			// ismap := false
 			if ctype != "mustonlyhave" {
 				var mergedObj interface{}
 				switch val2 := val2.(type) {
 				case map[string]interface{}:
+					// ismap = true
 					mergedObj, _ = compareSpecs(val1.(map[string]interface{}), val2, ctype)
 				default:
 					mergedObj = val1
@@ -1255,6 +1257,18 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 					new[newIdx] = mergedObj
 					indexesSkipped[newIdx] = true
 				}
+				// if (!found && ismap) {
+				// 	fmt.Println("MERGED")
+				// 	fmt.Println(mergedObj)
+				// 	fmt.Println("EXISTING 2")
+				// 	fmt.Println(val2)
+				// 	fmt.Println(found)
+				// 	fmt.Println("-----------")
+				// }
+				// fmt.Println(mergedObj)
+				// fmt.Println(val2)
+				// fmt.Println(found)
+				// fmt.Println("-----------")
 
 			} else if reflect.DeepEqual(val1, val2) && !indexesSkipped[newIdx] {
 				found = true
@@ -1262,7 +1276,18 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 			}
 		}
 		if !found {
-			new = append(new, val2)
+			alreadyAppended := false
+			for _, val1 := range new {
+				if reflect.DeepEqual(fmt.Sprint(val1), fmt.Sprint(val2)) {
+					alreadyAppended = true
+				}
+			}
+			if (!alreadyAppended) {
+				// fmt.Println("--appending new item ---")
+				// fmt.Println(val2)
+				new = append(new, val2)
+				break
+			}
 		}
 	}
 	return new
