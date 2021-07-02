@@ -1225,6 +1225,9 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 	sort.Slice(new, func(i, j int) bool {
 		return fmt.Sprintf("%v", new[i]) < fmt.Sprintf("%v", new[j])
 	})
+	sort.Slice(old, func(i, j int) bool {
+		return fmt.Sprintf("%v", old[i]) < fmt.Sprintf("%v", old[j])
+	})
 
 	newCopy := append([]interface{}{}, new...)
 	indexesSkipped := map[int]bool{}
