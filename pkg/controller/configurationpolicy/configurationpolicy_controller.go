@@ -1222,6 +1222,10 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 		return new
 	}
 
+	sort.Slice(new, func(i, j int) bool {
+		return fmt.Sprintf("%v", new[i]) < fmt.Sprintf("%v", new[j])
+	})
+
 	newCopy := append([]interface{}{}, new...)
 	indexesSkipped := map[int]bool{}
 	for i := range newCopy {
@@ -1240,7 +1244,7 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 				default:
 					mergedObj = val1
 				}
-				if reflect.DeepEqual(mergedObj, val2) && !indexesSkipped[newIdx] {
+				if reflect.DeepEqual(fmt.Sprint(mergedObj), fmt.Sprint(val2)) && !indexesSkipped[newIdx] {
 					found = true
 					matches = true
 				}
