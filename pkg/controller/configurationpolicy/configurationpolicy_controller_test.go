@@ -330,6 +330,9 @@ func TestCompareLists(t *testing.T) {
 			},
 		},
 	}
+	fmt.Println("------- failed assertion ------")
+	fmt.Println(mergedExpected)
+	fmt.Println(merged)
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
