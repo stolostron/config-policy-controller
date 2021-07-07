@@ -1286,7 +1286,7 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 				// fmt.Println("--appending new item ---")
 				// fmt.Println(val2)
 				new = append(new, val2)
-				break
+				// break
 			}
 		}
 	}
