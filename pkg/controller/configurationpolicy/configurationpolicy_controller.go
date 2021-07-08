@@ -1299,7 +1299,7 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 		fmt.Println("starting to append for:")
 		fmt.Println(val2)
 		if count < reqCount.(int) {
-			fmt.Println("appending value " + fmt.Sprint(reqCount.(int) - count) + " times")
+			fmt.Println("appending value " + fmt.Sprint(reqCount.(int)-count) + " times")
 			for i := 0; i < (reqCount.(int) - count); i++ {
 				new = append(new, val2)
 			}
@@ -1429,7 +1429,7 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 				updateNeeded = true
 			}
 		}
-		if (updateNeeded) {
+		if updateNeeded {
 			fmt.Println("--- mismatch found ----")
 			fmt.Println(mergedObj)
 			fmt.Println("-------------")
