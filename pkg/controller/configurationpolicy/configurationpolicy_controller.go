@@ -1063,28 +1063,6 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 	return exists
 }
 
-// func removeDuplicates(unstruct unstructured.Unstructured) {
-// 	for key := range unstruct.Object {
-// 		field, ok := unstruct.UnstructuredContent()[key].([]interface{})
-// 		if (!ok) {
-// 			continue
-// 		}
-// 		newList := []interface{}{}
-// 		for _, val := range field {
-// 			exists := false
-// 			for _, newVal := range newList {
-// 				if reflect.DeepEqual(fmt.Sprint(val), fmt.Sprint(newVal)) {
-// 					exists = true
-// 				}
-// 			}
-// 			if (exists) {
-// 				newList = append(newList, val)
-// 			}
-// 		}
-// 		unstruct.UnstructuredContent()[key] = newList
-// 	}
-// }
-
 func createObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
 	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, erro error) {
 	var err error
@@ -1248,25 +1226,19 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 	for i := range newCopy {
 		indexesSkipped[i] = false
 	}
-	fmt.Println("starting to build set")
 	oldItemSet := map[string]map[string]interface{}{}
 	for _, val2 := range old {
-		// fmt.Println(oldItemSet)
 		if entry, ok := oldItemSet[fmt.Sprint(val2)]; ok {
 			oldItemSet[fmt.Sprint(val2)]["count"] = entry["count"].(int) + 1
 		} else {
-			// fmt.Println("--- adding")
 			oldItemSet[fmt.Sprint(val2)] = map[string]interface{}{
 				"count": 1,
 				"value": val2,
 			}
 		}
 	}
-	fmt.Println("--- finished building set, set is: ")
-	fmt.Println(oldItemSet)
 
 	for _, data := range oldItemSet {
-		// found := false
 		count := 0
 		reqCount := data["count"]
 		val2 := data["value"]
@@ -1281,7 +1253,6 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 					mergedObj = val1
 				}
 				if reflect.DeepEqual(mergedObj, val2) && !indexesSkipped[newIdx] {
-					// found = true
 					count = count + 1
 					matches = true
 				}
@@ -1291,29 +1262,15 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 				}
 
 			} else if reflect.DeepEqual(val1, val2) && !indexesSkipped[newIdx] {
-				// found = true
 				count = count + 1
 				indexesSkipped[newIdx] = true
 			}
 		}
-		fmt.Println("starting to append for:")
-		fmt.Println(val2)
 		if count < reqCount.(int) {
-			fmt.Println("appending value " + fmt.Sprint(reqCount.(int)-count) + " times")
 			for i := 0; i < (reqCount.(int) - count); i++ {
 				new = append(new, val2)
 			}
-			// alreadyAppended := false
-			// for _, val1 := range new {
-			// 	if reflect.DeepEqual(fmt.Sprint(val1), fmt.Sprint(val2)) {
-			// 		alreadyAppended = true
-			// 	}
-			// }
-			// if !alreadyAppended {
-			// 	new = append(new, val2)
-			// }
 		}
-		fmt.Println("finished append")
 	}
 	return new
 }
@@ -1355,7 +1312,6 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 	var err error
 	updateNeeded := false
 	if !isDenylisted(key) {
-		fmt.Println(" ***** CHECKING KEY " + key + " ******")
 		newObj := formatTemplate(unstruct, key)
 		oldObj := existingObj.UnstructuredContent()[key]
 		typeErr := ""
@@ -1410,30 +1366,21 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 		switch mergedObj := mergedObj.(type) {
 		case (map[string]interface{}):
 			if oldObj == nil || !checkFieldsWithSort(mergedObj, oldObj.(map[string]interface{})) {
-				fmt.Println("CASE MAP")
+
 				updateNeeded = true
 			}
 		case ([]map[string]interface{}):
 			if oldObj == nil || !checkListFieldsWithSort(mergedObj, oldObj.([]map[string]interface{})) {
-				fmt.Println("CASE MAP LIST")
 				updateNeeded = true
 			}
 		case ([]interface{}):
 			if oldObj == nil || !checkListsMatch(mergedObj, oldObj.([]interface{})) {
-				fmt.Println("CASE LIST")
 				updateNeeded = true
 			}
 		default:
 			if !reflect.DeepEqual(nJSON, oJSON) {
-				fmt.Println("CASE DEFAULT")
 				updateNeeded = true
 			}
-		}
-		if updateNeeded {
-			fmt.Println("--- mismatch found ----")
-			fmt.Println(mergedObj)
-			fmt.Println("-------------")
-			fmt.Println(oldObj)
 		}
 		return "", updateNeeded, mergedObj, false
 	}
