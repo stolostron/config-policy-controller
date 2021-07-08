@@ -1366,7 +1366,6 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 		switch mergedObj := mergedObj.(type) {
 		case (map[string]interface{}):
 			if oldObj == nil || !checkFieldsWithSort(mergedObj, oldObj.(map[string]interface{})) {
-
 				updateNeeded = true
 			}
 		case ([]map[string]interface{}):
