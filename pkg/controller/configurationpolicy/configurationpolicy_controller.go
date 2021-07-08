@@ -1221,8 +1221,6 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 	if ctype == "mustonlyhave" {
 		return new
 	}
-	fmt.Println("----newlist pre merge ------")
-	fmt.Println(new)
 	newCopy := append([]interface{}{}, new...)
 	indexesSkipped := map[int]bool{}
 	for i := range newCopy {
@@ -1256,8 +1254,6 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 			}
 		}
 		if !found {
-			// new = append(new, val2)
-
 			alreadyAppended := false
 			for _, val1 := range new {
 				if reflect.DeepEqual(fmt.Sprint(val1), fmt.Sprint(val2)) {
@@ -1265,8 +1261,6 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 				}
 			}
 			if !alreadyAppended {
-				fmt.Println("--appending new item ---")
-				fmt.Println(val2)
 				new = append(new, val2)
 			}
 		}
