@@ -3,7 +3,6 @@ kind: ConfigurationPolicy
 metadata:
   name: patch-role-configpolicy
 spec:
-  complianceType: musthave
   remediationAction: enforce
   object-templates:
     - complianceType: musthave

@@ -3,7 +3,6 @@ kind: ConfigurationPolicy
 metadata:
   name: topatch-role-configpolicy
 spec:
-  complianceType: musthave
   remediationAction: enforce
   object-templates:
     - complianceType: musthave

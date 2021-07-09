@@ -3,7 +3,6 @@ kind: ConfigurationPolicy
 metadata:
   name: patch-role-configpolicy-inform
 spec:
-  complianceType: mustonlyhave
   remediationAction: inform
   object-templates:
     - complianceType: mustonlyhave
