@@ -1164,7 +1164,6 @@ func mergeSpecs(x1, x2 interface{}, ctype string) (interface{}, error) {
 }
 
 func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
-	fmt.Println("MERGE SPECS HELPER")
 	switch x1 := x1.(type) {
 	case map[string]interface{}:
 		x2, ok := x2.(map[string]interface{})
@@ -1397,10 +1396,6 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 			if !reflect.DeepEqual(nJSON, oJSON) {
 				updateNeeded = true
 			}
-		}
-		if updateNeeded {
-			fmt.Println("--- trying to update obj with: ------")
-			fmt.Println(mergedObj)
 		}
 		return "", updateNeeded, mergedObj, false
 	}

@@ -320,7 +320,7 @@ func TestCompareLists(t *testing.T) {
 	mergedExpected = []interface{}{
 		map[string]interface{}{
 			"apiGroups": []string{
-				"extensions", "apps",
+				"apps", "extensions",
 			},
 			"resources": []string{
 				"deployments",
@@ -330,8 +330,6 @@ func TestCompareLists(t *testing.T) {
 			},
 		},
 	}
-	fmt.Println(merged)
-	fmt.Println(mergedExpected)
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
