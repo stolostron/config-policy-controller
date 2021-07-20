@@ -308,12 +308,10 @@ func TestCompareLists(t *testing.T) {
 				"deployments",
 			},
 			"verbs": []string{
-				"get", "create", "delete", "list", "watch",
+				"get", "list", "watch", "create", "delete",
 			},
 		},
 	}
-	fmt.Println(merged)
-	fmt.Println(mergedExpected)
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 	merged, err = compareLists(rules2, rules1, "mustonlyhave")
 	if err != nil {
@@ -332,6 +330,8 @@ func TestCompareLists(t *testing.T) {
 			},
 		},
 	}
+	fmt.Println(merged)
+	fmt.Println(mergedExpected)
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
