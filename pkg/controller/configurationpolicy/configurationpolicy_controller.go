@@ -1164,6 +1164,7 @@ func mergeSpecs(x1, x2 interface{}, ctype string) (interface{}, error) {
 }
 
 func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
+	fmt.Println("MERGE SPECS HELPER")
 	switch x1 := x1.(type) {
 	case map[string]interface{}:
 		x2, ok := x2.(map[string]interface{})
@@ -1178,6 +1179,11 @@ func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
 			}
 		}
 	case []interface{}:
+		if !isSorted(x1) {
+			sort.Slice(x1, func(i, j int) bool {
+				return fmt.Sprintf("%v", x1[i]) < fmt.Sprintf("%v", x1[j])
+			})
+		}
 		x2, ok := x2.([]interface{})
 		if !ok {
 			return x1
@@ -1215,6 +1221,17 @@ func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
 		return x1
 	}
 	return strings.TrimSpace(x1.(string))
+}
+
+func isSorted(arr []interface{}) (result bool) {
+	arrCopy := append([]interface{}{}, arr...)
+	sort.Slice(arr, func(i, j int) bool {
+		return fmt.Sprintf("%v", arr[i]) < fmt.Sprintf("%v", arr[j])
+	})
+	if fmt.Sprint(arrCopy) != fmt.Sprint(arr) {
+		return false
+	}
+	return true
 }
 
 func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []interface{}) {
@@ -1380,6 +1397,10 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 			if !reflect.DeepEqual(nJSON, oJSON) {
 				updateNeeded = true
 			}
+		}
+		if (updateNeeded) {
+			fmt.Println("--- trying to update obj with: ------")
+			fmt.Println(mergedObj)
 		}
 		return "", updateNeeded, mergedObj, false
 	}
