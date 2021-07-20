@@ -1398,7 +1398,7 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 				updateNeeded = true
 			}
 		}
-		if (updateNeeded) {
+		if updateNeeded {
 			fmt.Println("--- trying to update obj with: ------")
 			fmt.Println(mergedObj)
 		}
