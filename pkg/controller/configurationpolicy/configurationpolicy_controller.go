@@ -1234,15 +1234,6 @@ func isSorted(arr []interface{}) (result bool) {
 }
 
 func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []interface{}) {
-	// fmt.Println("--- checking sorts ---")
-	// if !isSorted(new) {
-	// 	fmt.Println("NEW not sorted")
-	// 	fmt.Println(new)
-	// }
-	// if !isSorted(old) {
-	// 	fmt.Println("OLD not sorted")
-	// 	fmt.Println(old)
-	// }
 	if ctype == "mustonlyhave" {
 		return new
 	}
@@ -1273,7 +1264,6 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 				var mergedObj interface{}
 				switch val2 := val2.(type) {
 				case map[string]interface{}:
-					fmt.Println("comparing specs off merge")
 					mergedObj, _ = compareSpecs(val1.(map[string]interface{}), val2, ctype)
 				default:
 					mergedObj = val1
@@ -1281,15 +1271,6 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 				if checkGenericObjWithSort(mergedObj, val2) && !indexesSkipped[newIdx] {
 					count = count + 1
 					matches = true
-					// fmt.Println("!!!! match found !!!!")
-					// fmt.Println(mergedObj)
-					// fmt.Println("==================")
-					// fmt.Println(val2)
-				} else {
-					// fmt.Println("---- MISMATCH ----")
-					// fmt.Println(mergedObj)
-					// fmt.Println("==================")
-					// fmt.Println(val2)
 				}
 				if matches && ctype != "mustonlyhave" && !indexesSkipped[newIdx] {
 					new[newIdx] = mergedObj
@@ -1387,70 +1368,8 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 			oldObj = formatMetadata(oldObj.(map[string]interface{}))
 			mergedObj = formatMetadata(mergedObj.(map[string]interface{}))
 		}
-		//check if merged spec has changed
-		// nJSON, err := json.Marshal(mergedObj)
-		// if err != nil {
-		// 	message := fmt.Sprintf(convertJSONError, key, err)
-		// 	return message, false, mergedObj, false
-		// }
-		// oJSON, err := json.Marshal(oldObj)
-		// if err != nil {
-		// 	message := fmt.Sprintf(convertJSONError, key, err)
-		// 	return message, false, mergedObj, false
-		// }
-		// switch mergedObj := mergedObj.(type) {
-		// case (map[string]interface{}):
-		// 	fmt.Println("HERE1")
-		// 	if oldObj == nil || !checkFieldsWithSort(mergedObj, oldObj.(map[string]interface{})) {
-		// 		updateNeeded = true
-		// 	}
-		// case ([]map[string]interface{}):
-		// 	fmt.Println("HERE2")
-		// 	if oldObj == nil || !checkListFieldsWithSort(mergedObj, oldObj.([]map[string]interface{})) {
-		// 		updateNeeded = true
-		// 	}
-		// case ([]interface{}):
-		// 	fmt.Println("HERE3")
-		// 	fmt.Println(mergedObj)
-		// 	fmt.Println(reflect.TypeOf(mergedObj).Elem())
-		// 	fmt.Println(reflect.TypeOf(mergedObj))
-		// 	if oldObj == nil || !checkListsMatch(mergedObj, oldObj.([]interface{})) {
-		// 		updateNeeded = true
-		// 	}
-
-		// 	// if len(mergedObj) > 0 {
-		// 	// 	switch mObj := mergedObj[0].(type) {
-		// 	// 	case (map[string]interface{}):
-		// 	// 		if oldObj == nil || !checkListFieldsWithSort(mergedObj.([]map[string]interface{}), oldObj.([]map[string]interface{})) {
-		// 	// 			updateNeeded = true
-		// 	// 		}
-		// 	// 	default:
-		// 	// 		if oldObj == nil || !checkListsMatch(mergedObj, oldObj.([]interface{})) {
-		// 	// 			updateNeeded = true
-		// 	// 		}
-		// 	// 	}
-		// 	// } else {
-		// 	// 	if oldObj == nil || !checkListsMatch(mergedObj, oldObj.([]interface{})) {
-		// 	// 		updateNeeded = true
-		// 	// 	}
-		// 	// }
-		// default:
-		// 	fmt.Println("HERE4")
-		// 	if !reflect.DeepEqual(nJSON, oJSON) {
-		// 		updateNeeded = true
-		// 	}
-		// }
 		if !checkGenericObjWithSort(mergedObj, oldObj) {
 			updateNeeded = true
-		}
-		if updateNeeded {
-			// fmt.Println("--- mismatch ---")
-			// fmt.Println(mergedObj)
-			// fmt.Println(oldObj)
-		} else {
-			fmt.Println("MATCH ---")
-			fmt.Println(mergedObj)
-			fmt.Println(oldObj)
 		}
 		return "", updateNeeded, mergedObj, false
 	}

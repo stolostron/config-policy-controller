@@ -189,11 +189,8 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 }
 
 func checkListsMatch(oldVal []interface{}, mergedVal []interface{}) (m bool) {
-	fmt.Println("checking list match for ")
 	oVal := append([]interface{}{}, oldVal...)
 	mVal := append([]interface{}{}, mergedVal...)
-	fmt.Println(oVal)
-	fmt.Println(mVal)
 	if (oVal == nil && mVal != nil) || (oVal != nil && mVal == nil) {
 		return false
 	}
@@ -210,13 +207,10 @@ func checkListsMatch(oldVal []interface{}, mergedVal []interface{}) (m bool) {
 	for idx, oNestedVal := range oVal {
 		switch oNestedVal := oNestedVal.(type) {
 		case (map[string]interface{}):
-			fmt.Println("--- checking list of maps")
-			fmt.Println(oNestedVal)
 			if !checkFieldsWithSort(mVal[idx].(map[string]interface{}), oNestedVal) {
 				match = false
 			}
 		default:
-			fmt.Println("--- regular list")
 			if fmt.Sprint(oNestedVal) != fmt.Sprint(mVal[idx]) {
 				match = false
 			}
