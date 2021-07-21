@@ -1296,7 +1296,7 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 					indexesSkipped[newIdx] = true
 				}
 
-			} else if checkGenericObjWithSort(val1, val2) && !indexesSkipped[newIdx] {
+			} else if reflect.DeepEqual(val1, val2) && !indexesSkipped[newIdx] {
 				count = count + 1
 				indexesSkipped[newIdx] = true
 			}
@@ -1444,7 +1444,11 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 			updateNeeded = true
 		}
 		if updateNeeded {
-			fmt.Println("--- mismatch ---")
+			// fmt.Println("--- mismatch ---")
+			// fmt.Println(mergedObj)
+			// fmt.Println(oldObj)
+		} else {
+			fmt.Println("MATCH ---")
 			fmt.Println(mergedObj)
 			fmt.Println(oldObj)
 		}

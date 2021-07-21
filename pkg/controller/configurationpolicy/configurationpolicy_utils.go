@@ -89,6 +89,9 @@ func checkGenericObjWithSort(mergedObj interface{}, oldObj interface{}) (areEqua
 
 func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]interface{}) (matches bool) {
 	//needed to compare lists, since merge messes up the order
+	if len(mergedObj) < len(oldObj) {
+		return false
+	}
 	match := true
 	for i, mVal := range mergedObj {
 		switch mVal := mVal.(type) {
