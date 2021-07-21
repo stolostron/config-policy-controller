@@ -5,9 +5,9 @@ package configurationpolicy
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
-	"reflect"
 
 	policyv1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policy/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

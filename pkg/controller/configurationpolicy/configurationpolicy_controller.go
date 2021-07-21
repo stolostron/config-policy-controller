@@ -1443,7 +1443,7 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 		if !checkGenericObjWithSort(mergedObj, oldObj) {
 			updateNeeded = true
 		}
-		if (updateNeeded) {
+		if updateNeeded {
 			fmt.Println("--- mismatch ---")
 			fmt.Println(mergedObj)
 			fmt.Println(oldObj)
