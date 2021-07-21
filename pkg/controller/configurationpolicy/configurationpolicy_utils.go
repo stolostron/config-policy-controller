@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"reflect"
 
 	policyv1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policy/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -66,6 +67,24 @@ func updateRelatedObjectsStatus(list []policyv1.RelatedObject,
 		list = append(list, relatedObject)
 	}
 	return list
+}
+
+func checkGenericObjWithSort(mergedObj interface{}, oldObj interface{}) (areEqual bool) {
+	switch mergedObj := mergedObj.(type) {
+	case (map[string]interface{}):
+		if oldObj == nil || !checkFieldsWithSort(mergedObj, oldObj.(map[string]interface{})) {
+			return false
+		}
+	case ([]interface{}):
+		if oldObj == nil || !checkListsMatch(mergedObj, oldObj.([]interface{})) {
+			return false
+		}
+	default:
+		if !reflect.DeepEqual(fmt.Sprint(mergedObj), fmt.Sprint(oldObj)) {
+			return false
+		}
+	}
+	return true
 }
 
 func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]interface{}) (matches bool) {
@@ -167,8 +186,11 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 }
 
 func checkListsMatch(oldVal []interface{}, mergedVal []interface{}) (m bool) {
+	fmt.Println("checking list match for ")
 	oVal := append([]interface{}{}, oldVal...)
 	mVal := append([]interface{}{}, mergedVal...)
+	fmt.Println(oVal)
+	fmt.Println(mVal)
 	if (oVal == nil && mVal != nil) || (oVal != nil && mVal == nil) {
 		return false
 	}
@@ -183,8 +205,18 @@ func checkListsMatch(oldVal []interface{}, mergedVal []interface{}) (m bool) {
 		return false
 	}
 	for idx, oNestedVal := range oVal {
-		if fmt.Sprint(oNestedVal) != fmt.Sprint(mVal[idx]) {
-			match = false
+		switch oNestedVal := oNestedVal.(type) {
+		case (map[string]interface{}):
+			fmt.Println("--- checking list of maps")
+			fmt.Println(oNestedVal)
+			if !checkFieldsWithSort(mVal[idx].(map[string]interface{}), oNestedVal) {
+				match = false
+			}
+		default:
+			fmt.Println("--- regular list")
+			if fmt.Sprint(oNestedVal) != fmt.Sprint(mVal[idx]) {
+				match = false
+			}
 		}
 	}
 	return match
