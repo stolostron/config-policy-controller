@@ -1268,7 +1268,7 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 				default:
 					mergedObj = val1
 				}
-				if checkGenericObjWithSort(mergedObj, val2) && !indexesSkipped[newIdx] {
+				if equalObjWithSort(mergedObj, val2) && !indexesSkipped[newIdx] {
 					count = count + 1
 					matches = true
 				}
@@ -1368,7 +1368,7 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 			oldObj = formatMetadata(oldObj.(map[string]interface{}))
 			mergedObj = formatMetadata(mergedObj.(map[string]interface{}))
 		}
-		if !checkGenericObjWithSort(mergedObj, oldObj) {
+		if !equalObjWithSort(mergedObj, oldObj) {
 			updateNeeded = true
 		}
 		return "", updateNeeded, mergedObj, false

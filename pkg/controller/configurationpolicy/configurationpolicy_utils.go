@@ -69,7 +69,7 @@ func updateRelatedObjectsStatus(list []policyv1.RelatedObject,
 	return list
 }
 
-func checkGenericObjWithSort(mergedObj interface{}, oldObj interface{}) (areEqual bool) {
+func equalObjWithSort(mergedObj interface{}, oldObj interface{}) (areEqual bool) {
 	switch mergedObj := mergedObj.(type) {
 	case (map[string]interface{}):
 		if oldObj == nil || !checkFieldsWithSort(mergedObj, oldObj.(map[string]interface{})) {
