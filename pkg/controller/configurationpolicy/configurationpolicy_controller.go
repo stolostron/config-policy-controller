@@ -1238,9 +1238,9 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 		return new
 	}
 	newCopy := append([]interface{}{}, new...)
-	indexesSkipped := map[int]bool{}
+	idxWritten := map[int]bool{}
 	for i := range newCopy {
-		indexesSkipped[i] = false
+		idxWritten[i] = false
 	}
 	oldItemSet := map[string]map[string]interface{}{}
 	for _, val2 := range old {
@@ -1259,27 +1259,20 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 		reqCount := data["count"]
 		val2 := data["value"]
 		for newIdx, val1 := range newCopy {
-			matches := false
-			if ctype != "mustonlyhave" {
-				var mergedObj interface{}
-				switch val2 := val2.(type) {
-				case map[string]interface{}:
-					mergedObj, _ = compareSpecs(val1.(map[string]interface{}), val2, ctype)
-				default:
-					mergedObj = val1
-				}
-				if equalObjWithSort(mergedObj, val2) && !indexesSkipped[newIdx] {
-					count = count + 1
-					matches = true
-				}
-				if matches && ctype != "mustonlyhave" && !indexesSkipped[newIdx] {
-					new[newIdx] = mergedObj
-					indexesSkipped[newIdx] = true
-				}
-
-			} else if reflect.DeepEqual(val1, val2) && !indexesSkipped[newIdx] {
+			if idxWritten[newIdx] {
+				continue
+			}
+			var mergedObj interface{}
+			switch val2 := val2.(type) {
+			case map[string]interface{}:
+				mergedObj, _ = compareSpecs(val1.(map[string]interface{}), val2, ctype)
+			default:
+				mergedObj = val1
+			}
+			if equalObjWithSort(mergedObj, val2) {
 				count = count + 1
-				indexesSkipped[newIdx] = true
+				new[newIdx] = mergedObj
+				idxWritten[newIdx] = true
 			}
 		}
 		if count < reqCount.(int) {
