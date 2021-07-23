@@ -4,7 +4,6 @@
 package configurationpolicy
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,7 +19,6 @@ import (
 	common "github.com/open-cluster-management/config-policy-controller/pkg/common"
 	templates "github.com/open-cluster-management/config-policy-controller/pkg/common/templates"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1459,37 +1457,6 @@ func AppendCondition(conditions []policyv1.Condition, newCond *policyv1.Conditio
 	}
 	conditions[lastIndex-1] = *newCond
 	return conditions
-}
-
-func getRoleNames(list []rbacv1.Role) []string {
-	roleNames := []string{}
-	for _, n := range list {
-		roleNames = append(roleNames, n.Name)
-	}
-	return roleNames
-}
-
-func listToRoleMap(rlist []rbacv1.Role) map[string]rbacv1.Role {
-	roleMap := make(map[string]rbacv1.Role)
-	for _, role := range rlist {
-		roleN := []string{role.Name, role.Namespace}
-		roleNamespace := strings.Join(roleN, "-")
-		roleMap[roleNamespace] = role
-	}
-	return roleMap
-}
-
-func createKeyValuePairs(m map[string]string) string {
-
-	if m == nil {
-		return ""
-	}
-	b := new(bytes.Buffer)
-	for key, value := range m {
-		fmt.Fprintf(b, "%s=%s,", key, value)
-	}
-	s := strings.TrimSuffix(b.String(), ",")
-	return s
 }
 
 //IsSimilarToLastCondition checks the diff, so that we don't keep updating with the same info
