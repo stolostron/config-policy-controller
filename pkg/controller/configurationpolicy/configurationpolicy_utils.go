@@ -148,6 +148,7 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 	}
 	return match
 }
+
 //checkListFieldsWithSort is a check for lists of maps that uses an arbitrary sort to ensure it is
 //comparing the right values
 func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[string]interface{}) (matches bool) {

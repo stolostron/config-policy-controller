@@ -1196,7 +1196,6 @@ func mergeSpecs(templateVal, existingVal interface{}, ctype string) (interface{}
 	return mergeSpecsHelper(j1, j2, ctype), nil
 }
 
-
 // mergeSpecsHelper is a helper function that takes an object from the existing object and merges in all the data that is
 // different in the template. This way, comparing the merged object to the one that exists on the cluster will tell
 // you whether the existing object is compliant with the template. This function uses recursion to check mismatches in
@@ -1227,7 +1226,7 @@ func mergeSpecsHelper(templateVal, existingVal interface{}, ctype string) interf
 		}
 		existingVal, ok := existingVal.([]interface{})
 		if !ok {
-			//if one field is a list and the other isn't, don't bother merging 
+			//if one field is a list and the other isn't, don't bother merging
 			return templateVal
 		}
 		if len(existingVal) > len(templateVal) {
