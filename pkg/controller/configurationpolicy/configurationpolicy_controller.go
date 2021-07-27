@@ -1042,17 +1042,17 @@ func getAllNamespaces() (list []string) {
 	return namespacesNames
 }
 
+//checkMessageSimilarity decides whether to append a new condition to a configurationPolicy status
+//based on whether it is too similar to the previous one
 func checkMessageSimilarity(conditions []policyv1.Condition, cond *policyv1.Condition) bool {
 	same := true
 	lastIndex := len(conditions)
 	if lastIndex > 0 {
 		oldCond := conditions[lastIndex-1]
 		if !IsSimilarToLastCondition(oldCond, *cond) {
-			// objectT.Status.Conditions = AppendCondition(objectT.Status.Conditions, cond, "object", false)
 			same = false
 		}
 	} else {
-		// objectT.Status.Conditions = AppendCondition(objectT.Status.Conditions, cond, "object", false)
 		same = false
 	}
 	return same
@@ -1173,12 +1173,13 @@ func deleteObject(namespaced bool, namespace string, name string, rsrc schema.Gr
 	return deleted, err
 }
 
-func mergeSpecs(x1, x2 interface{}, ctype string) (interface{}, error) {
-	data1, err := json.Marshal(x1)
+//TODO check whether this function can be removed
+func mergeSpecs(templateVal, existingVal interface{}, ctype string) (interface{}, error) {
+	data1, err := json.Marshal(templateVal)
 	if err != nil {
 		return nil, err
 	}
-	data2, err := json.Marshal(x2)
+	data2, err := json.Marshal(existingVal)
 	if err != nil {
 		return nil, err
 	}
@@ -1195,65 +1196,83 @@ func mergeSpecs(x1, x2 interface{}, ctype string) (interface{}, error) {
 	return mergeSpecsHelper(j1, j2, ctype), nil
 }
 
-func mergeSpecsHelper(x1, x2 interface{}, ctype string) interface{} {
-	switch x1 := x1.(type) {
+
+// mergeSpecsHelper is a helper function that takes an object from the existing object and merges in all the data that is
+// different in the template. This way, comparing the merged object to the one that exists on the cluster will tell
+// you whether the existing object is compliant with the template. This function uses recursion to check mismatches in
+// nested objects and is the basis for most comparisons the controller makes.
+func mergeSpecsHelper(templateVal, existingVal interface{}, ctype string) interface{} {
+	switch templateVal := templateVal.(type) {
 	case map[string]interface{}:
-		x2, ok := x2.(map[string]interface{})
+		existingVal, ok := existingVal.(map[string]interface{})
 		if !ok {
-			return x1
+			//if one field is a map and the other isn't, don't bother merging - just returning the template value will
+			//still generate noncompliant
+			return templateVal
 		}
-		for k, v2 := range x2 {
-			if v1, ok := x1[k]; ok {
-				x1[k] = mergeSpecsHelper(v1, v2, ctype)
+		//otherwise, iterate through all fields in the template object and merge in missing values from the existing object
+		for k, v2 := range existingVal {
+			if v1, ok := templateVal[k]; ok {
+				templateVal[k] = mergeSpecsHelper(v1, v2, ctype)
 			} else {
-				x1[k] = v2
+				templateVal[k] = v2
 			}
 		}
-	case []interface{}:
-		if !isSorted(x1) {
-			sort.Slice(x1, func(i, j int) bool {
-				return fmt.Sprintf("%v", x1[i]) < fmt.Sprintf("%v", x1[j])
+	case []interface{}: //list nested in map
+		if !isSorted(templateVal) {
+			//arbitrary sort on template value for easier comparison
+			sort.Slice(templateVal, func(i, j int) bool {
+				return fmt.Sprintf("%v", templateVal[i]) < fmt.Sprintf("%v", templateVal[j])
 			})
 		}
-		x2, ok := x2.([]interface{})
+		existingVal, ok := existingVal.([]interface{})
 		if !ok {
-			return x1
+			//if one field is a list and the other isn't, don't bother merging 
+			return templateVal
 		}
-		if len(x2) > len(x1) {
+		if len(existingVal) > len(templateVal) {
+			//if there are more values in the existing object than the template and our complianceType is musthave,
+			//we need to merge in the extra data in the existing object to do a proper compare
 			if ctype != "mustonlyhave" {
-				return mergeArrays(x1, x2, ctype)
+				return mergeArrays(templateVal, existingVal, ctype)
 			}
-			return x1
+			return templateVal
 		}
-		if len(x2) > 0 {
-			_, ok := x2[0].(map[string]interface{})
+		//TODO add case for existing being smaller here, return template
+		if len(existingVal) > 0 {
+			//if there are an equal amount of maps in the template and existing list, recurse on each one to merge the
+			//extra data from the existing object in
+			_, ok := existingVal[0].(map[string]interface{})
 			if ok {
-				for idx, v2 := range x2 {
-					v1 := x1[idx]
-					x1[idx] = mergeSpecsHelper(v1, v2, ctype)
+				for idx, v2 := range existingVal {
+					v1 := templateVal[idx]
+					templateVal[idx] = mergeSpecsHelper(v1, v2, ctype)
 				}
 			} else {
 				if ctype != "mustonlyhave" {
-					return mergeArrays(x1, x2, ctype)
+					return mergeArrays(templateVal, existingVal, ctype)
 				}
-				return x1
+				return templateVal
 			}
 		} else {
-			return x1
+			return templateVal
 		}
 	case nil:
-		x2, ok := x2.(map[string]interface{})
+		//if template value is nil, pull data from existing, since the template does not care about it
+		existingVal, ok := existingVal.(map[string]interface{})
 		if ok {
-			return x2
+			return existingVal
 		}
 	}
-	_, ok := x1.(string)
+	_, ok := templateVal.(string)
 	if !ok {
-		return x1
+		return templateVal
 	}
-	return strings.TrimSpace(x1.(string))
+	//if value is a string, trim whitespace on it to avoid issues with compare
+	return strings.TrimSpace(templateVal.(string))
 }
 
+// isSorted is a helper function that checks whether an array is sorted
 func isSorted(arr []interface{}) (result bool) {
 	arrCopy := append([]interface{}{}, arr...)
 	sort.Slice(arr, func(i, j int) bool {
@@ -1294,6 +1313,7 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 		count := 0
 		reqCount := data["count"]
 		val2 := data["value"]
+		//for each list item in the existing array, iterate through the template array and try to find a match
 		for newIdx, val1 := range newCopy {
 			if idxWritten[newIdx] {
 				continue
@@ -1301,16 +1321,20 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 			var mergedObj interface{}
 			switch val2 := val2.(type) {
 			case map[string]interface{}:
+				//use map compare helper function to check equality on lists of maps
 				mergedObj, _ = compareSpecs(val1.(map[string]interface{}), val2, ctype)
 			default:
 				mergedObj = val1
 			}
+			//if a match is found, this field is already in the template, so we can skip it in future checks
 			if equalObjWithSort(mergedObj, val2) {
 				count = count + 1
 				new[newIdx] = mergedObj
 				idxWritten[newIdx] = true
 			}
 		}
+		//if an item in the existing object cannot be found in the template, we add it to the template array
+		//to produce the merged array
 		if count < reqCount.(int) {
 			for i := 0; i < (reqCount.(int) - count); i++ {
 				new = append(new, val2)
@@ -1491,7 +1515,7 @@ func checkAndUpdateResource(
 	return false, false, "", false
 }
 
-// AppendCondition check and appends conditions
+// AppendCondition check and appends conditions to the policy status
 func AppendCondition(conditions []policyv1.Condition, newCond *policyv1.Condition, resourceType string,
 	resolved ...bool) (conditionsRes []policyv1.Condition) {
 	defer recoverFlow()
@@ -1523,6 +1547,7 @@ func IsSimilarToLastCondition(oldCond policyv1.Condition, newCond policyv1.Condi
 	return false
 }
 
+//addForUpdate calculates the compliance status of a configurationPolicy and updates its status field if needed
 func addForUpdate(policy *policyv1.ConfigurationPolicy) {
 	compliant := true
 	for index := range policy.Spec.ObjectTemplates {
@@ -1544,10 +1569,11 @@ func addForUpdate(policy *policyv1.ConfigurationPolicy) {
 	})
 	if err != nil {
 		log.Error(err, err.Error())
-		// time.Sleep(100) //giving enough time to sync
 	}
 }
 
+//updatePolicyStatus updates the status of the configurationPolicy if new conditions are added and generates an event
+//on the parent policy with the complaince decision
 func updatePolicyStatus(policies map[string]*policyv1.ConfigurationPolicy) (*policyv1.ConfigurationPolicy, error) {
 	for _, instance := range policies { // policies is a map where: key = plc.Name, value = pointer to plc
 		err := reconcilingAgent.client.Status().Update(context.TODO(), instance)
@@ -1565,6 +1591,8 @@ func updatePolicyStatus(policies map[string]*policyv1.ConfigurationPolicy) (*pol
 	return nil, nil
 }
 
+//handleRemovingPolicy removes a configurationPolicy from the list of configurationPolicies that the controller is
+//processing
 func handleRemovingPolicy(name string) {
 	for k, v := range availablePolicies.PolicyMap {
 		if v.Name == name {
@@ -1573,6 +1601,7 @@ func handleRemovingPolicy(name string) {
 	}
 }
 
+//handleAddingPolicy adds a configurationPolicy to the list of configurationPolicies that the controller is processing
 func handleAddingPolicy(plc *policyv1.ConfigurationPolicy) error {
 	allNamespaces, err := common.GetAllNamespaces()
 	if err != nil {
