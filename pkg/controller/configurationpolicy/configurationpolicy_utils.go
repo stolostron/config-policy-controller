@@ -165,13 +165,6 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 					match = false
 					break
 				}
-				//TODO check if this sort is necessary
-				sort.Slice(oVal, func(i, j int) bool {
-					return fmt.Sprintf("%v", oVal[i]) < fmt.Sprintf("%v", oVal[j])
-				})
-				sort.Slice(mVal, func(x, y int) bool {
-					return fmt.Sprintf("%v", mVal[x]) < fmt.Sprintf("%v", mVal[y])
-				})
 				if len(mVal) != len(oVal) {
 					match = false
 				} else {
