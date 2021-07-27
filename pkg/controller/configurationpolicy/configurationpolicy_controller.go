@@ -186,9 +186,9 @@ func (r *ReconcileConfigurationPolicy) Reconcile(request reconcile.Request) (rec
 	return reconcile.Result{}, nil
 }
 
-// PeriodicallyExecConfigPolicies always check status
+// PeriodicallyExecConfigPolicies loops through all configurationpolicies in the target namespace and triggers
+// template handling for each one. This function drives all the work the configuration policy controller does.
 func PeriodicallyExecConfigPolicies(freq uint, test bool) {
-	// var plcToUpdateMap map[string]*policyv1.ConfigurationPolicy
 	for {
 		start := time.Now()
 		printMap(availablePolicies.PolicyMap)
@@ -223,6 +223,7 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 			//flattenedpolicylist only contains 1 of each policy instance
 			for _, policy := range flattenedPolicyList {
 				Mx.Lock()
+				//handle each template in each policy
 				handleObjectTemplates(*policy, apiresourcelist, apigroups)
 				Mx.Unlock()
 			}
@@ -244,55 +245,11 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 	}
 }
 
-func addConditionToStatus(plc *policyv1.ConfigurationPolicy, cond *policyv1.Condition, index int,
-	complianceState policyv1.ComplianceState) (updateNeeded bool) {
-	var update bool
-	if len((*plc).Status.CompliancyDetails) <= index {
-		(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
-			ComplianceState: complianceState,
-			Conditions:      []policyv1.Condition{},
-		})
-	}
-	if (*plc).Status.CompliancyDetails[index].ComplianceState != complianceState {
-		update = true
-	}
-	(*plc).Status.CompliancyDetails[index].ComplianceState = complianceState
-
-	if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
-		conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, "", false)
-		(*plc).Status.CompliancyDetails[index].Conditions = conditions
-		update = true
-	}
-	return update
-}
-
-func createViolation(plc *policyv1.ConfigurationPolicy, index int, reason string, message string) (result bool) {
-	var cond *policyv1.Condition
-	cond = &policyv1.Condition{
-		Type:               "violation",
-		Status:             corev1.ConditionTrue,
-		LastTransitionTime: metav1.Now(),
-		Reason:             reason,
-		Message:            message,
-	}
-	return addConditionToStatus(plc, cond, index, policyv1.NonCompliant)
-}
-
-func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason string, message string) (result bool) {
-	var cond *policyv1.Condition
-	cond = &policyv1.Condition{
-		Type:               "notification",
-		Status:             corev1.ConditionTrue,
-		LastTransitionTime: metav1.Now(),
-		Reason:             reason,
-		Message:            message,
-	}
-	return addConditionToStatus(plc, cond, index, policyv1.Compliant)
-}
-
+//handleObjectTemplates iterates through all policy templates in a given policy and processes them
 func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*metav1.APIResourceList,
 	apigroups []*restmapper.APIGroupResources) {
 	fmt.Println(fmt.Sprintf("processing object templates for policy %s...", plc.GetName()))
+	//error if no remediationAction is specified
 	plcNamespaces := getPolicyNamespaces(plc)
 	if plc.Spec.RemediationAction == "" {
 		message := "Policy does not have a RemediationAction specified"
@@ -366,6 +323,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			blob = resolvedblob
 		}
 
+		//pull metadata out of the object template
 		unstruct.Object = blob.(map[string]interface{})
 		if md, ok := unstruct.Object["metadata"]; ok {
 			metadata := md.(map[string]interface{})
@@ -380,6 +338,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		numNonCompliant := 0
 		handled := false
 		objNamespaced := false
+		//iterate through all namespaces the configurationpolicy is set on
 		for _, ns := range relevantNamespaces {
 			names, compliant, reason, objKind, related, update, namespaced := handleObjects(objectT, ns, indx, &plc, config,
 				recorder, apiresourcelist, apigroups)
@@ -417,6 +376,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				}
 			}
 		}
+		//violations for enforce configurationpolicies are already handled in handleObjects, so we only need to generate a violation
+		//if the remediationAction is set to inform
 		if !handled && !enforce {
 			objData := map[string]interface{}{
 				"indx":        indx,
@@ -434,6 +395,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 	checkRelatedAndUpdate(parentUpdate, plc, relatedObjects, oldRelated)
 }
 
+//checks related objects field and triggers an update on the configurationpolicy if it has changed
 func checkRelatedAndUpdate(update bool, plc policyv1.ConfigurationPolicy, related,
 	oldRelated []policyv1.RelatedObject) {
 	sortUpdate := sortRelatedObjectsAndUpdate(&plc, related, oldRelated)
@@ -442,6 +404,7 @@ func checkRelatedAndUpdate(update bool, plc policyv1.ConfigurationPolicy, relate
 	}
 }
 
+//helper function to check whether related objects has changed
 func sortRelatedObjectsAndUpdate(plc *policyv1.ConfigurationPolicy, related,
 	oldRelated []policyv1.RelatedObject) (updateNeeded bool) {
 	sort.SliceStable(related, func(i, j int) bool {
@@ -469,6 +432,58 @@ func sortRelatedObjectsAndUpdate(plc *policyv1.ConfigurationPolicy, related,
 	return update
 }
 
+//helper function that appends a condition (violation or compliant) to the status of a configurationpolicy
+func addConditionToStatus(plc *policyv1.ConfigurationPolicy, cond *policyv1.Condition, index int,
+	complianceState policyv1.ComplianceState) (updateNeeded bool) {
+	var update bool
+	if len((*plc).Status.CompliancyDetails) <= index {
+		(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
+			ComplianceState: complianceState,
+			Conditions:      []policyv1.Condition{},
+		})
+	}
+	if (*plc).Status.CompliancyDetails[index].ComplianceState != complianceState {
+		update = true
+	}
+	(*plc).Status.CompliancyDetails[index].ComplianceState = complianceState
+
+	//do not add condition unless it does not already appear in the status
+	if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
+		conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, "", false)
+		(*plc).Status.CompliancyDetails[index].Conditions = conditions
+		update = true
+	}
+	return update
+}
+
+//helper function to create a violation condition and append it to the list of conditions in the status
+func createViolation(plc *policyv1.ConfigurationPolicy, index int, reason string, message string) (result bool) {
+	var cond *policyv1.Condition
+	cond = &policyv1.Condition{
+		Type:               "violation",
+		Status:             corev1.ConditionTrue,
+		LastTransitionTime: metav1.Now(),
+		Reason:             reason,
+		Message:            message,
+	}
+	return addConditionToStatus(plc, cond, index, policyv1.NonCompliant)
+}
+
+//helper function to create a compliant notification condition and append it to the list of conditions in the status
+func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason string, message string) (result bool) {
+	var cond *policyv1.Condition
+	cond = &policyv1.Condition{
+		Type:               "notification",
+		Status:             corev1.ConditionTrue,
+		LastTransitionTime: metav1.Now(),
+		Reason:             reason,
+		Message:            message,
+	}
+	return addConditionToStatus(plc, cond, index, policyv1.Compliant)
+}
+
+//createInformStatus updates the status field for a configurationpolicy with remediationAction=inform based on how many compliant
+//and noncompliant objects are found when processing the templates in the configurationpolicy
 func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	compliantObjects map[string]map[string]interface{}, nonCompliantObjects map[string]map[string]interface{},
 	plc *policyv1.ConfigurationPolicy, objData map[string]interface{}) (updateNeeded bool) {
@@ -519,6 +534,7 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 	return update
 }
 
+//handleObjects controls the processing of each individual object template within a configurationpolicy
 func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int, policy *policyv1.ConfigurationPolicy,
 	config *rest.Config, recorder record.EventRecorder, apiresourcelist []*metav1.APIResourceList,
 	apigroups []*restmapper.APIGroupResources) (objNameList []string, compliant bool, reason string,
@@ -531,6 +547,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	namespaced := true
 	needUpdate := false
 	ext := objectT.ObjectDefinition
+	//map raw object to a resource, generate a violation if resource cannot be found
 	mapping, mappingUpdate := getMapping(apigroups, ext, policy, index)
 	if mapping == nil {
 		return nil, false, "", "", nil, (needUpdate || mappingUpdate), namespaced
@@ -549,7 +566,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	if metaNamespace != "" {
 		namespace = metaNamespace
 	}
-	dclient, rsrc, namespaced := getClientRsrc(mapping, apiresourcelist)
+	dclient, rsrc, namespaced := getResourceAndDynamicClient(mapping, apiresourcelist)
 	if namespaced && namespace == "" {
 		//namespaced but none specified, generate violation
 		updateStatus := createViolation(policy, index, "K8s missing namespace",
@@ -566,12 +583,13 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 		}
 		return nil, false, "", "", nil, needUpdate, namespaced
 	}
-	if name != "" {
+	if name != "" { //named object, so checking just for the existence of the specific object
 		exists = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
 		objNames = append(objNames, name)
-	} else if kind != "" {
+	} else if kind != "" { //no name, so we are checking for the existence of any object of this kind
 		objNames = append(objNames, getNamesOfKind(unstruct, rsrc, namespaced,
 			namespace, dclient, strings.ToLower(string(objectT.ComplianceType)))...)
+		//we do not support enforce on unnamed templates
 		remediation = "inform"
 		if len(objNames) == 0 {
 			exists = false
@@ -581,6 +599,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	rsrcKind = ""
 	reason = ""
 	// if the compliance is calculated by the handleSingleObj function, do not override the setting
+	// we do this because the message string for single objects is different than for multiple
 	complianceCalculated := false
 	if len(objNames) == 1 {
 		name = objNames[0]
@@ -626,6 +645,7 @@ func handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int
 	return objNames, compliant, reason, rsrcKind, relatedObjects, needUpdate, namespaced
 }
 
+//generateSingleObjReason is a helper function to create a compliant/noncompliant message for a named object
 func generateSingleObjReason(objShouldExist bool, compliant bool, exists bool) (rsn string) {
 	reason := ""
 	if objShouldExist && compliant {
@@ -642,6 +662,8 @@ func generateSingleObjReason(objShouldExist bool, compliant bool, exists bool) (
 	return reason
 }
 
+// handleSingleObj takes in an object template (for a named object) and its data and determines whether the object on the cluster
+// is compliant or not
 func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.RemediationAction, exists bool,
 	objShouldExist bool, rsrc schema.GroupVersionResource, dclient dynamic.Interface, objectT *policyv1.ObjectTemplate,
 	data map[string]interface{}) (objNameList []string, compliance bool, rsrcKind string, shouldUpdate bool) {
@@ -696,8 +718,9 @@ func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.
 	processingErr := false
 	specViolation := false
 
+	// object exists and the template requires it to exist, so we need to check specific fields to see if we have a match
 	if exists {
-		updated, throwSpecViolation, msg, pErr := updateTemplate(
+		updated, throwSpecViolation, msg, pErr := checkAndUpdateResource(
 			strings.ToLower(string(objectT.ComplianceType)),
 			data, remediation, rsrc, dclient, unstruct.Object["kind"].(string), nil)
 		if !updated && throwSpecViolation {
@@ -739,7 +762,9 @@ func handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.
 	return nil, compliant, "", false
 }
 
-func getClientRsrc(mapping *meta.RESTMapping, apiresourcelist []*metav1.APIResourceList) (dclient dynamic.Interface,
+// getResourceAndDynamicClient creates a dynamic client to query resources and pulls the groupVersionResource
+// for an object from its mapping, as well as checking whether the resource is namespaced or cluster-level
+func getResourceAndDynamicClient(mapping *meta.RESTMapping, apiresourcelist []*metav1.APIResourceList) (dclient dynamic.Interface,
 	rsrc schema.GroupVersionResource, namespaced bool) {
 	namespaced = false
 	restconfig := config
@@ -752,6 +777,7 @@ func getClientRsrc(mapping *meta.RESTMapping, apiresourcelist []*metav1.APIResou
 		glog.Fatal(err)
 	}
 
+	// check all resources in the list of resources on the cluster to get a match for the mapping
 	rsrc = mapping.Resource
 	for _, apiresourcegroup := range apiresourcelist {
 		if apiresourcegroup.GroupVersion == join(mapping.GroupVersionKind.Group, "/", mapping.GroupVersionKind.Version) {
@@ -767,6 +793,7 @@ func getClientRsrc(mapping *meta.RESTMapping, apiresourcelist []*metav1.APIResou
 	return dclient, rsrc, namespaced
 }
 
+// getMapping takes in a raw object, decodes it, and maps it to an existing group/kind
 func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtension,
 	policy *policyv1.ConfigurationPolicy, index int) (mapping *meta.RESTMapping, update bool) {
 	updateNeeded := false
@@ -774,6 +801,7 @@ func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtens
 	glog.V(9).Infof("reading raw object: %v", string(ext.Raw))
 	_, gvk, err := unstructured.UnstructuredJSONScheme.Decode(ext.Raw, nil, nil)
 	if err != nil {
+		// generate violation if object cannot be decoded and update the configpolicy
 		decodeErr := fmt.Sprintf("Decoding error, please check your policy file!"+
 			" Aborting handling the object template at index [%v] in policy `%v` with error = `%v`",
 			index, policy.Name, err)
@@ -797,9 +825,11 @@ func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtens
 		}
 		return nil, true
 	}
+	//initializes a mapping between Kind and APIVersion to a resource name
 	mapping, err = restmapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	mappingErrMsg := ""
 	if err != nil {
+		//if the restmapper fails to find a mapping to a resource, generate a violation and update the configpolicy
 		prefix := "no matches for kind \""
 		startIdx := strings.Index(err.Error(), prefix)
 		if startIdx == -1 {
@@ -838,6 +868,7 @@ func getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtens
 			}
 		}
 		if updateNeeded {
+			//generate an event on the configurationpolicy if a violation is created
 			recorder.Event(policy, eventWarning, fmt.Sprintf(plcFmtStr, policy.GetName()), errMsg)
 		}
 		return nil, updateNeeded
@@ -868,12 +899,15 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 	return name, kind, namespace
 }
 
+//buildNameList is a helper function to pull names of resources that match an objectTemplate from a list of resources
 func buildNameList(unstruct unstructured.Unstructured, complianceType string,
 	resList *unstructured.UnstructuredList) (kindNameList []string) {
 	for i := range resList.Items {
 		uObj := resList.Items[i]
 		match := true
 		for key := range unstruct.Object {
+			//if any key in the object generates a mismatch, the object does not match the template and we
+			//do not add its name to the list
 			errorMsg, updateNeeded, _, skipped := handleSingleKey(key, unstruct, &uObj, complianceType)
 			if !skipped {
 				if errorMsg != "" || updateNeeded {
@@ -1026,7 +1060,7 @@ func checkMessageSimilarity(conditions []policyv1.Condition, cond *policyv1.Cond
 	return same
 }
 
-// objectExists returns true if the object is found
+// objectExists gets object with dynamic client, returns true if the object is found
 func objectExists(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
 	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool) {
 	exists := false
@@ -1233,6 +1267,9 @@ func isSorted(arr []interface{}) (result bool) {
 	return true
 }
 
+// mergeArrays is a helper function that takes a list from the existing object and merges in all the data that is
+// different in the template. This way, comparing the merged object to the one that exists on the cluster will tell
+// you whether the existing object is compliant with the template
 func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []interface{}) {
 	if ctype == "mustonlyhave" {
 		return new
@@ -1242,6 +1279,7 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 	for i := range newCopy {
 		indexesSkipped[i] = false
 	}
+	//create a set with a key for each unique item in the list
 	oldItemSet := map[string]map[string]interface{}{}
 	for _, val2 := range old {
 		if entry, ok := oldItemSet[fmt.Sprint(val2)]; ok {
@@ -1291,11 +1329,12 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 	return new
 }
 
+// compareLists is a wrapper function that creates a merged list for musthave and returns the template list for mustonlyhave
 func compareLists(newList []interface{}, oldList []interface{}, ctype string) (updatedList []interface{}, err error) {
 	if ctype != "mustonlyhave" {
 		return mergeArrays(newList, oldList, ctype), nil
 	}
-	//mustonlyhave
+	//mustonlyhave scenario: go through existing list and merge everything in order, then add all other template items in order afterward
 	mergedList := []interface{}{}
 	for idx, item := range newList {
 		if idx < len(oldList) {
@@ -1311,11 +1350,13 @@ func compareLists(newList []interface{}, oldList []interface{}, ctype string) (u
 	return mergedList, nil
 }
 
+// compareSpecs is a wrapper function that creates a merged map for mustHave and returns the template map for mustonlyhave
 func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{},
 	ctype string) (updatedSpec map[string]interface{}, err error) {
 	if ctype == "mustonlyhave" {
 		return newSpec, nil
 	}
+	//if compliance type is musthave, create merged object to compare on
 	merged, err := mergeSpecs(newSpec, oldSpec, ctype)
 	if err != nil {
 		return merged.(map[string]interface{}), err
@@ -1323,6 +1364,8 @@ func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{}
 	return merged.(map[string]interface{}), nil
 }
 
+// handleSingleKey checks whether a key/value pair in an object template matches with that in the existing
+// resource on the cluster
 func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
 	complianceType string) (errormsg string, update bool, merged interface{}, skip bool) {
 	var err error
@@ -1331,7 +1374,9 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 		newObj := formatTemplate(unstruct, key)
 		oldObj := existingObj.UnstructuredContent()[key]
 		typeErr := ""
-		//merge changes into new spec
+		// We will compare the existing field to a "merged" field which has the fields in the template merged into the existing
+		// object to avoid erroring on fields that are not in the template but have been automatically added to the resource. For
+		// the mustOnlyHave complianceType, this object is identical to the field in the template.
 		var mergedObj interface{}
 		switch newObj := newObj.(type) {
 		case []interface{}:
@@ -1354,7 +1399,7 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 				typeErr = fmt.Sprintf("Error merging changes into key \"%s\": object type of template and existing do not match",
 					key)
 			}
-		default:
+		default: // if field is not an object, just do a basic compare
 			mergedObj = newObj
 		}
 		if typeErr != "" {
@@ -1365,9 +1410,11 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 			return message, false, mergedObj, false
 		}
 		if key == "metadata" {
+			// filter out autogenerated annotations that have caused compare issues in the past
 			oldObj = formatMetadata(oldObj.(map[string]interface{}))
 			mergedObj = formatMetadata(mergedObj.(map[string]interface{}))
 		}
+		//sort objects before checking equality to ensure that the merged object and the existing one are not in different orders
 		if !equalObjWithSort(mergedObj, oldObj) {
 			updateNeeded = true
 		}
@@ -1376,6 +1423,8 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 	return "", false, nil, true
 }
 
+// handleKeys is a helper function that calls handleSingleKey to check if each field in the template matches the object.
+// If it finds a mismatch and the remediationAction is enforce, it will update the object with the data from the template
 func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
 	remediation policyv1.RemediationAction, complianceType string, typeStr string, name string,
 	res dynamic.ResourceInterface) (success bool, throwSpecViolation bool, message string,
@@ -1383,6 +1432,7 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 	var err error
 	for key := range unstruct.Object {
 		isStatus := key == "status"
+		//check key for mismatch
 		errorMsg, updateNeeded, mergedObj, skipped := handleSingleKey(key, unstruct, existingObj, complianceType)
 		if errorMsg != "" {
 			return false, false, errorMsg, true
@@ -1392,6 +1442,7 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 		}
 		mapMtx := sync.RWMutex{}
 		mapMtx.Lock()
+		//only look at labels and annotations for metadata - configurationPolicies do not update other metadata fields
 		if key == "metadata" {
 			existingObj.UnstructuredContent()["metadata"].(map[string]interface{})["annotations"] =
 				mergedObj.(map[string]interface{})["annotations"]
@@ -1405,7 +1456,7 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 			if (strings.ToLower(string(remediation)) == strings.ToLower(string(policyv1.Inform))) || isStatus {
 				return false, true, "", false
 			}
-			//enforce
+			//update resource if template is enforce
 			glog.V(4).Infof("Updating %v template `%v`...", typeStr, name)
 			_, err = res.Update(context.TODO(), existingObj, metav1.UpdateOptions{})
 			if errors.IsNotFound(err) {
@@ -1422,7 +1473,9 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 	return false, false, "", false
 }
 
-func updateTemplate(
+// checkAndUpdateResource checks each individual key of a resource and passes it to handleKeys to see if it
+// matches the template and update it if the remediationAction is enforce
+func checkAndUpdateResource(
 	complianceType string, metadata map[string]interface{}, remediation policyv1.RemediationAction,
 	rsrc schema.GroupVersionResource, dclient dynamic.Interface,
 	typeStr string, parent *policyv1.ConfigurationPolicy) (success bool, throwSpecViolation bool,
