@@ -1238,7 +1238,10 @@ func mergeSpecsHelper(templateVal, existingVal interface{}, ctype string) interf
 			}
 			return templateVal
 		}
-		//TODO add case for existing being smaller here, return template
+		//if existing value is shorter than the template value, no merge needed since it will always be a mismatch
+		if len(existingVal) < len(templateVal) {
+			return templateVal
+		}
 		if len(existingVal) > 0 {
 			//if there are an equal amount of maps in the template and existing list, recurse on each one to merge the
 			//extra data from the existing object in
