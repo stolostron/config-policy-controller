@@ -1173,7 +1173,8 @@ func deleteObject(namespaced bool, namespace string, name string, rsrc schema.Gr
 	return deleted, err
 }
 
-//TODO check whether this function can be removed
+//mergeSpecs is a wrapper for the recursive function to merge 2 maps. It marshals the objects into JSON
+//to make sure they are valid objects before calling the merge function
 func mergeSpecs(templateVal, existingVal interface{}, ctype string) (interface{}, error) {
 	data1, err := json.Marshal(templateVal)
 	if err != nil {
