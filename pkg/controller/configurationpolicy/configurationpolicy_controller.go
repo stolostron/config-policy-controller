@@ -1219,7 +1219,6 @@ func mergeSpecsHelper(templateVal, existingVal interface{}, ctype string) interf
 			}
 		}
 	case []interface{}: //list nested in map
-		fmt.Println("interface in spec fn")
 		if !isSorted(templateVal) {
 			//arbitrary sort on template value for easier comparison
 			sort.Slice(templateVal, func(i, j int) bool {
@@ -1243,24 +1242,6 @@ func mergeSpecsHelper(templateVal, existingVal interface{}, ctype string) interf
 			}
 			return templateVal
 		}
-		// if len(existingVal) > 0 {
-		// 	//if there are an equal amount of maps in the template and existing list, recurse on each one to merge the
-		// 	//extra data from the existing object in
-		// 	_, ok := existingVal[0].(map[string]interface{})
-		// 	if ok {
-		// 		for idx, v2 := range existingVal {
-		// 			v1 := templateVal[idx]
-		// 			templateVal[idx] = mergeSpecsHelper(v1, v2, ctype)
-		// 		}
-		// 	} else {
-		// 		if ctype != "mustonlyhave" {
-		// 			return mergeArrays(templateVal, existingVal, ctype)
-		// 		}
-		// 		return templateVal
-		// 	}
-		// } else {
-		// 	return templateVal
-		// }
 	case nil:
 		//if template value is nil, pull data from existing, since the template does not care about it
 		existingVal, ok := existingVal.(map[string]interface{})
@@ -1292,7 +1273,6 @@ func isSorted(arr []interface{}) (result bool) {
 // different in the template. This way, comparing the merged object to the one that exists on the cluster will tell
 // you whether the existing object is compliant with the template
 func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []interface{}) {
-	fmt.Println("ENTERED MERGE ARRAYS")
 	if ctype == "mustonlyhave" {
 		return new
 	}
@@ -1331,9 +1311,6 @@ func mergeArrays(new []interface{}, old []interface{}, ctype string) (result []i
 			default:
 				mergedObj = val1
 			}
-			fmt.Println("---- checking equality with sort ----")
-			fmt.Println(mergedObj)
-			fmt.Println(val2)
 			//if a match is found, this field is already in the template, so we can skip it in future checks
 			if equalObjWithSort(mergedObj, val2) {
 				count = count + 1
@@ -1394,7 +1371,6 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 	var err error
 	updateNeeded := false
 	if !isDenylisted(key) {
-		fmt.Println("--- handling key " + key + " -----")
 		newObj := formatTemplate(unstruct, key)
 		oldObj := existingObj.UnstructuredContent()[key]
 		typeErr := ""
@@ -1404,7 +1380,6 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 		var mergedObj interface{}
 		switch newObj := newObj.(type) {
 		case []interface{}:
-			fmt.Println("INTERFACE HANDLING")
 			switch oldObj := oldObj.(type) {
 			case []interface{}:
 				mergedObj, err = compareLists(newObj, oldObj, complianceType)
@@ -1415,7 +1390,6 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 					key)
 			}
 		case map[string]interface{}:
-			fmt.Println("MAP HANDLING")
 			switch oldObj := oldObj.(type) {
 			case (map[string]interface{}):
 				mergedObj, err = compareSpecs(newObj, oldObj, complianceType)
