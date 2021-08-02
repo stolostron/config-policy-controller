@@ -1233,10 +1233,7 @@ func mergeSpecsHelper(templateVal, existingVal interface{}, ctype string) interf
 		if len(existingVal) > 0 {
 			//if there are more values in the existing object than the template and our complianceType is musthave,
 			//we need to merge in the extra data in the existing object to do a proper compare
-			if ctype != "mustonlyhave" {
-				return mergeArrays(templateVal, existingVal, ctype)
-			}
-			return templateVal
+			return mergeArrays(templateVal, existingVal, ctype)
 		}
 	case nil:
 		//if template value is nil, pull data from existing, since the template does not care about it
