@@ -1230,10 +1230,6 @@ func mergeSpecsHelper(templateVal, existingVal interface{}, ctype string) interf
 			//if one field is a list and the other isn't, don't bother merging
 			return templateVal
 		}
-		//if existing value is shorter than the template value, no merge needed since it will always be a mismatch
-		if len(existingVal) < len(templateVal) {
-			return templateVal
-		}
 		if len(existingVal) > 0 {
 			//if there are more values in the existing object than the template and our complianceType is musthave,
 			//we need to merge in the extra data in the existing object to do a proper compare
