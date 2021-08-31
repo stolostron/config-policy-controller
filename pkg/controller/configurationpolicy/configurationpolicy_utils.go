@@ -5,6 +5,7 @@ package configurationpolicy
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -68,12 +69,38 @@ func updateRelatedObjectsStatus(list []policyv1.RelatedObject,
 	return list
 }
 
+//equalObjWithSort is a wrapper function that calls the correct function to check equality depending on what
+//type the objects to compare are
+func equalObjWithSort(mergedObj interface{}, oldObj interface{}) (areEqual bool) {
+	switch mergedObj := mergedObj.(type) {
+	case (map[string]interface{}):
+		if oldObj == nil || !checkFieldsWithSort(mergedObj, oldObj.(map[string]interface{})) {
+			return false
+		}
+	case ([]interface{}):
+		if oldObj == nil || !checkListsMatch(mergedObj, oldObj.([]interface{})) {
+			return false
+		}
+	default:
+		if !reflect.DeepEqual(fmt.Sprint(mergedObj), fmt.Sprint(oldObj)) {
+			return false
+		}
+	}
+	return true
+}
+
+//checFieldsWithSort is a check for maps that uses an arbitrary sort to ensure it is
+//comparing the right values
 func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]interface{}) (matches bool) {
 	//needed to compare lists, since merge messes up the order
+	if len(mergedObj) < len(oldObj) {
+		return false
+	}
 	match := true
 	for i, mVal := range mergedObj {
 		switch mVal := mVal.(type) {
 		case (map[string]interface{}):
+			//if field is a map, recurse to check for a match
 			oVal, ok := oldObj[i].(map[string]interface{})
 			if !ok {
 				match = false
@@ -82,6 +109,7 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 				match = false
 			}
 		case ([]map[string]interface{}):
+			//if field is a list of maps, use checkListFieldsWithSort to check for a match
 			oVal, ok := oldObj[i].([]map[string]interface{})
 			if !ok {
 				match = false
@@ -90,17 +118,12 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 				match = false
 			}
 		case ([]interface{}):
+			//if field is a generic list, sort and iterate through them to make sure each value matches
 			oVal, ok := oldObj[i].([]interface{})
 			if !ok {
 				match = false
 				break
 			}
-			sort.Slice(oVal, func(i, j int) bool {
-				return fmt.Sprintf("%v", oVal[i]) < fmt.Sprintf("%v", oVal[j])
-			})
-			sort.Slice(mVal, func(x, y int) bool {
-				return fmt.Sprintf("%v", mVal[x]) < fmt.Sprintf("%v", mVal[y])
-			})
 			if len(mVal) != len(oVal) {
 				match = false
 			} else {
@@ -109,6 +132,7 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 				}
 			}
 		default:
+			//if field is not an object, just do a basic compare to check for a match
 			oVal := oldObj[i]
 			if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
 				match = false
@@ -118,6 +142,8 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 	return match
 }
 
+//checkListFieldsWithSort is a check for lists of maps that uses an arbitrary sort to ensure it is
+//comparing the right values
 func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[string]interface{}) (matches bool) {
 	sort.Slice(oldObj, func(i, j int) bool {
 		return fmt.Sprintf("%v", oldObj[i]) < fmt.Sprintf("%v", oldObj[j])
@@ -133,17 +159,12 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 		for i, mVal := range mergedItem {
 			switch mVal := mVal.(type) {
 			case ([]interface{}):
+				//if a map in the list contains a nested list, sort and check for equality
 				oVal, ok := oldItem[i].([]interface{})
 				if !ok {
 					match = false
 					break
 				}
-				sort.Slice(oVal, func(i, j int) bool {
-					return fmt.Sprintf("%v", oVal[i]) < fmt.Sprintf("%v", oVal[j])
-				})
-				sort.Slice(mVal, func(x, y int) bool {
-					return fmt.Sprintf("%v", mVal[x]) < fmt.Sprintf("%v", mVal[y])
-				})
 				if len(mVal) != len(oVal) {
 					match = false
 				} else {
@@ -152,10 +173,12 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 					}
 				}
 			case (map[string]interface{}):
+				//if a map in the list contains another map, check fields for equality
 				if !checkFieldsWithSort(mVal, oldItem[i].(map[string]interface{})) {
 					match = false
 				}
 			default:
+				//if the field in the map is not an object, just do a generic check
 				oVal := oldItem[i]
 				if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
 					match = false
@@ -166,6 +189,7 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 	return match
 }
 
+//checkListsMatch is a generic list check that uses an arbitrary sort to ensure it is comparing the right values
 func checkListsMatch(oldVal []interface{}, mergedVal []interface{}) (m bool) {
 	oVal := append([]interface{}{}, oldVal...)
 	mVal := append([]interface{}{}, mergedVal...)
@@ -183,8 +207,17 @@ func checkListsMatch(oldVal []interface{}, mergedVal []interface{}) (m bool) {
 		return false
 	}
 	for idx, oNestedVal := range oVal {
-		if fmt.Sprint(oNestedVal) != fmt.Sprint(mVal[idx]) {
-			match = false
+		switch oNestedVal := oNestedVal.(type) {
+		case (map[string]interface{}):
+			//if list contains maps, recurse on those maps to check for a match
+			if !checkFieldsWithSort(mVal[idx].(map[string]interface{}), oNestedVal) {
+				match = false
+			}
+		default:
+			//otherwise, just do a generic check
+			if fmt.Sprint(oNestedVal) != fmt.Sprint(mVal[idx]) {
+				match = false
+			}
 		}
 	}
 	return match
