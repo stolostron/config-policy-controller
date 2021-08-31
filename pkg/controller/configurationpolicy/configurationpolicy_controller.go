@@ -125,6 +125,7 @@ func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset,
 	EventOnParent = strings.ToLower(eventParent)
 	recorder, _ = common.CreateRecorder(*KubeClient, controllerName)
 	config = kubeconfig
+	templates.InitializeKubeClient(kubeClient, kubeconfig)
 }
 
 //InitializeClient helper function to initialize kubeclient
