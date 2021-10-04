@@ -295,7 +295,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		var unstruct unstructured.Unstructured
 		unstruct.Object = make(map[string]interface{})
 
-
 		// Here appears to be a  good place to hook in template processing
 		// This is at the head of objectemplate processing
 		// ( just before the perNamespace handling of objectDefinitions)
@@ -304,12 +303,12 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		annotations := plc.GetAnnotations()
 		disableTemplates := false
 		if disableAnnotation, ok := annotations["policy.open-cluster-management.io/disable-templates"]; ok {
-			glog.Info("Found disable-templates Annotation : %s",  disableAnnotation)
+			glog.Info("Found disable-templates Annotation : %s", disableAnnotation)
 
 			bool_disableAnnotation, err := strconv.ParseBool(disableAnnotation)
-			if(err != nil){
+			if err != nil {
 				glog.Error("Error parsing value for annotation: disable-templates %v", err)
-			}else{
+			} else {
 				disableTemplates = bool_disableAnnotation
 			}
 		}
@@ -357,8 +356,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			}
 
 		}
-
-
 
 		var blob interface{}
 		if jsonErr := json.Unmarshal(objectT.ObjectDefinition.Raw, &blob); jsonErr != nil {
