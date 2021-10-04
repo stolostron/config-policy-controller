@@ -310,7 +310,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				disableTemplates = bool_disableAnnotation
 			}//
 		}//
-
 		if !disableTemplates {
 
 			//first check to make sure there are no hub-templates with delimiter - {{hub
