@@ -298,7 +298,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		// Here appears to be a  good place to hook in template processing
 		// This is at the head of objectemplate processing
 		// ( just before the perNamespace handling of objectDefinitions)
-
 		//if disable-templates annotations exists and is true, then do not process templates
 		annotations := plc.GetAnnotations()
 		disableTemplates := false
