@@ -298,6 +298,11 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		// Here appears to be a  good place to hook in template processing
 		// This is at the head of objectemplate processing
 		// ( just before the perNamespace handling of objectDefinitions)
+
+		// check here to determine if the object definition has a template
+		// and execute  template-processing only if  there is a template pattern "{{" in it
+		// to avoid unnecessary parsing when there is no template in the definition.
+
 		//if disable-templates annotations exists and is true, then do not process templates
 		annotations := plc.GetAnnotations()
 		disableTemplates := false
@@ -334,13 +339,10 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				return
 			}
 
-			// check here to determine if the object definition has a template
-			// and execute  template-processing only if  there is a template pattern "{{" in it
-			// to avoid unnecessary parsing when there is no template in the definition.
 			if templates.HasTemplate(objectT.ObjectDefinition.Raw, "") {
 				resolvedTemplate, tplErr := tmplResolver.ResolveTemplate(objectT.ObjectDefinition.Raw, nil)
 				if tplErr != nil {
-					update := createViolation(&plc, 0, "Error processing template", tplErr.Error())
+					update := createViolation(&plc, 0, "Error processing template", tplErr.Error())//
 					if update {
 						recorder.Event(&plc, eventWarning, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(&plc))
 						addForUpdate(&plc)
