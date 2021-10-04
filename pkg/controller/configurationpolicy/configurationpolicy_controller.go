@@ -313,8 +313,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				glog.Error("Error parsing value for annotation: disable-templates %v", err)
 			} else {
 				disableTemplates = bool_disableAnnotation
-			}//
-		}//
+			}
+		}
 		if !disableTemplates {
 
 			//first check to make sure there are no hub-templates with delimiter - {{hub
