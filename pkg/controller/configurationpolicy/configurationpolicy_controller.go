@@ -313,8 +313,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				glog.Error("Error parsing value for annotation: disable-templates %v", err)
 			} else {
 				disableTemplates = bool_disableAnnotation
-			}
-		}
+			}//
+		}//
 		if !disableTemplates {
 
 			//first check to make sure there are no hub-templates with delimiter - {{hub
@@ -331,8 +331,8 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 					hubTemplatesErrMsg = "Error occured while processing hub-templates, check the policy events for more details."
 				}
 
-				update := createViolation(&plc, 0, "Error processing hub templates", hubTemplatesErrMsg)
-				if update {
+				updateStatus := createViolation(&plc, 0, "Error processing hub templates", hubTemplatesErrMsg)
+				if updateStatus {
 					recorder.Event(&plc, eventWarning, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(&plc))
 					addForUpdate(&plc)
 				}
