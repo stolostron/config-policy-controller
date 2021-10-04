@@ -310,7 +310,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				glog.Error("Error parsing value for annotation: disable-templates %v", err)
 			} else {
 				disableTemplates = bool_disableAnnotation
-			}
+			}//end err
 		}//end disableannotation
 
 		if !disableTemplates {
