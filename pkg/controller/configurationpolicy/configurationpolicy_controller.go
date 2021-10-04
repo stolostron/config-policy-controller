@@ -311,7 +311,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 			} else {
 				disableTemplates = bool_disableAnnotation
 			}
-		}
+		}//end disableannotation
 
 		if !disableTemplates {
 
