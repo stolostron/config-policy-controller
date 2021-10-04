@@ -304,7 +304,6 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		disableTemplates := false
 		if disableAnnotation, ok := annotations["policy.open-cluster-management.io/disable-templates"]; ok {
 			glog.Info("Found disable-templates Annotation : %s", disableAnnotation)
-
 			bool_disableAnnotation, err := strconv.ParseBool(disableAnnotation)
 			if err != nil {
 				glog.Error("Error parsing value for annotation: disable-templates %v", err)
