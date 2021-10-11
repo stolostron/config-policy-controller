@@ -187,6 +187,8 @@ func (r *ReconcileConfigurationPolicy) Reconcile(request reconcile.Request) (rec
 // PeriodicallyExecConfigPolicies loops through all configurationpolicies in the target namespace and triggers
 // template handling for each one. This function drives all the work the configuration policy controller does.
 func PeriodicallyExecConfigPolicies(freq uint, test bool) {
+	cachedApiResourceList := []*metav1.APIResourceList{}
+	cachedApiGroupsList := []*restmapper.APIGroupResources{}
 	for {
 		start := time.Now()
 		printMap(availablePolicies.PolicyMap)
@@ -203,14 +205,23 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 		//get resources once per cycle to avoid hanging
 		dd := clientSet.Discovery()
 		apiresourcelist, apiresourcelistErr := dd.ServerResources()
+		if apiresourcelistErr == nil {
+			cachedApiResourceList = append([]*metav1.APIResourceList{}, apiresourcelist...)		
+		}
 		skipLoop := false
-		if apiresourcelistErr != nil {
+		if apiresourcelistErr != nil && len(cachedApiResourceList) > 0 {
+			apiresourcelist = cachedApiResourceList
+		} else if apiresourcelistErr != nil {
 			skipLoop = true
 			glog.Errorf("Failed to retrieve apiresourcelist with err: %v", apiresourcelistErr)
 		}
 		apigroups, apigroupsErr := restmapper.GetAPIGroupResources(dd)
-
-		if !skipLoop && apigroupsErr != nil {
+		if apigroupsErr == nil {
+			cachedApiGroupsList = append([]*restmapper.APIGroupResources{}, apigroups...)
+		}
+		if !skipLoop && apigroupsErr != nil && len(cachedApiGroupsList) > 0 {
+			apigroups = cachedApiGroupsList
+		} else if !skipLoop && apigroupsErr != nil {
 			skipLoop = true
 			glog.Errorf("Failed to retrieve apigroups with err: %v", apigroupsErr)
 
