@@ -206,7 +206,7 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 		dd := clientSet.Discovery()
 		apiresourcelist, apiresourcelistErr := dd.ServerResources()
 		if apiresourcelistErr == nil {
-			cachedApiResourceList = append([]*metav1.APIResourceList{}, apiresourcelist...)		
+			cachedApiResourceList = append([]*metav1.APIResourceList{}, apiresourcelist...)
 		}
 		skipLoop := false
 		if apiresourcelistErr != nil && len(cachedApiResourceList) > 0 {
