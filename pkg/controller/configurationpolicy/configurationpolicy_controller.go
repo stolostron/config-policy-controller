@@ -205,21 +205,23 @@ func PeriodicallyExecConfigPolicies(freq uint, test bool) {
 		//get resources once per cycle to avoid hanging
 		dd := clientSet.Discovery()
 		apiresourcelist, apiresourcelistErr := dd.ServerResources()
-		if apiresourcelistErr == nil {
+		if len(apiresourcelist) > 0 {
 			cachedApiResourceList = append([]*metav1.APIResourceList{}, apiresourcelist...)
 		}
 		skipLoop := false
 		if apiresourcelistErr != nil && len(cachedApiResourceList) > 0 {
+			glog.Errorf("Error getting API resource list. Using cached list...")
 			apiresourcelist = cachedApiResourceList
 		} else if apiresourcelistErr != nil {
 			skipLoop = true
 			glog.Errorf("Failed to retrieve apiresourcelist with err: %v", apiresourcelistErr)
 		}
 		apigroups, apigroupsErr := restmapper.GetAPIGroupResources(dd)
-		if apigroupsErr == nil {
+		if len(apigroups) > 0 {
 			cachedApiGroupsList = append([]*restmapper.APIGroupResources{}, apigroups...)
 		}
-		if !skipLoop && apigroupsErr != nil && len(cachedApiGroupsList) > 0 {
+		if apigroupsErr != nil && len(cachedApiGroupsList) > 0 {
+			glog.Errorf("Error getting API groups list. Using cached list...")
 			apigroups = cachedApiGroupsList
 		} else if !skipLoop && apigroupsErr != nil {
 			skipLoop = true
