@@ -47,8 +47,6 @@ spec:
       - args:
         - --enable-lease=true
         - --hubconfig-secret-name=hub-kubeconfig
-        - --health-probe-bind-address=:8081
-        - --leader-elect
         command:
         - config-policy-controller
         env:

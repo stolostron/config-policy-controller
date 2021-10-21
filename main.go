@@ -78,7 +78,7 @@ func main() {
 	var enableLeaderElection bool
 	var probeAddr string
 	pflag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	pflag.BoolVar(&enableLeaderElection, "leader-elect", false,
+	pflag.BoolVar(&enableLeaderElection, "leader-elect", true,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 
