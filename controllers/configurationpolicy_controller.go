@@ -556,17 +556,6 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 			update = createMustHaveStatus("", kind, compliantObjects, namespaced, plc, indx, compliant)
 		}
 	}
-
-	if update {
-		//update parent policy with violation
-		eventType := eventNormal
-		if !compliant {
-			eventType = eventWarning
-		}
-		if recorder != nil {
-			recorder.Event(plc, eventType, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(plc))
-		}
-	}
 	return update
 }
 
