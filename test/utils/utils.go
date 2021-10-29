@@ -8,16 +8,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"regexp"
 	"time"
 
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Pause sleep for given seconds
@@ -139,6 +142,26 @@ func ListWithTimeout(
 	}
 	return nil
 
+}
+
+func GetMatchingEvents(client kubernetes.Interface, namespace, objName, reasonRegex, msgRegex string, timeout int) []corev1.Event {
+	var eventList *corev1.EventList
+	Eventually(func() error {
+		var err error
+		eventList, err = client.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
+		return err
+	}, timeout, 1).Should(BeNil())
+
+	matchingEvents := make([]corev1.Event, 0)
+	msgMatcher := regexp.MustCompile(msgRegex)
+	reasonMatcher := regexp.MustCompile(reasonRegex)
+	for _, event := range eventList.Items {
+		if event.InvolvedObject.Name == objName && reasonMatcher.MatchString(event.Reason) && msgMatcher.MatchString(event.Message) {
+			matchingEvents = append(matchingEvents, event)
+		}
+	}
+
+	return matchingEvents
 }
 
 // Kubectl executes kubectl commands
