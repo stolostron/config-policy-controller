@@ -144,8 +144,10 @@ func ListWithTimeout(
 // Kubectl executes kubectl commands
 func Kubectl(args ...string) {
 	cmd := exec.Command("kubectl", args...)
-	err := cmd.Start()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
+		// in case of failure, print command output (including error)
+		fmt.Printf("%s\n", output)
 		Fail(fmt.Sprintf("Error: %v", err))
 	}
 }
