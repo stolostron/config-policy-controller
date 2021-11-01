@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
+	"time"
 )
 
 const case12ConfigPolicyNameInform string = "policy-pod-mh-listinform"
