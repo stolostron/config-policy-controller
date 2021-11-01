@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -303,7 +304,20 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 		// and execute  template-processing only if  there is a template pattern "{{" in it
 		// to avoid unnecessary parsing when there is no template in the definition.
 
-		if templates.HasTemplate(string(ext.Raw)) {
+		// if disable-templates annotations exists and is true, then do not process templates
+		annotations := plc.GetAnnotations()
+		disableTemplates := false
+		if disableAnnotation, ok := annotations["policy.open-cluster-management.io/disable-templates"]; ok {
+			glog.Infof("Found disable-templates Annotation : %s", disableAnnotation)
+			bool_disableAnnotation, err := strconv.ParseBool(disableAnnotation)
+			if err != nil {
+				glog.Errorf("Error parsing value for annotation: disable-templates %v", err)
+			} else {
+				disableTemplates = bool_disableAnnotation
+			} //
+		} //
+
+		if !disableTemplates && templates.HasTemplate(string(ext.Raw)) {
 			resolvedblob, tplErr := templates.ResolveTemplate(blob)
 			if tplErr != nil {
 				update := createViolation(&plc, 0, "Error processing template", tplErr.Error())
