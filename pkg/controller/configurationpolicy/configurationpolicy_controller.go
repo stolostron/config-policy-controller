@@ -347,7 +347,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 				update := createViolation(&plc, 0, "Error processing hub templates", hubTemplatesErrMsg)
 				if update {
 					recorder.Event(&plc, eventWarning, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(&plc))
-					addForUpdate(&plc)
+					checkRelatedAndUpdate(update, plc, relatedObjects, oldRelated)
 				}
 				return
 			}
@@ -358,7 +358,7 @@ func handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*
 					update := createViolation(&plc, 0, "Error processing template", tplErr.Error()) //
 					if update {
 						recorder.Event(&plc, eventWarning, fmt.Sprintf(plcFmtStr, plc.GetName()), convertPolicyStatusToString(&plc))
-						addForUpdate(&plc)
+						checkRelatedAndUpdate(update, plc, relatedObjects, oldRelated)
 					}
 					return
 				}
