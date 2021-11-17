@@ -132,11 +132,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.ConfigurationPolicyReconciler{
+	reconciler := controllers.ConfigurationPolicyReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor(controllers.ControllerName),
-	}).SetupWithManager(mgr); err != nil {
+	}
+	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "unable to create controller", "controller", "ConfigurationPolicy")
 		os.Exit(1)
 	}
@@ -161,7 +162,7 @@ func main() {
 
 	controllers.Initialize(cfg, client, &generatedClient, mgr, namespace, eventOnParent)
 	// PeriodicallyExecConfigPolicies is the go-routine that periodically checks the policies
-	go controllers.PeriodicallyExecConfigPolicies(frequency, false)
+	go reconciler.PeriodicallyExecConfigPolicies(frequency, false)
 
 	// This lease is not related to leader election. This is to report the status of the controller
 	// to the addon framework. This can be seen in the "status" section of the ManagedClusterAddOn

@@ -345,19 +345,6 @@ func TestCompareLists(t *testing.T) {
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
-func TestCreateParentPolicy(t *testing.T) {
-	var ownerReference = metav1.OwnerReference{
-		Name: "foo",
-	}
-	var ownerReferences = []metav1.OwnerReference{}
-	ownerReferences = append(ownerReferences, ownerReference)
-	samplePolicy.OwnerReferences = ownerReferences
-
-	policy := createParentPolicy(&samplePolicy)
-	assert.NotNil(t, policy)
-	createParentPolicyEvent(&samplePolicy)
-}
-
 func TestConvertPolicyStatusToString(t *testing.T) {
 	var compliantDetail = policiesv1alpha1.TemplateStatus{
 		ComplianceState: policiesv1alpha1.NonCompliant,
