@@ -153,14 +153,10 @@ func main() {
 	}
 
 	// Initialize some variables
-	client, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		log.Info("cannot create kube client sucessfully: %v", err)
-	}
-	var generatedClient kubernetes.Interface = kubernetes.NewForConfigOrDie(mgr.GetConfig())
-	common.Initialize(&generatedClient, cfg)
+	clientset := kubernetes.NewForConfigOrDie(cfg)
+	common.Initialize(clientset, cfg)
+	controllers.Initialize(cfg, clientset, namespace, eventOnParent)
 
-	controllers.Initialize(cfg, client, &generatedClient, namespace, eventOnParent)
 	// PeriodicallyExecConfigPolicies is the go-routine that periodically checks the policies
 	go reconciler.PeriodicallyExecConfigPolicies(frequency, false)
 
@@ -180,7 +176,7 @@ func main() {
 
 			log.Info("Starting lease controller to report status")
 			leaseUpdater := lease.NewLeaseUpdater(
-				generatedClient,
+				clientset,
 				"config-policy-controller",
 				operatorNs,
 			)
