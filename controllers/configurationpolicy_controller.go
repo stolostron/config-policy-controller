@@ -34,7 +34,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"k8s.io/client-go/restmapper"
@@ -93,18 +92,12 @@ func (r *ConfigurationPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error
 
 // Initialize to initialize some controller variables
 func Initialize(kubeconfig *rest.Config, clientset *kubernetes.Clientset,
-	kubeClient *kubernetes.Interface, mgr manager.Manager, namespace, eventParent string) {
-	InitializeClient(kubeClient)
-	PlcChan = make(chan *policyv1.ConfigurationPolicy, 100) //buffering up to 100 policies for update
-	NamespaceWatched = namespace
-	clientSet = clientset
-	EventOnParent = strings.ToLower(eventParent)
+	kubeClient *kubernetes.Interface, namespace, eventParent string) {
 	config = kubeconfig
-}
-
-//InitializeClient helper function to initialize kubeclient
-func InitializeClient(kubeClient *kubernetes.Interface) {
+	clientSet = clientset
 	KubeClient = kubeClient
+	NamespaceWatched = namespace
+	EventOnParent = strings.ToLower(eventParent)
 }
 
 // blank assignment to verify that ConfigurationPolicyReconciler implements reconcile.Reconciler

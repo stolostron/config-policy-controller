@@ -160,7 +160,7 @@ func main() {
 	var generatedClient kubernetes.Interface = kubernetes.NewForConfigOrDie(mgr.GetConfig())
 	common.Initialize(&generatedClient, cfg)
 
-	controllers.Initialize(cfg, client, &generatedClient, mgr, namespace, eventOnParent)
+	controllers.Initialize(cfg, client, &generatedClient, namespace, eventOnParent)
 	// PeriodicallyExecConfigPolicies is the go-routine that periodically checks the policies
 	go reconciler.PeriodicallyExecConfigPolicies(frequency, false)
 
