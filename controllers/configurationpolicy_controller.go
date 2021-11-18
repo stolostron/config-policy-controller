@@ -586,7 +586,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(objectT *policyv1.ObjectTe
 		return nil, false, "", "", nil, needUpdate, namespaced
 	}
 	if name != "" { //named object, so checking just for the existence of the specific object
-		exists = objectExists(namespaced, namespace, name, rsrc, unstruct, dclient)
+		exists = objectExists(namespaced, namespace, name, rsrc, dclient)
 		objNames = append(objNames, name)
 	} else if kind != "" { //no name, so we are checking for the existence of any object of this kind
 		objNames = append(objNames, getNamesOfKind(unstruct, rsrc, namespaced,
@@ -1064,115 +1064,80 @@ func checkMessageSimilarity(conditions []policyv1.Condition, cond *policyv1.Cond
 
 // objectExists gets object with dynamic client, returns true if the object is found
 func objectExists(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
-	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool) {
-	objLog := log.WithValues("name", name, "namespaced", namespaced)
-	exists := false
-	if !namespaced {
-		res := dclient.Resource(rsrc)
-		_, err := res.Get(context.TODO(), name, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				objLog.V(2).Info("Got 'Not Found' response for object from the API server")
-				exists = false
-				return exists
-			}
-			objLog.Error(err, "Could not retrieve object from the API server")
-		} else {
-			exists = true
-			objLog.V(2).Info("Retrieved object from the API server")
-		}
+	dclient dynamic.Interface) (result bool) {
+	objLog := log.WithValues("name", name, "namespaced", namespaced, "namespace", namespace)
+	objLog.V(2).Info("Entered objectExists")
+
+	var res dynamic.ResourceInterface
+	if namespaced {
+		res = dclient.Resource(rsrc).Namespace(namespace)
 	} else {
-		res := dclient.Resource(rsrc).Namespace(namespace)
-		_, err := res.Get(context.TODO(), name, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				exists = false
-				objLog.V(2).Info("Got 'Not Found' response for object from the API server")
-				return exists
-			}
-			objLog.Error(err, "Could not retrieve object from the API server")
-		} else {
-			exists = true
-			objLog.V(2).Info("Retrieved object from the API server")
-		}
+		res = dclient.Resource(rsrc)
 	}
-	return exists
+
+	_, err := res.Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			objLog.V(2).Info("Got 'Not Found' response for object from the API server")
+		} else {
+			objLog.Error(err, "Could not retrieve object from the API server")
+		}
+		return false
+	}
+
+	objLog.V(2).Info("Retrieved object from the API server")
+	return true
 }
 
 func createObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
-	unstruct unstructured.Unstructured, dclient dynamic.Interface) (result bool, erro error) {
-	var err error
-	created := false
-	// set ownerReference for mutaionPolicy and override remediationAction
-	objLog := log.WithValues("name", name, "namespaced", namespaced)
+	unstruct unstructured.Unstructured, dclient dynamic.Interface) (created bool, err error) {
+	objLog := log.WithValues("name", name, "namespaced", namespaced, "namespace", namespace)
 	objLog.V(2).Info("Entered createObject", "unstruct", unstruct)
 
-	if !namespaced {
-		res := dclient.Resource(rsrc)
-
-		_, err = res.Create(context.TODO(), &unstruct, metav1.CreateOptions{})
-		if err != nil {
-			if errors.IsAlreadyExists(err) {
-				created = true
-				objLog.V(2).Info("Got 'Already Exists' response for object")
-			} else {
-				objLog.Error(err, "Could not create object", "reason", errors.ReasonForError(err))
-			}
-		} else {
-			created = true
-			objLog.V(2).Info("Resource created")
-		}
+	var res dynamic.ResourceInterface
+	if namespaced {
+		res = dclient.Resource(rsrc).Namespace(namespace)
 	} else {
-		res := dclient.Resource(rsrc).Namespace(namespace)
-		_, err = res.Create(context.TODO(), &unstruct, metav1.CreateOptions{})
-		if err != nil {
-			if errors.IsAlreadyExists(err) {
-				created = true
-				objLog.V(2).Info("Got 'Already Exists' response for object")
-			} else {
-				objLog.Error(err, "Could not create object", "reason", errors.ReasonForError(err))
-			}
-		} else {
-			created = true
-			objLog.V(2).Info("Resource created")
-		}
+		res = dclient.Resource(rsrc)
 	}
-	return created, err
+
+	_, err = res.Create(context.TODO(), &unstruct, metav1.CreateOptions{})
+	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			objLog.V(2).Info("Got 'Already Exists' response for object")
+			return true, err
+		}
+		objLog.Error(err, "Could not create object", "reason", errors.ReasonForError(err))
+		return false, err
+	}
+
+	objLog.V(2).Info("Resource created")
+	return true, nil
 }
 
 func deleteObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
-	dclient dynamic.Interface) (result bool, erro error) {
-	objLog := log.WithValues("name", name, "namespaced", namespaced)
-	deleted := false
-	var err error
-	if !namespaced {
-		res := dclient.Resource(rsrc)
-		err = res.Delete(context.TODO(), name, metav1.DeleteOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				deleted = true
-				objLog.V(2).Info("Got 'Not Found' response while deleting object")
-			}
-			objLog.Error(err, "Could not delete object")
-		} else {
-			deleted = true
-			objLog.V(2).Info("Deleted object")
-		}
+	dclient dynamic.Interface) (deleted bool, err error) {
+	objLog := log.WithValues("name", name, "namespaced", namespaced, "namespace", namespace)
+	objLog.V(2).Info("Entered deleteObject")
+
+	var res dynamic.ResourceInterface
+	if namespaced {
+		res = dclient.Resource(rsrc).Namespace(namespace)
 	} else {
-		res := dclient.Resource(rsrc).Namespace(namespace)
-		err = res.Delete(context.TODO(), name, metav1.DeleteOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				deleted = true
-				objLog.V(2).Info("Got 'Not Found' response while deleting object")
-			}
-			objLog.Error(err, "Could not delete object")
-		} else {
-			deleted = true
-			objLog.V(2).Info("Deleted object")
-		}
+		res = dclient.Resource(rsrc)
 	}
-	return deleted, err
+
+	err = res.Delete(context.TODO(), name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			objLog.V(2).Info("Got 'Not Found' response while deleting object")
+			return true, err
+		}
+		objLog.Error(err, "Could not delete object")
+		return false, err
+	}
+	objLog.V(2).Info("Deleted object")
+	return true, nil
 }
 
 //mergeSpecs is a wrapper for the recursive function to merge 2 maps. It marshals the objects into JSON
