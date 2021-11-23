@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/api/v1"
-	"github.com/open-cluster-management/config-policy-controller/pkg/common"
 	"github.com/stretchr/testify/assert"
 	coretypes "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -24,10 +22,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/api/v1"
+	"github.com/open-cluster-management/config-policy-controller/pkg/common"
 )
 
-var mgr manager.Manager
-var err error
+var (
+	mgr manager.Manager
+	err error
+)
 
 func TestReconcile(t *testing.T) {
 	var (
@@ -47,7 +50,7 @@ func TestReconcile(t *testing.T) {
 			},
 			RemediationAction: "inform",
 			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-				&policiesv1alpha1.ObjectTemplate{
+				{
 					ComplianceType:   "musthave",
 					ObjectDefinition: runtime.RawExtension{},
 				},
@@ -84,13 +87,13 @@ func TestReconcile(t *testing.T) {
 }
 
 func TestCompareSpecs(t *testing.T) {
-	var spec1 = map[string]interface{}{
+	spec1 := map[string]interface{}{
 		"containers": map[string]string{
 			"image": "nginx1.7.9",
 			"name":  "nginx",
 		},
 	}
-	var spec2 = map[string]interface{}{
+	spec2 := map[string]interface{}{
 		"containers": map[string]string{
 			"image": "nginx1.7.9",
 			"test":  "test",
@@ -100,7 +103,7 @@ func TestCompareSpecs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("compareSpecs: (%v)", err)
 	}
-	var mergedExpected = map[string]interface{}{
+	mergedExpected := map[string]interface{}{
 		"containers": map[string]string{
 			"image": "nginx1.7.9",
 			"name":  "nginx",
@@ -146,7 +149,7 @@ func TestCompareSpecs(t *testing.T) {
 }
 
 func TestCompareLists(t *testing.T) {
-	var rules1 = []interface{}{
+	rules1 := []interface{}{
 		map[string]interface{}{
 			"apiGroups": []string{
 				"extensions", "apps",
@@ -159,7 +162,7 @@ func TestCompareLists(t *testing.T) {
 			},
 		},
 	}
-	var rules2 = []interface{}{
+	rules2 := []interface{}{
 		map[string]interface{}{
 			"apiGroups": []string{
 				"extensions", "apps",
@@ -222,11 +225,11 @@ func TestCompareLists(t *testing.T) {
 }
 
 func TestConvertPolicyStatusToString(t *testing.T) {
-	var compliantDetail = policiesv1alpha1.TemplateStatus{
+	compliantDetail := policiesv1alpha1.TemplateStatus{
 		ComplianceState: policiesv1alpha1.NonCompliant,
 		Conditions:      []policiesv1alpha1.Condition{},
 	}
-	var compliantDetails = []policiesv1alpha1.TemplateStatus{}
+	compliantDetails := []policiesv1alpha1.TemplateStatus{}
 
 	for i := 0; i < 3; i++ {
 		compliantDetails = append(compliantDetails, compliantDetail)
@@ -237,19 +240,19 @@ func TestConvertPolicyStatusToString(t *testing.T) {
 		CompliancyDetails: compliantDetails,
 	}
 	samplePolicy.Status = samplePolicyStatus
-	var policyInString = convertPolicyStatusToString(&samplePolicy)
+	policyInString := convertPolicyStatusToString(&samplePolicy)
 	assert.NotNil(t, policyInString)
 }
 
 func TestHandleAddingPolicy(t *testing.T) {
 	var simpleClient kubernetes.Interface = testclient.NewSimpleClientset()
-	var typeMeta = metav1.TypeMeta{
+	typeMeta := metav1.TypeMeta{
 		Kind: "namespace",
 	}
-	var objMeta = metav1.ObjectMeta{
+	objMeta := metav1.ObjectMeta{
 		Name: "default",
 	}
-	var ns = coretypes.Namespace{
+	ns := coretypes.Namespace{
 		TypeMeta:   typeMeta,
 		ObjectMeta: objMeta,
 	}
@@ -321,7 +324,6 @@ func TestMerge(t *testing.T) {
 }
 
 func TestAddRelatedObject(t *testing.T) {
-
 	policy := &policiesv1alpha1.ConfigurationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
@@ -335,7 +337,7 @@ func TestAddRelatedObject(t *testing.T) {
 			},
 			RemediationAction: "inform",
 			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-				&policiesv1alpha1.ObjectTemplate{
+				{
 					ComplianceType:   "musthave",
 					ObjectDefinition: runtime.RawExtension{},
 				},
@@ -389,7 +391,7 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 			},
 			RemediationAction: "inform",
 			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-				&policiesv1alpha1.ObjectTemplate{
+				{
 					ComplianceType:   "musthave",
 					ObjectDefinition: runtime.RawExtension{},
 				},
@@ -449,7 +451,7 @@ func TestCreateInformStatus(t *testing.T) {
 			},
 			RemediationAction: "inform",
 			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-				&policiesv1alpha1.ObjectTemplate{
+				{
 					ComplianceType:   "musthave",
 					ObjectDefinition: runtime.RawExtension{},
 				},

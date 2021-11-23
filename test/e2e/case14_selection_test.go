@@ -8,15 +8,18 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case14PolicyNamed string = "../resources/case14_namespaces/case14_limitrange_named.yaml"
-const case14PolicyUnnamed string = "../resources/case14_namespaces/case14_limitrange_unnamed.yaml"
-const case14PolicyNamedName string = "policy-named-limitrange"
-const case14PolicyUnnamedName string = "policy-unnamed-limitrange"
-const case14LimitRangeFile string = "../resources/case14_namespaces/case14_limitrange.yaml"
-const case14LimitRangeName string = "container-mem-limit-range"
+const (
+	case14PolicyNamed       string = "../resources/case14_namespaces/case14_limitrange_named.yaml"
+	case14PolicyUnnamed     string = "../resources/case14_namespaces/case14_limitrange_unnamed.yaml"
+	case14PolicyNamedName   string = "policy-named-limitrange"
+	case14PolicyUnnamedName string = "policy-unnamed-limitrange"
+	case14LimitRangeFile    string = "../resources/case14_namespaces/case14_limitrange.yaml"
+	case14LimitRangeName    string = "container-mem-limit-range"
+)
 
 var _ = Describe("Test policy compliance with namespace selection", func() {
 	Describe("Create a named limitrange policy on managed cluster in ns: "+testNamespace, func() {

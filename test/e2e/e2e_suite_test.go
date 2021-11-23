@@ -62,7 +62,7 @@ func TestE2e(t *testing.T) {
 func init() {
 	klog.SetOutput(GinkgoWriter)
 	klog.InitFlags(nil)
-	//flag.StringVar(&kubeconfigHub, "kubeconfig_hub", "../../kubeconfig_hub", "Location of the kubeconfig to use; defaults to KUBECONFIG if not set")
+	// flag.StringVar(&kubeconfigHub, "kubeconfig_hub", "../../kubeconfig_hub", "Location of the kubeconfig to use; defaults to KUBECONFIG if not set")
 	flag.StringVar(&kubeconfigManaged, "kubeconfig_managed", "../../kubeconfig_managed", "Location of the kubeconfig to use; defaults to KUBECONFIG if not set")
 }
 
@@ -157,5 +157,4 @@ func LoadConfig(url, kubeconfig, context string) (*rest.Config, error) {
 	}
 
 	return nil, fmt.Errorf("could not create a valid kubeconfig")
-
 }

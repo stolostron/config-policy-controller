@@ -8,8 +8,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/config-policy-controller/test/utils"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
 const (

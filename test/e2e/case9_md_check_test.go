@@ -6,25 +6,28 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case9ConfigPolicyNamePod string = "policy-pod-c9-create"
-const case9ConfigPolicyNameAnno string = "policy-pod-anno"
-const case9ConfigPolicyNameNoAnno string = "policy-pod-no-anno"
-const case9ConfigPolicyNameLabelPatch string = "policy-label-patch"
-const case9ConfigPolicyNameLabelCheck string = "policy-label-check"
-const case9ConfigPolicyNameLabelAuto string = "policy-label-check-auto"
-const case9ConfigPolicyNameNSCreate string = "policy-c9-create-ns"
-const case9ConfigPolicyNameIgnoreLabels string = "policy-ignore-labels"
-const case9PolicyYamlPod string = "../resources/case9_md_check/case9_pod_create.yaml"
-const case9PolicyYamlAnno string = "../resources/case9_md_check/case9_annos.yaml"
-const case9PolicyYamlNoAnno string = "../resources/case9_md_check/case9_no_annos.yaml"
-const case9PolicyYamlLabelPatch string = "../resources/case9_md_check/case9_label_patch.yaml"
-const case9PolicyYamlLabelCheck string = "../resources/case9_md_check/case9_label_check.yaml"
-const case9PolicyYamlLabelAuto string = "../resources/case9_md_check/case9_label_check_auto.yaml"
-const case9PolicyYamlIgnoreLabels string = "../resources/case9_md_check/case9_mustonlyhave_nolabels.yaml"
-const case9PolicyYamlNSCreate string = "../resources/case9_md_check/case9_ns_create.yaml"
+const (
+	case9ConfigPolicyNamePod          string = "policy-pod-c9-create"
+	case9ConfigPolicyNameAnno         string = "policy-pod-anno"
+	case9ConfigPolicyNameNoAnno       string = "policy-pod-no-anno"
+	case9ConfigPolicyNameLabelPatch   string = "policy-label-patch"
+	case9ConfigPolicyNameLabelCheck   string = "policy-label-check"
+	case9ConfigPolicyNameLabelAuto    string = "policy-label-check-auto"
+	case9ConfigPolicyNameNSCreate     string = "policy-c9-create-ns"
+	case9ConfigPolicyNameIgnoreLabels string = "policy-ignore-labels"
+	case9PolicyYamlPod                string = "../resources/case9_md_check/case9_pod_create.yaml"
+	case9PolicyYamlAnno               string = "../resources/case9_md_check/case9_annos.yaml"
+	case9PolicyYamlNoAnno             string = "../resources/case9_md_check/case9_no_annos.yaml"
+	case9PolicyYamlLabelPatch         string = "../resources/case9_md_check/case9_label_patch.yaml"
+	case9PolicyYamlLabelCheck         string = "../resources/case9_md_check/case9_label_check.yaml"
+	case9PolicyYamlLabelAuto          string = "../resources/case9_md_check/case9_label_check_auto.yaml"
+	case9PolicyYamlIgnoreLabels       string = "../resources/case9_md_check/case9_mustonlyhave_nolabels.yaml"
+	case9PolicyYamlNSCreate           string = "../resources/case9_md_check/case9_ns_create.yaml"
+)
 
 var _ = Describe("Test pod obj template handling", func() {
 	Describe("Create a pod policy on managed cluster in ns:"+testNamespace, func() {

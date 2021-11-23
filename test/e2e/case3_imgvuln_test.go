@@ -6,17 +6,20 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case3ConfigPolicyNameCSV string = "policy-imagemanifestvulnpolicy-example-csv"
-const case3ConfigPolicyNameSub string = "policy-imagemanifestvulnpolicy-example-sub"
-const case3ConfigPolicyNameVuln string = "policy-imagemanifestvulnpolicy-example-imv"
-const case3ConfigPolicyNameVulnObj string = "policy-imagemanifestvulnpolicy-example-imv-obj"
-const case3PolicyYamlCSV string = "../resources/case3_imgvuln/case3_csv.yaml"
-const case3PolicyYamlSub string = "../resources/case3_imgvuln/case3_subscription.yaml"
-const case3PolicyYamlVuln string = "../resources/case3_imgvuln/case3_vuln.yaml"
-const case3PolicyYamlVulnObj string = "../resources/case3_imgvuln/case3_vuln_object.yaml"
+const (
+	case3ConfigPolicyNameCSV     string = "policy-imagemanifestvulnpolicy-example-csv"
+	case3ConfigPolicyNameSub     string = "policy-imagemanifestvulnpolicy-example-sub"
+	case3ConfigPolicyNameVuln    string = "policy-imagemanifestvulnpolicy-example-imv"
+	case3ConfigPolicyNameVulnObj string = "policy-imagemanifestvulnpolicy-example-imv-obj"
+	case3PolicyYamlCSV           string = "../resources/case3_imgvuln/case3_csv.yaml"
+	case3PolicyYamlSub           string = "../resources/case3_imgvuln/case3_subscription.yaml"
+	case3PolicyYamlVuln          string = "../resources/case3_imgvuln/case3_vuln.yaml"
+	case3PolicyYamlVulnObj       string = "../resources/case3_imgvuln/case3_vuln_object.yaml"
+)
 
 var _ = Describe("Test img vulnerability obj template handling", func() {
 	Describe("Create a clusterserviceversion on managed cluster in ns:"+testNamespace, func() {

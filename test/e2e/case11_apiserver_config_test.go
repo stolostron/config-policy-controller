@@ -6,19 +6,22 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const etcdEncryptionEnforceName string = "etcd-encryption-enforce"
-const etcdEncryptionInformName string = "etcd-encryption-inform"
-const etcdEncryptionEnforceYaml string = "../resources/case11_apiserver_config/etcd_encryption_enforce.yaml"
-const etcdEncryptionEnforceInvalidYaml string = "../resources/case11_apiserver_config/etcd_encryption_enforce_invalid.yaml"
-const etcdEncryptionInformYaml string = "../resources/case11_apiserver_config/etcd_encryption_inform.yaml"
-const tlsProfileEnforceName string = "tls-profile-enforce"
-const tlsProfileInformName string = "tls-profile-inform"
-const tlsProfileEnforceYaml string = "../resources/case11_apiserver_config/tls_profile_enforce.yaml"
-const tlsProfileEnforceInvalidYaml string = "../resources/case11_apiserver_config/tls_profile_enforce_invalid.yaml"
-const tlsProfileInformYaml string = "../resources/case11_apiserver_config/tls_profile_inform.yaml"
+const (
+	etcdEncryptionEnforceName        string = "etcd-encryption-enforce"
+	etcdEncryptionInformName         string = "etcd-encryption-inform"
+	etcdEncryptionEnforceYaml        string = "../resources/case11_apiserver_config/etcd_encryption_enforce.yaml"
+	etcdEncryptionEnforceInvalidYaml string = "../resources/case11_apiserver_config/etcd_encryption_enforce_invalid.yaml"
+	etcdEncryptionInformYaml         string = "../resources/case11_apiserver_config/etcd_encryption_inform.yaml"
+	tlsProfileEnforceName            string = "tls-profile-enforce"
+	tlsProfileInformName             string = "tls-profile-inform"
+	tlsProfileEnforceYaml            string = "../resources/case11_apiserver_config/tls_profile_enforce.yaml"
+	tlsProfileEnforceInvalidYaml     string = "../resources/case11_apiserver_config/tls_profile_enforce_invalid.yaml"
+	tlsProfileInformYaml             string = "../resources/case11_apiserver_config/tls_profile_inform.yaml"
+)
 
 var _ = Describe("Test APIServer Config policy", func() {
 	Describe("Test etcd encryption and tls profile", func() {

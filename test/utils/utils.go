@@ -107,7 +107,6 @@ func GetWithTimeout(
 		return obj
 	}
 	return nil
-
 }
 
 // ListWithTimeout keeps polling to get the object for timeout seconds until wantFound is met (true for found, false for not found)
@@ -141,7 +140,6 @@ func ListWithTimeout(
 		return list
 	}
 	return nil
-
 }
 
 func GetMatchingEvents(client kubernetes.Interface, namespace, objName, reasonRegex, msgRegex string, timeout int) []corev1.Event {

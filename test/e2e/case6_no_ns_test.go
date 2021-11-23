@@ -6,17 +6,20 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case6ConfigPolicyNameNS string = "policy-ns"
-const case6ConfigPolicyNameRole string = "role-policy-no-ns"
-const case6ConfigPolicyNameCombo string = "policy-combo-no-ns"
-const case6NSName1 string = "e2etest"
-const case6NSName2 string = "e2etest2"
-const case6NSYaml string = "../resources/case6_no_ns/case6_create_ns.yaml"
-const case6RoleYaml string = "../resources/case6_no_ns/case6_create_role.yaml"
-const case6ComboYaml string = "../resources/case6_no_ns/case6_combo.yaml"
+const (
+	case6ConfigPolicyNameNS    string = "policy-ns"
+	case6ConfigPolicyNameRole  string = "role-policy-no-ns"
+	case6ConfigPolicyNameCombo string = "policy-combo-no-ns"
+	case6NSName1               string = "e2etest"
+	case6NSName2               string = "e2etest2"
+	case6NSYaml                string = "../resources/case6_no_ns/case6_create_ns.yaml"
+	case6RoleYaml              string = "../resources/case6_no_ns/case6_create_role.yaml"
+	case6ComboYaml             string = "../resources/case6_no_ns/case6_combo.yaml"
+)
 
 var _ = Describe("Test multiple obj template handling", func() {
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, func() {

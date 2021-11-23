@@ -6,17 +6,20 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case8ConfigPolicyNamePod string = "policy-pod-to-check"
-const case8ConfigPolicyNameCheck string = "policy-status-checker"
-const case8ConfigPolicyNameCheckFail string = "policy-status-checker-fail"
-const case8ConfigPolicyNameEnforceFail string = "policy-status-enforce-fail"
-const case8PolicyYamlPod string = "../resources/case8_status_check/case8_pod.yaml"
-const case8PolicyYamlCheck string = "../resources/case8_status_check/case8_status_check.yaml"
-const case8PolicyYamlCheckFail string = "../resources/case8_status_check/case8_status_check_fail.yaml"
-const case8PolicyYamlEnforceFail string = "../resources/case8_status_check/case8_status_enforce_fail.yaml"
+const (
+	case8ConfigPolicyNamePod         string = "policy-pod-to-check"
+	case8ConfigPolicyNameCheck       string = "policy-status-checker"
+	case8ConfigPolicyNameCheckFail   string = "policy-status-checker-fail"
+	case8ConfigPolicyNameEnforceFail string = "policy-status-enforce-fail"
+	case8PolicyYamlPod               string = "../resources/case8_status_check/case8_pod.yaml"
+	case8PolicyYamlCheck             string = "../resources/case8_status_check/case8_status_check.yaml"
+	case8PolicyYamlCheckFail         string = "../resources/case8_status_check/case8_status_check_fail.yaml"
+	case8PolicyYamlEnforceFail       string = "../resources/case8_status_check/case8_status_enforce_fail.yaml"
+)
 
 var _ = Describe("Test pod obj template handling", func() {
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, func() {

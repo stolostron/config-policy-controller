@@ -9,11 +9,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/api/v1"
 )
 
 var samplePolicy = policiesv1alpha1.ConfigurationPolicy{
@@ -29,7 +30,7 @@ var samplePolicy = policiesv1alpha1.ConfigurationPolicy{
 		},
 		RemediationAction: "inform",
 		ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-			&policiesv1alpha1.ObjectTemplate{
+			{
 				ComplianceType:   "musthave",
 				ObjectDefinition: runtime.RawExtension{},
 			},

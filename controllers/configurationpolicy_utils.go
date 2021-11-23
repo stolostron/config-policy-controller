@@ -9,18 +9,19 @@ import (
 	"sort"
 	"strings"
 
-	policyv1 "github.com/open-cluster-management/config-policy-controller/api/v1"
 	apiRes "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	policyv1 "github.com/open-cluster-management/config-policy-controller/api/v1"
 )
 
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
 // details on whether the object is compliant or not compliant with the policy.  The results are updated in the
 // policy's Status information.
 func addRelatedObjects(policy *policyv1.ConfigurationPolicy, compliant bool, rsrc schema.GroupVersionResource,
-	namespace string, namespaced bool, objNames []string, reason string) (relatedObjects []policyv1.RelatedObject) {
-
+	namespace string, namespaced bool, objNames []string, reason string) (relatedObjects []policyv1.RelatedObject,
+) {
 	for _, name := range objNames {
 		// Initialize the related object from the object handling
 		var relatedObject policyv1.RelatedObject
@@ -70,8 +71,8 @@ func updateRelatedObjectsStatus(list []policyv1.RelatedObject,
 	return list
 }
 
-//equalObjWithSort is a wrapper function that calls the correct function to check equality depending on what
-//type the objects to compare are
+// equalObjWithSort is a wrapper function that calls the correct function to check equality depending on what
+// type the objects to compare are
 func equalObjWithSort(mergedObj interface{}, oldObj interface{}) (areEqual bool) {
 	switch mergedObj := mergedObj.(type) {
 	case (map[string]interface{}):
@@ -90,10 +91,10 @@ func equalObjWithSort(mergedObj interface{}, oldObj interface{}) (areEqual bool)
 	return true
 }
 
-//checFieldsWithSort is a check for maps that uses an arbitrary sort to ensure it is
-//comparing the right values
+// checFieldsWithSort is a check for maps that uses an arbitrary sort to ensure it is
+// comparing the right values
 func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]interface{}) (matches bool) {
-	//needed to compare lists, since merge messes up the order
+	// needed to compare lists, since merge messes up the order
 	if len(mergedObj) < len(oldObj) {
 		return false
 	}
@@ -101,7 +102,7 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 	for i, mVal := range mergedObj {
 		switch mVal := mVal.(type) {
 		case (map[string]interface{}):
-			//if field is a map, recurse to check for a match
+			// if field is a map, recurse to check for a match
 			oVal, ok := oldObj[i].(map[string]interface{})
 			if !ok {
 				match = false
@@ -110,7 +111,7 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 				match = false
 			}
 		case ([]map[string]interface{}):
-			//if field is a list of maps, use checkListFieldsWithSort to check for a match
+			// if field is a list of maps, use checkListFieldsWithSort to check for a match
 			oVal, ok := oldObj[i].([]map[string]interface{})
 			if !ok {
 				match = false
@@ -119,7 +120,7 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 				match = false
 			}
 		case ([]interface{}):
-			//if field is a generic list, sort and iterate through them to make sure each value matches
+			// if field is a generic list, sort and iterate through them to make sure each value matches
 			oVal, ok := oldObj[i].([]interface{})
 			if !ok {
 				match = false
@@ -133,16 +134,16 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 				}
 			}
 		case string:
-			//extra check to see if value is a byte value
+			// extra check to see if value is a byte value
 			mQty, err := apiRes.ParseQuantity(mVal)
 			if err != nil {
-				//if the value is a regular string, check equality normally
+				// if the value is a regular string, check equality normally
 				oVal := oldObj[i]
 				if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
 					match = false
 				}
 			} else {
-				//if the value is a quantity of bytes, convert original
+				// if the value is a quantity of bytes, convert original
 				oQty, err := apiRes.ParseQuantity(mVal)
 				if err != nil {
 					match = false
@@ -153,7 +154,7 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 				}
 			}
 		default:
-			//if field is not an object, just do a basic compare to check for a match
+			// if field is not an object, just do a basic compare to check for a match
 			oVal := oldObj[i]
 			if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
 				match = false
@@ -163,8 +164,8 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 	return match
 }
 
-//checkListFieldsWithSort is a check for lists of maps that uses an arbitrary sort to ensure it is
-//comparing the right values
+// checkListFieldsWithSort is a check for lists of maps that uses an arbitrary sort to ensure it is
+// comparing the right values
 func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[string]interface{}) (matches bool) {
 	sort.Slice(oldObj, func(i, j int) bool {
 		return fmt.Sprintf("%v", oldObj[i]) < fmt.Sprintf("%v", oldObj[j])
@@ -173,14 +174,14 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 		return fmt.Sprintf("%v", mergedObj[x]) < fmt.Sprintf("%v", mergedObj[y])
 	})
 
-	//needed to compare lists, since merge messes up the order
+	// needed to compare lists, since merge messes up the order
 	match := true
 	for listIdx, mergedItem := range mergedObj {
 		oldItem := oldObj[listIdx]
 		for i, mVal := range mergedItem {
 			switch mVal := mVal.(type) {
 			case ([]interface{}):
-				//if a map in the list contains a nested list, sort and check for equality
+				// if a map in the list contains a nested list, sort and check for equality
 				oVal, ok := oldItem[i].([]interface{})
 				if !ok {
 					match = false
@@ -194,21 +195,21 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 					}
 				}
 			case (map[string]interface{}):
-				//if a map in the list contains another map, check fields for equality
+				// if a map in the list contains another map, check fields for equality
 				if !checkFieldsWithSort(mVal, oldItem[i].(map[string]interface{})) {
 					match = false
 				}
 			case string:
-				//extra check to see if value is a byte value
+				// extra check to see if value is a byte value
 				mQty, err := apiRes.ParseQuantity(mVal)
 				if err != nil {
-					//if the value is a regular string, check equality normally
+					// if the value is a regular string, check equality normally
 					oVal := oldItem[i]
 					if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
 						match = false
 					}
 				} else {
-					//if the value is a quantity of bytes, convert original
+					// if the value is a quantity of bytes, convert original
 					oQty, err := apiRes.ParseQuantity(mVal)
 					if err != nil {
 						match = false
@@ -219,7 +220,7 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 					}
 				}
 			default:
-				//if the field in the map is not an object, just do a generic check
+				// if the field in the map is not an object, just do a generic check
 				oVal := oldItem[i]
 				if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
 					match = false
@@ -230,7 +231,7 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 	return match
 }
 
-//checkListsMatch is a generic list check that uses an arbitrary sort to ensure it is comparing the right values
+// checkListsMatch is a generic list check that uses an arbitrary sort to ensure it is comparing the right values
 func checkListsMatch(oldVal []interface{}, mergedVal []interface{}) (m bool) {
 	oVal := append([]interface{}{}, oldVal...)
 	mVal := append([]interface{}{}, mergedVal...)
@@ -250,12 +251,12 @@ func checkListsMatch(oldVal []interface{}, mergedVal []interface{}) (m bool) {
 	for idx, oNestedVal := range oVal {
 		switch oNestedVal := oNestedVal.(type) {
 		case (map[string]interface{}):
-			//if list contains maps, recurse on those maps to check for a match
+			// if list contains maps, recurse on those maps to check for a match
 			if !checkFieldsWithSort(mVal[idx].(map[string]interface{}), oNestedVal) {
 				match = false
 			}
 		default:
-			//otherwise, just do a generic check
+			// otherwise, just do a generic check
 			if fmt.Sprint(oNestedVal) != fmt.Sprint(mVal[idx]) {
 				match = false
 			}
@@ -384,7 +385,7 @@ func createResourceNameStr(names []string, namespace string, namespaced bool) (n
 	return nameStr
 }
 
-//createMustHaveStatus generates a status for a musthave/mustonlyhave policy
+// createMustHaveStatus generates a status for a musthave/mustonlyhave policy
 func createMustHaveStatus(desiredName string, kind string, complianceObjects map[string]map[string]interface{},
 	namespaced bool, plc *policyv1.ConfigurationPolicy, indx int, compliant bool) (update bool) {
 	// Parse discovered resources
@@ -433,7 +434,7 @@ func createMustHaveStatus(desiredName string, kind string, complianceObjects map
 	return createViolation(plc, indx, "K8s does not have a `must have` object", message)
 }
 
-//createMustNotHaveStatus generates a status for a mustnothave policy
+// createMustNotHaveStatus generates a status for a mustnothave policy
 func createMustNotHaveStatus(kind string, complianceObjects map[string]map[string]interface{},
 	namespaced bool, plc *policyv1.ConfigurationPolicy, indx int, compliant bool) (update bool) {
 	nameList := []string{}

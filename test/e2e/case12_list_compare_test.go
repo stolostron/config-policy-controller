@@ -8,56 +8,73 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case12ConfigPolicyNameInform string = "policy-pod-mh-listinform"
-const case12ConfigPolicyNameEnforce string = "policy-pod-create-listinspec"
-const case12InformYaml string = "../resources/case12_list_compare/case12_pod_inform.yaml"
-const case12EnforceYaml string = "../resources/case12_list_compare/case12_pod_create.yaml"
+const (
+	case12ConfigPolicyNameInform  string = "policy-pod-mh-listinform"
+	case12ConfigPolicyNameEnforce string = "policy-pod-create-listinspec"
+	case12InformYaml              string = "../resources/case12_list_compare/case12_pod_inform.yaml"
+	case12EnforceYaml             string = "../resources/case12_list_compare/case12_pod_create.yaml"
+)
 
-const case12ConfigPolicyNameRoleInform string = "policy-role-mh-listinform"
-const case12ConfigPolicyNameRoleEnforce string = "policy-role-create-listinspec"
-const case12RoleInformYaml string = "../resources/case12_list_compare/case12_role_inform.yaml"
-const case12RoleEnforceYaml string = "../resources/case12_list_compare/case12_role_create.yaml"
+const (
+	case12ConfigPolicyNameRoleInform  string = "policy-role-mh-listinform"
+	case12ConfigPolicyNameRoleEnforce string = "policy-role-create-listinspec"
+	case12RoleInformYaml              string = "../resources/case12_list_compare/case12_role_inform.yaml"
+	case12RoleEnforceYaml             string = "../resources/case12_list_compare/case12_role_create.yaml"
+)
 
-const case12RoleToPatch string = "topatch-role-configpolicy"
-const case12RoleToPatchYaml string = "../resources/case12_list_compare/case12_role_create_small.yaml"
-const case12RolePatchEnforce string = "patch-role-configpolicy"
-const case12RolePatchEnforceYaml string = "../resources/case12_list_compare/case12_role_patch.yaml"
-const case12RolePatchInform string = "patch-role-configpolicy-inform"
-const case12RolePatchInformYaml string = "../resources/case12_list_compare/case12_role_patch_inform.yaml"
+const (
+	case12RoleToPatch          string = "topatch-role-configpolicy"
+	case12RoleToPatchYaml      string = "../resources/case12_list_compare/case12_role_create_small.yaml"
+	case12RolePatchEnforce     string = "patch-role-configpolicy"
+	case12RolePatchEnforceYaml string = "../resources/case12_list_compare/case12_role_patch.yaml"
+	case12RolePatchInform      string = "patch-role-configpolicy-inform"
+	case12RolePatchInformYaml  string = "../resources/case12_list_compare/case12_role_patch_inform.yaml"
+)
 
-const case12OauthCreate string = "policy-idp-create"
-const case12OauthPatch string = "policy-idp-patch"
-const case12OauthVerify string = "policy-idp-verify"
-const case12OauthCreateYaml string = "../resources/case12_list_compare/case12_oauth_create.yaml"
-const case12OauthPatchYaml string = "../resources/case12_list_compare/case12_oauth_patch.yaml"
-const case12OauthVerifyYaml string = "../resources/case12_list_compare/case12_oauth_verify.yaml"
+const (
+	case12OauthCreate     string = "policy-idp-create"
+	case12OauthPatch      string = "policy-idp-patch"
+	case12OauthVerify     string = "policy-idp-verify"
+	case12OauthCreateYaml string = "../resources/case12_list_compare/case12_oauth_create.yaml"
+	case12OauthPatchYaml  string = "../resources/case12_list_compare/case12_oauth_patch.yaml"
+	case12OauthVerifyYaml string = "../resources/case12_list_compare/case12_oauth_verify.yaml"
+)
 
-const case12SingleItemListCreate string = "policy-htpasswd-single"
-const case12SingleItemListPatch string = "policy-htpasswd-single"
-const case12SingleItemListInform string = "policy-htpasswd-single-inform"
-const case12SingleItemListCreateYaml string = "../resources/case12_list_compare/case12_oauth_single_create.yaml"
-const case12SingleItemListPatchYaml string = "../resources/case12_list_compare/case12_oauth_single_patch.yaml"
-const case12SingleItemListInformYaml string = "../resources/case12_list_compare/case12_oauth_single_inform.yaml"
+const (
+	case12SingleItemListCreate     string = "policy-htpasswd-single"
+	case12SingleItemListPatch      string = "policy-htpasswd-single"
+	case12SingleItemListInform     string = "policy-htpasswd-single-inform"
+	case12SingleItemListCreateYaml string = "../resources/case12_list_compare/case12_oauth_single_create.yaml"
+	case12SingleItemListPatchYaml  string = "../resources/case12_list_compare/case12_oauth_single_patch.yaml"
+	case12SingleItemListInformYaml string = "../resources/case12_list_compare/case12_oauth_single_inform.yaml"
+)
 
-const case12SmallerListExistingCreate string = "policy-htpasswd-less"
-const case12SmallerListExistingPatch string = "policy-htpasswd-less"
-const case12SmallerListExistingInform string = "policy-htpasswd-less-inform"
-const case12SmallerListExistingCreateYaml string = "../resources/case12_list_compare/case12_oauth_less_create.yaml"
-const case12SmallerListExistingPatchYaml string = "../resources/case12_list_compare/case12_oauth_less_patch.yaml"
-const case12SmallerListExistingInformYaml string = "../resources/case12_list_compare/case12_oauth_less_inform.yaml"
+const (
+	case12SmallerListExistingCreate     string = "policy-htpasswd-less"
+	case12SmallerListExistingPatch      string = "policy-htpasswd-less"
+	case12SmallerListExistingInform     string = "policy-htpasswd-less-inform"
+	case12SmallerListExistingCreateYaml string = "../resources/case12_list_compare/case12_oauth_less_create.yaml"
+	case12SmallerListExistingPatchYaml  string = "../resources/case12_list_compare/case12_oauth_less_patch.yaml"
+	case12SmallerListExistingInformYaml string = "../resources/case12_list_compare/case12_oauth_less_inform.yaml"
+)
 
-const case12WhitespaceListCreate string = "policy-pod-whitespace-env"
-const case12WhitespaceListInform string = "policy-pod-whitespace-env-inform"
-const case12WhitespaceListCreateYaml string = "../resources/case12_list_compare/case12_whitespace_create.yaml"
-const case12WhitespaceDeployment string = "envvar-whitespace"
+const (
+	case12WhitespaceListCreate     string = "policy-pod-whitespace-env"
+	case12WhitespaceListInform     string = "policy-pod-whitespace-env-inform"
+	case12WhitespaceListCreateYaml string = "../resources/case12_list_compare/case12_whitespace_create.yaml"
+	case12WhitespaceDeployment     string = "envvar-whitespace"
+)
 
-const case12ByteCreate string = "policy-byte-create"
-const case12ByteCreateYaml string = "../resources/case12_list_compare/case12_byte_create.yaml"
-const case12ByteInform string = "policy-byte-inform"
-const case12ByteInformYaml string = "../resources/case12_list_compare/case12_byte_inform.yaml"
+const (
+	case12ByteCreate     string = "policy-byte-create"
+	case12ByteCreateYaml string = "../resources/case12_list_compare/case12_byte_create.yaml"
+	case12ByteInform     string = "policy-byte-inform"
+	case12ByteInformYaml string = "../resources/case12_list_compare/case12_byte_inform.yaml"
+)
 
 var _ = Describe("Test list handling for musthave", func() {
 	Describe("Create a policy with a nested list on managed cluster in ns:"+testNamespace, func() {

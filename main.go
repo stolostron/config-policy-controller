@@ -11,14 +11,15 @@ import (
 	"runtime"
 	"strings"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
+	"github.com/open-cluster-management/addon-framework/pkg/lease"
+	"github.com/spf13/pflag"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
+	// to ensure that exec-entrypoint and run can make use of them.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -26,14 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/open-cluster-management/addon-framework/pkg/lease"
-	"github.com/spf13/pflag"
-
 	policyv1 "github.com/open-cluster-management/config-policy-controller/api/v1"
 	"github.com/open-cluster-management/config-policy-controller/controllers"
 	"github.com/open-cluster-management/config-policy-controller/pkg/common"
 	"github.com/open-cluster-management/config-policy-controller/version"
-	//+kubebuilder:scaffold:imports
 )
 
 // Change below variables to serve metrics on different host or port.
@@ -54,7 +51,6 @@ func init() {
 
 	utilruntime.Must(policyv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
-
 }
 
 func main() {
@@ -182,7 +178,7 @@ func main() {
 				operatorNs,
 			)
 
-			//set hubCfg on lease updated if found
+			// set hubCfg on lease updated if found
 			hubCfg, err := common.LoadHubConfig(hubConfigSecretNs, hubConfigSecretName)
 			if err != nil {
 				log.Error(err, "Could not load hub config, lease updater not set with config")

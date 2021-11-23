@@ -12,7 +12,7 @@ import (
 //=================================================================
 // GetSelectedNamespaces returns the list of filtered namespaces according to the policy namespace selector
 func GetSelectedNamespaces(included, excluded, allNamespaces []string) []string {
-	//then get the list of included
+	// then get the list of included
 	includedNamespaces := []string{}
 	for _, value := range included {
 		found := FindPattern(value, allNamespaces)
@@ -20,7 +20,7 @@ func GetSelectedNamespaces(included, excluded, allNamespaces []string) []string 
 			includedNamespaces = append(includedNamespaces, found...)
 		}
 	}
-	//then get the list of excluded
+	// then get the list of excluded
 	excludedNamespaces := []string{}
 	for _, value := range excluded {
 		found := FindPattern(value, allNamespaces)
@@ -28,7 +28,7 @@ func GetSelectedNamespaces(included, excluded, allNamespaces []string) []string 
 			excludedNamespaces = append(excludedNamespaces, found...)
 		}
 	}
-	//then get the list of deduplicated
+	// then get the list of deduplicated
 	finalList := DeduplicateItems(includedNamespaces, excludedNamespaces)
 	return finalList
 }

@@ -6,24 +6,27 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case1ConfigPolicyNameInform string = "policy-pod-create-inform"
-const case1ConfigPolicyNameEnforce string = "policy-pod-create"
-const case1PodName string = "nginx-pod-e2e"
-const case1PodNameEmpty string = "nginx-pod-e2e-empty"
-const case1PolicyYamlInform string = "../resources/case1_pod_handling/case1_pod_create_inform.yaml"
-const case1PolicyYamlEnforce string = "../resources/case1_pod_handling/case1_pod_create_enforce.yaml"
-const case1PolicyCheckMNHYaml string = "../resources/case1_pod_handling/case1_pod_check-mnh.yaml"
-const case1PolicyCheckMOHYaml string = "../resources/case1_pod_handling/case1_pod_check-moh.yaml"
-const case1PolicyCheckMHYaml string = "../resources/case1_pod_handling/case1_pod_check-mh.yaml"
-const case1PolicyYamlEnforceEmpty string = "../resources/case1_pod_handling/case1_pod_create_empty_list.yaml"
-const case1PolicyYamlInformEmpty string = "../resources/case1_pod_handling/case1_pod_check_empty_list.yaml"
-const case1PolicyCheckMNHIncompleteYaml string = "../resources/case1_pod_handling/case1_pod_check-mnh-incomplete.yaml"
-const case1PolicyYamlMultipleCreate string = "../resources/case1_pod_handling/case1_pod_create_multiple.yaml"
-const case1PolicyYamlMultipleCheckMH string = "../resources/case1_pod_handling/case1_pod_check_multiple_mh.yaml"
-const case1PolicyYamlMultipleCheckMOH string = "../resources/case1_pod_handling/case1_pod_check_multiple_moh.yaml"
+const (
+	case1ConfigPolicyNameInform       string = "policy-pod-create-inform"
+	case1ConfigPolicyNameEnforce      string = "policy-pod-create"
+	case1PodName                      string = "nginx-pod-e2e"
+	case1PodNameEmpty                 string = "nginx-pod-e2e-empty"
+	case1PolicyYamlInform             string = "../resources/case1_pod_handling/case1_pod_create_inform.yaml"
+	case1PolicyYamlEnforce            string = "../resources/case1_pod_handling/case1_pod_create_enforce.yaml"
+	case1PolicyCheckMNHYaml           string = "../resources/case1_pod_handling/case1_pod_check-mnh.yaml"
+	case1PolicyCheckMOHYaml           string = "../resources/case1_pod_handling/case1_pod_check-moh.yaml"
+	case1PolicyCheckMHYaml            string = "../resources/case1_pod_handling/case1_pod_check-mh.yaml"
+	case1PolicyYamlEnforceEmpty       string = "../resources/case1_pod_handling/case1_pod_create_empty_list.yaml"
+	case1PolicyYamlInformEmpty        string = "../resources/case1_pod_handling/case1_pod_check_empty_list.yaml"
+	case1PolicyCheckMNHIncompleteYaml string = "../resources/case1_pod_handling/case1_pod_check-mnh-incomplete.yaml"
+	case1PolicyYamlMultipleCreate     string = "../resources/case1_pod_handling/case1_pod_create_multiple.yaml"
+	case1PolicyYamlMultipleCheckMH    string = "../resources/case1_pod_handling/case1_pod_check_multiple_mh.yaml"
+	case1PolicyYamlMultipleCheckMOH   string = "../resources/case1_pod_handling/case1_pod_check_multiple_moh.yaml"
+)
 
 var _ = Describe("Test pod obj template handling", func() {
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, func() {

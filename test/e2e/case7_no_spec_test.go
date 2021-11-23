@@ -8,19 +8,22 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/config-policy-controller/test/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case7ConfigPolicyName string = "policy-securitycontextconstraints-1-sample-restricted-scc"
-const case7ObjName string = "sample-restricted-scc"
-const case7PolicyYaml string = "../resources/case7_no_spec/case7_no_spec_enforce.yaml"
-const case7ConfigPolicyNameNull string = "policy-securitycontextconstraints-1-sample-restricted-scc-null"
-const case7PolicyYamlNull string = "../resources/case7_no_spec/case7_no_spec_enforce_null.yaml"
-const case7ConfigPolicyNameInvalid string = "policy-securitycontextconstraints-1-sample-restricted-scc-invalid"
-const case7PolicyYamlInvalid string = "../resources/case7_no_spec/case7_no_spec_invalid_type.yaml"
-const case7ConfigPolicyNameInvalidInform string = "policy-securitycontextconstraints-1-sample-restricted-scc-invalid-inform"
-const case7PolicyYamlInvalidInform string = "../resources/case7_no_spec/case7_no_spec_invalid_type_inform.yaml"
+const (
+	case7ConfigPolicyName              string = "policy-securitycontextconstraints-1-sample-restricted-scc"
+	case7ObjName                       string = "sample-restricted-scc"
+	case7PolicyYaml                    string = "../resources/case7_no_spec/case7_no_spec_enforce.yaml"
+	case7ConfigPolicyNameNull          string = "policy-securitycontextconstraints-1-sample-restricted-scc-null"
+	case7PolicyYamlNull                string = "../resources/case7_no_spec/case7_no_spec_enforce_null.yaml"
+	case7ConfigPolicyNameInvalid       string = "policy-securitycontextconstraints-1-sample-restricted-scc-invalid"
+	case7PolicyYamlInvalid             string = "../resources/case7_no_spec/case7_no_spec_invalid_type.yaml"
+	case7ConfigPolicyNameInvalidInform string = "policy-securitycontextconstraints-1-sample-restricted-scc-invalid-inform"
+	case7PolicyYamlInvalidInform       string = "../resources/case7_no_spec/case7_no_spec_invalid_type_inform.yaml"
+)
 
 var expectedObj = map[string]interface{}{
 	"allowHostDirVolumePlugin": false,

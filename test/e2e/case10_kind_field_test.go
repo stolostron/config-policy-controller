@@ -6,15 +6,18 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case10ConfigPolicyNamePod string = "policy-pod-c10-create"
-const case10ConfigPolicyNameCheck string = "policy-kind-labels"
-const case10ConfigPolicyNameFail string = "policy-kind-labels-fail"
-const case10PolicyYamlPod string = "../resources/case10_kind_field/case10_pod_create.yaml"
-const case10PolicyYamlCheck string = "../resources/case10_kind_field/case10_kind_check.yaml"
-const case10PolicyYamlFail string = "../resources/case10_kind_field/case10_kind_fail.yaml"
+const (
+	case10ConfigPolicyNamePod   string = "policy-pod-c10-create"
+	case10ConfigPolicyNameCheck string = "policy-kind-labels"
+	case10ConfigPolicyNameFail  string = "policy-kind-labels-fail"
+	case10PolicyYamlPod         string = "../resources/case10_kind_field/case10_pod_create.yaml"
+	case10PolicyYamlCheck       string = "../resources/case10_kind_field/case10_kind_check.yaml"
+	case10PolicyYamlFail        string = "../resources/case10_kind_field/case10_kind_fail.yaml"
+)
 
 var _ = Describe("Test pod obj template handling", func() {
 	Describe("Create a pod policy on managed cluster in ns:"+testNamespace, func() {

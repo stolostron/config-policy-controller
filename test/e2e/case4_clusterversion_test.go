@@ -6,15 +6,18 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/open-cluster-management/config-policy-controller/test/utils"
 )
 
-const case4ConfigPolicyName string = "openshift-upgrade-channel-e2e"
-const case4PolicyYaml string = "../resources/case4_clusterversion/case4_clusterversion_create.yaml"
-const case4ConfigPolicyNameInform string = "openshift-upgrade-channel-inform"
-const case4PolicyYamlInform string = "../resources/case4_clusterversion/case4_clusterversion_inform.yaml"
-const case4ConfigPolicyNamePatch string = "openshift-upgrade-channel-patch"
-const case4PolicyYamlPatch string = "../resources/case4_clusterversion/case4_clusterversion_patch.yaml"
+const (
+	case4ConfigPolicyName       string = "openshift-upgrade-channel-e2e"
+	case4PolicyYaml             string = "../resources/case4_clusterversion/case4_clusterversion_create.yaml"
+	case4ConfigPolicyNameInform string = "openshift-upgrade-channel-inform"
+	case4PolicyYamlInform       string = "../resources/case4_clusterversion/case4_clusterversion_inform.yaml"
+	case4ConfigPolicyNamePatch  string = "openshift-upgrade-channel-patch"
+	case4PolicyYamlPatch        string = "../resources/case4_clusterversion/case4_clusterversion_patch.yaml"
+)
 
 var _ = Describe("Test cluster version obj template handling", func() {
 	Describe("enforce patch on unnamespaced resource clusterversion "+testNamespace, func() {

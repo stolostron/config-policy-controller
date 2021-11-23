@@ -13,7 +13,6 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	coretypes "k8s.io/api/core/v1"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -44,7 +43,7 @@ func TestCreateNamespace(t *testing.T) {
 		mgrStopped.Wait()
 	}()
 
-	//making sure the namespace created is accessible
+	// making sure the namespace created is accessible
 	name := "my-name"
 	instance := createNamespace(name)
 	depKey = types.NamespacedName{Name: name}
@@ -56,6 +55,7 @@ func TestCreateNamespace(t *testing.T) {
 	g.Eventually(func() error { return c.Get(context.TODO(), depKey, instance) }, timeout).
 		Should(gomega.Succeed())
 }
+
 func TestGetSelectedNamespaces(t *testing.T) {
 	// testing the actual logic
 	allNamespaces := []string{"default", "dev-accounting", "dev-HR", "dev-research", "kube-public", "kube-sys"}
@@ -76,20 +76,21 @@ func TestGetSelectedNamespaces(t *testing.T) {
 }
 
 func createNamespace(nsName string) *corev1.Namespace {
-	return &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
-		Name: nsName,
-	},
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nsName,
+		},
 	}
 }
 
 func TestGetAllNamespaces(t *testing.T) {
-	var typeMeta = metav1.TypeMeta{
+	typeMeta := metav1.TypeMeta{
 		Kind: "namespace",
 	}
-	var objMeta = metav1.ObjectMeta{
+	objMeta := metav1.ObjectMeta{
 		Name: "default",
 	}
-	var ns = coretypes.Namespace{
+	ns := coretypes.Namespace{
 		TypeMeta:   typeMeta,
 		ObjectMeta: objMeta,
 	}

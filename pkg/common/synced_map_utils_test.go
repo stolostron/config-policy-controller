@@ -7,8 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	policiesv1 "github.com/open-cluster-management/config-policy-controller/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	policiesv1 "github.com/open-cluster-management/config-policy-controller/api/v1"
 )
 
 /*
@@ -42,7 +43,7 @@ var sm = SyncedPolicyMap{
 	PolicyMap: make(map[string]*policiesv1.ConfigurationPolicy),
 }
 
-//TestGetObject testing get object in map
+// TestGetObject testing get object in map
 func TestGetObject(t *testing.T) {
 	_, found := sm.GetObject("void")
 	if found {
@@ -81,7 +82,7 @@ func TestRemoveDataObject(t *testing.T) {
 	if found {
 		t.Fatalf("expecting found = false, however found = %v", found)
 	}
-	//remove after adding
+	// remove after adding
 	sm.AddObject("default", plc)
 	sm.RemoveObject("default")
 	_, found = sm.GetObject("default")

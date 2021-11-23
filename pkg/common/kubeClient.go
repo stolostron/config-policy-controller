@@ -33,7 +33,6 @@ func LoadHubConfig(namespace string, secretname string) (*rest.Config, error) {
 
 		secretsClient := KubeClient.CoreV1().Secrets(namespace)
 		hubSecret, err := secretsClient.Get(context.TODO(), secretname, metav1.GetOptions{})
-
 		if err != nil {
 			return nil, err
 		}

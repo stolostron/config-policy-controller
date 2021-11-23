@@ -12,11 +12,12 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
-	apis "github.com/open-cluster-management/config-policy-controller/api/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	apis "github.com/open-cluster-management/config-policy-controller/api/v1"
 )
 
 var cfg *rest.Config
