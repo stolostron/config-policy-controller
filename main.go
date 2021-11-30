@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -161,17 +162,17 @@ func main() {
 	// resource objects.
 	if enableLease {
 		operatorNs, err := common.GetOperatorNamespace()
-		log.V(2).Info("Got operator namespace", "Namespace", operatorNs)
 		if err != nil {
-			if err == common.ErrNoNamespace || err == common.ErrRunLocal {
+			if errors.Is(err, common.ErrNoNamespace) || errors.Is(err, common.ErrRunLocal) {
 				log.Info("Skipping lease; not running in a cluster")
 			} else {
 				log.Error(err, "Failed to get operator namespace")
 				os.Exit(1)
 			}
 		} else {
-
+			log.V(2).Info("Got operator namespace", "Namespace", operatorNs)
 			log.Info("Starting lease controller to report status")
+
 			leaseUpdater := lease.NewLeaseUpdater(
 				clientset,
 				"config-policy-controller",
