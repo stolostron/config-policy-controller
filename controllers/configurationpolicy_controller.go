@@ -238,8 +238,11 @@ func (r *ConfigurationPolicyReconciler) PeriodicallyExecConfigPolicies(freq uint
 }
 
 // handleObjectTemplates iterates through all policy templates in a given policy and processes them
-func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.ConfigurationPolicy, apiresourcelist []*metav1.APIResourceList,
-	apigroups []*restmapper.APIGroupResources) {
+func (r *ConfigurationPolicyReconciler) handleObjectTemplates(
+	plc policyv1.ConfigurationPolicy,
+	apiresourcelist []*metav1.APIResourceList,
+	apigroups []*restmapper.APIGroupResources,
+) {
 	log.V(1).Info("Processing object templates", "policy", plc.GetName())
 
 	// error if no remediationAction is specified
@@ -457,8 +460,9 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 }
 
 // checks related objects field and triggers an update on the configurationpolicy if it has changed
-func (r *ConfigurationPolicyReconciler) checkRelatedAndUpdate(update bool, plc policyv1.ConfigurationPolicy, related,
-	oldRelated []policyv1.RelatedObject) {
+func (r *ConfigurationPolicyReconciler) checkRelatedAndUpdate(
+	update bool, plc policyv1.ConfigurationPolicy, related, oldRelated []policyv1.RelatedObject,
+) {
 	sortUpdate := sortRelatedObjectsAndUpdate(&plc, related, oldRelated)
 	if update || sortUpdate {
 		r.addForUpdate(&plc)
@@ -466,8 +470,9 @@ func (r *ConfigurationPolicyReconciler) checkRelatedAndUpdate(update bool, plc p
 }
 
 // helper function to check whether related objects has changed
-func sortRelatedObjectsAndUpdate(plc *policyv1.ConfigurationPolicy, related,
-	oldRelated []policyv1.RelatedObject) (updateNeeded bool) {
+func sortRelatedObjectsAndUpdate(
+	plc *policyv1.ConfigurationPolicy, related, oldRelated []policyv1.RelatedObject,
+) (updateNeeded bool) {
 	sort.SliceStable(related, func(i, j int) bool {
 		if related[i].Object.Kind != related[j].Object.Kind {
 			return related[i].Object.Kind < related[j].Object.Kind
@@ -499,8 +504,9 @@ func sortRelatedObjectsAndUpdate(plc *policyv1.ConfigurationPolicy, related,
 }
 
 // helper function that appends a condition (violation or compliant) to the status of a configurationpolicy
-func addConditionToStatus(plc *policyv1.ConfigurationPolicy, cond *policyv1.Condition, index int,
-	complianceState policyv1.ComplianceState) (updateNeeded bool) {
+func addConditionToStatus(
+	plc *policyv1.ConfigurationPolicy, cond *policyv1.Condition, index int, complianceState policyv1.ComplianceState,
+) (updateNeeded bool) {
 	var update bool
 	if len((*plc).Status.CompliancyDetails) <= index {
 		(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
@@ -551,9 +557,15 @@ func createNotification(plc *policyv1.ConfigurationPolicy, index int, reason str
 
 // createInformStatus updates the status field for a configurationpolicy with remediationAction=inform
 // based on how many compliant/noncompliant objects are found when processing the templates in the configurationpolicy
-func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
-	compliantObjects map[string]map[string]interface{}, nonCompliantObjects map[string]map[string]interface{},
-	plc *policyv1.ConfigurationPolicy, objData map[string]interface{}) (updateNeeded bool) {
+func createInformStatus(
+	mustNotHave bool,
+	numCompliant,
+	numNonCompliant int,
+	compliantObjects,
+	nonCompliantObjects map[string]map[string]interface{},
+	plc *policyv1.ConfigurationPolicy,
+	objData map[string]interface{},
+) (updateNeeded bool) {
 	update := false
 	compliant := false
 
@@ -756,11 +768,18 @@ func generateSingleObjReason(objShouldExist bool, compliant bool, exists bool) (
 	return reason
 }
 
-// handleSingleObj takes in an object template (for a named object) and its data and determines whether the object on the cluster
-// is compliant or not
-func (r *ConfigurationPolicyReconciler) handleSingleObj(policy *policyv1.ConfigurationPolicy, remediation policyv1.RemediationAction, exists bool,
-	objShouldExist bool, rsrc schema.GroupVersionResource, dclient dynamic.Interface, objectT *policyv1.ObjectTemplate,
-	data map[string]interface{}) (objNameList []string, compliance bool, rsrcKind string, shouldUpdate bool) {
+// handleSingleObj takes in an object template (for a named object) and its data and determines whether
+// the object on the cluster is compliant or not
+func (r *ConfigurationPolicyReconciler) handleSingleObj(
+	policy *policyv1.ConfigurationPolicy,
+	remediation policyv1.RemediationAction,
+	exists,
+	objShouldExist bool,
+	rsrc schema.GroupVersionResource,
+	dclient dynamic.Interface,
+	objectT *policyv1.ObjectTemplate,
+	data map[string]interface{},
+) (objNameList []string, compliance bool, rsrcKind string, shouldUpdate bool) {
 	var err error
 	var compliant bool
 
@@ -873,8 +892,10 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(policy *policyv1.Configu
 
 // getResourceAndDynamicClient creates a dynamic client to query resources and pulls the groupVersionResource
 // for an object from its mapping, as well as checking whether the resource is namespaced or cluster-level
-func getResourceAndDynamicClient(mapping *meta.RESTMapping, apiresourcelist []*metav1.APIResourceList) (dclient dynamic.Interface,
-	rsrc schema.GroupVersionResource, namespaced bool) {
+func getResourceAndDynamicClient(
+	mapping *meta.RESTMapping,
+	apiresourcelist []*metav1.APIResourceList,
+) (dclient dynamic.Interface, rsrc schema.GroupVersionResource, namespaced bool) {
 	namespaced = false
 	restconfig := config
 	restconfig.GroupVersion = &schema.GroupVersion{
@@ -906,8 +927,12 @@ func getResourceAndDynamicClient(mapping *meta.RESTMapping, apiresourcelist []*m
 }
 
 // getMapping takes in a raw object, decodes it, and maps it to an existing group/kind
-func (r *ConfigurationPolicyReconciler) getMapping(apigroups []*restmapper.APIGroupResources, ext runtime.RawExtension,
-	policy *policyv1.ConfigurationPolicy, index int) (mapping *meta.RESTMapping, update bool) {
+func (r *ConfigurationPolicyReconciler) getMapping(
+	apigroups []*restmapper.APIGroupResources,
+	ext runtime.RawExtension,
+	policy *policyv1.ConfigurationPolicy,
+	index int,
+) (mapping *meta.RESTMapping, update bool) {
 	log.V(2).Info("Got raw object", "ext.Raw", string(ext.Raw))
 
 	updateNeeded := false
@@ -1033,8 +1058,9 @@ func getDetails(unstruct unstructured.Unstructured) (name string, kind string, n
 }
 
 // buildNameList is a helper function to pull names of resources that match an objectTemplate from a list of resources
-func buildNameList(unstruct unstructured.Unstructured, complianceType string,
-	resList *unstructured.UnstructuredList) (kindNameList []string) {
+func buildNameList(
+	unstruct unstructured.Unstructured, complianceType string, resList *unstructured.UnstructuredList,
+) (kindNameList []string) {
 	for i := range resList.Items {
 		uObj := resList.Items[i]
 		match := true
@@ -1060,8 +1086,14 @@ func buildNameList(unstruct unstructured.Unstructured, complianceType string,
 
 // getNamesOfKind returns an array with names of all of the resources found
 // matching the GVK specified.
-func getNamesOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersionResource,
-	namespaced bool, ns string, dclient dynamic.Interface, complianceType string) (kindNameList []string) {
+func getNamesOfKind(
+	unstruct unstructured.Unstructured,
+	rsrc schema.GroupVersionResource,
+	namespaced bool,
+	ns string,
+	dclient dynamic.Interface,
+	complianceType string,
+) (kindNameList []string) {
 	if namespaced {
 		res := dclient.Resource(rsrc).Namespace(ns)
 
@@ -1087,9 +1119,13 @@ func getNamesOfKind(unstruct unstructured.Unstructured, rsrc schema.GroupVersion
 	return buildNameList(unstruct, complianceType, resList)
 }
 
-func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.RemediationAction,
-	rsrc schema.GroupVersionResource, dclient dynamic.Interface,
-	metadata map[string]interface{}) (result bool, erro error) {
+func handleExistsMustNotHave(
+	plc *policyv1.ConfigurationPolicy,
+	action policyv1.RemediationAction,
+	rsrc schema.GroupVersionResource,
+	dclient dynamic.Interface,
+	metadata map[string]interface{},
+) (result bool, erro error) {
 	log.V(2).Info("Entering `exists` & `must not have`")
 
 	//nolint:forcetypeassert
@@ -1118,9 +1154,13 @@ func handleExistsMustNotHave(plc *policyv1.ConfigurationPolicy, action policyv1.
 	return update, err
 }
 
-func handleMissingMustHave(plc *policyv1.ConfigurationPolicy, action policyv1.RemediationAction,
-	rsrc schema.GroupVersionResource, dclient dynamic.Interface,
-	metadata map[string]interface{}) (result bool, erro error) {
+func handleMissingMustHave(
+	plc *policyv1.ConfigurationPolicy,
+	action policyv1.RemediationAction,
+	rsrc schema.GroupVersionResource,
+	dclient dynamic.Interface,
+	metadata map[string]interface{},
+) (result bool, erro error) {
 	log.V(2).Info("entering `does not exists` & `must have`")
 
 	//nolint:forcetypeassert
@@ -1222,8 +1262,13 @@ func checkMessageSimilarity(conditions []policyv1.Condition, cond *policyv1.Cond
 }
 
 // objectExists gets object with dynamic client, returns true if the object is found
-func objectExists(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
-	dclient dynamic.Interface) (result bool) {
+func objectExists(
+	namespaced bool,
+	namespace string,
+	name string,
+	rsrc schema.GroupVersionResource,
+	dclient dynamic.Interface,
+) (result bool) {
 	objLog := log.WithValues("name", name, "namespaced", namespaced, "namespace", namespace)
 	objLog.V(2).Info("Entered objectExists")
 
@@ -1250,8 +1295,14 @@ func objectExists(namespaced bool, namespace string, name string, rsrc schema.Gr
 	return true
 }
 
-func createObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
-	unstruct unstructured.Unstructured, dclient dynamic.Interface) (created bool, err error) {
+func createObject(
+	namespaced bool,
+	namespace string,
+	name string,
+	rsrc schema.GroupVersionResource,
+	unstruct unstructured.Unstructured,
+	dclient dynamic.Interface,
+) (created bool, err error) {
 	objLog := log.WithValues("name", name, "namespaced", namespaced, "namespace", namespace)
 	objLog.V(2).Info("Entered createObject", "unstruct", unstruct)
 
@@ -1280,8 +1331,9 @@ func createObject(namespaced bool, namespace string, name string, rsrc schema.Gr
 	return true, nil
 }
 
-func deleteObject(namespaced bool, namespace string, name string, rsrc schema.GroupVersionResource,
-	dclient dynamic.Interface) (deleted bool, err error) {
+func deleteObject(
+	namespaced bool, namespace, name string, rsrc schema.GroupVersionResource, dclient dynamic.Interface,
+) (deleted bool, err error) {
 	objLog := log.WithValues("name", name, "namespaced", namespaced, "namespace", namespace)
 	objLog.V(2).Info("Entered deleteObject")
 
@@ -1504,8 +1556,9 @@ func compareLists(newList []interface{}, oldList []interface{}, ctype string) (u
 
 // compareSpecs is a wrapper function that creates a merged map for mustHave
 // and returns the template map for mustonlyhave
-func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{},
-	ctype string) (updatedSpec map[string]interface{}, err error) {
+func compareSpecs(
+	newSpec, oldSpec map[string]interface{}, ctype string,
+) (updatedSpec map[string]interface{}, err error) {
 	if ctype == "mustonlyhave" {
 		return newSpec, nil
 	}
@@ -1520,8 +1573,9 @@ func compareSpecs(newSpec map[string]interface{}, oldSpec map[string]interface{}
 
 // handleSingleKey checks whether a key/value pair in an object template matches with that in the existing
 // resource on the cluster
-func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
-	complianceType string) (errormsg string, update bool, merged interface{}, skip bool) {
+func handleSingleKey(
+	key string, unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured, complianceType string,
+) (errormsg string, update bool, merged interface{}, skip bool) {
 	var err error
 
 	updateNeeded := false
@@ -1594,10 +1648,15 @@ func handleSingleKey(key string, unstruct unstructured.Unstructured, existingObj
 // handleKeys is a helper function that calls handleSingleKey to check if each field in the template
 // matches the object. If it finds a mismatch and the remediationAction is enforce, it will update
 // the object with the data from the template
-func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Unstructured,
-	remediation policyv1.RemediationAction, complianceType string, typeStr string, name string,
-	res dynamic.ResourceInterface) (success bool, throwSpecViolation bool, message string,
-	processingErr bool) {
+func handleKeys(
+	unstruct unstructured.Unstructured,
+	existingObj *unstructured.Unstructured,
+	remediation policyv1.RemediationAction,
+	complianceType string,
+	typeStr string,
+	name string,
+	res dynamic.ResourceInterface,
+) (success bool, throwSpecViolation bool, message string, processingErr bool) {
 	var err error
 
 	for key := range unstruct.Object {
@@ -1662,9 +1721,7 @@ func checkAndUpdateResource(
 	rsrc schema.GroupVersionResource,
 	dclient dynamic.Interface,
 	typeStr string,
-) (
-	success bool, throwSpecViolation bool, message string, processingErr bool,
-) {
+) (success bool, throwSpecViolation bool, message string, processingErr bool) {
 	//nolint:forcetypeassert
 	name := metadata["name"].(string)
 	//nolint:forcetypeassert
@@ -1692,8 +1749,9 @@ func checkAndUpdateResource(
 }
 
 // AppendCondition check and appends conditions to the policy status
-func AppendCondition(conditions []policyv1.Condition, newCond *policyv1.Condition, resourceType string,
-	resolved ...bool) (conditionsRes []policyv1.Condition) {
+func AppendCondition(
+	conditions []policyv1.Condition, newCond *policyv1.Condition, resourceType string, resolved ...bool,
+) (conditionsRes []policyv1.Condition) {
 	defer recoverFlow()
 
 	lastIndex := len(conditions)
@@ -1760,8 +1818,10 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 }
 
 // updatePolicyStatus updates the status of the configurationPolicy if new conditions are added and generates an event
-// on the parent policy with the complaince decision
-func (r *ConfigurationPolicyReconciler) updatePolicyStatus(policies map[string]*policyv1.ConfigurationPolicy) (*policyv1.ConfigurationPolicy, error) {
+// on the parent policy with the compliance decision
+func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
+	policies map[string]*policyv1.ConfigurationPolicy,
+) (*policyv1.ConfigurationPolicy, error) {
 	for _, instance := range policies { // policies is a map where: key = plc.Name, value = pointer to plc
 		log.V(2).Info("Updating configurationPolicy status", "status", instance.Status.ComplianceState)
 

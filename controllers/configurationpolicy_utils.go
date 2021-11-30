@@ -26,9 +26,7 @@ func addRelatedObjects(
 	namespaced bool,
 	objNames []string,
 	reason string,
-) (
-	relatedObjects []policyv1.RelatedObject,
-) {
+) (relatedObjects []policyv1.RelatedObject) {
 	for _, name := range objNames {
 		// Initialize the related object from the object handling
 		var relatedObject policyv1.RelatedObject
@@ -58,8 +56,9 @@ func addRelatedObjects(
 }
 
 // updateRelatedObjectsStatus adds or updates the RelatedObject in the policy status.
-func updateRelatedObjectsStatus(list []policyv1.RelatedObject,
-	relatedObject policyv1.RelatedObject) (result []policyv1.RelatedObject) {
+func updateRelatedObjectsStatus(
+	list []policyv1.RelatedObject, relatedObject policyv1.RelatedObject,
+) (result []policyv1.RelatedObject) {
 	present := false
 
 	for index, currentObject := range list {
@@ -331,8 +330,9 @@ func formatMetadata(metadata map[string]interface{}) (formatted map[string]inter
 	return md
 }
 
-func fmtMetadataForCompare(metadataTemp map[string]interface{}, metadataExisting map[string]interface{}) (formatted map[string]interface{},
-	formattedExisting map[string]interface{}) {
+func fmtMetadataForCompare(
+	metadataTemp, metadataExisting map[string]interface{},
+) (formatted, formattedExisting map[string]interface{}) {
 	mdTemp := map[string]interface{}{}
 	mdExisting := map[string]interface{}{}
 
@@ -409,8 +409,15 @@ func createResourceNameStr(names []string, namespace string, namespaced bool) (n
 }
 
 // createMustHaveStatus generates a status for a musthave/mustonlyhave policy
-func createMustHaveStatus(desiredName string, kind string, complianceObjects map[string]map[string]interface{},
-	namespaced bool, plc *policyv1.ConfigurationPolicy, indx int, compliant bool) (update bool) {
+func createMustHaveStatus(
+	desiredName string,
+	kind string,
+	complianceObjects map[string]map[string]interface{},
+	namespaced bool,
+	plc *policyv1.ConfigurationPolicy,
+	indx int,
+	compliant bool,
+) (update bool) {
 	// Parse discovered resources
 	nameList := []string{}
 	sortedNamespaces := []string{}
@@ -470,8 +477,14 @@ func createMustHaveStatus(desiredName string, kind string, complianceObjects map
 }
 
 // createMustNotHaveStatus generates a status for a mustnothave policy
-func createMustNotHaveStatus(kind string, complianceObjects map[string]map[string]interface{},
-	namespaced bool, plc *policyv1.ConfigurationPolicy, indx int, compliant bool) (update bool) {
+func createMustNotHaveStatus(
+	kind string,
+	complianceObjects map[string]map[string]interface{},
+	namespaced bool,
+	plc *policyv1.ConfigurationPolicy,
+	indx int,
+	compliant bool,
+) (update bool) {
 	nameList := []string{}
 	sortedNamespaces := []string{}
 
