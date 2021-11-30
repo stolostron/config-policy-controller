@@ -508,21 +508,24 @@ func addConditionToStatus(
 	plc *policyv1.ConfigurationPolicy, cond *policyv1.Condition, index int, complianceState policyv1.ComplianceState,
 ) (updateNeeded bool) {
 	var update bool
-	if len((*plc).Status.CompliancyDetails) <= index {
-		(*plc).Status.CompliancyDetails = append((*plc).Status.CompliancyDetails, policyv1.TemplateStatus{
+
+	if len(plc.Status.CompliancyDetails) <= index {
+		plc.Status.CompliancyDetails = append(plc.Status.CompliancyDetails, policyv1.TemplateStatus{
 			ComplianceState: complianceState,
 			Conditions:      []policyv1.Condition{},
 		})
 	}
-	if (*plc).Status.CompliancyDetails[index].ComplianceState != complianceState {
+
+	if plc.Status.CompliancyDetails[index].ComplianceState != complianceState {
 		update = true
 	}
-	(*plc).Status.CompliancyDetails[index].ComplianceState = complianceState
+
+	plc.Status.CompliancyDetails[index].ComplianceState = complianceState
 
 	// do not add condition unless it does not already appear in the status
-	if !checkMessageSimilarity((*plc).Status.CompliancyDetails[index].Conditions, cond) {
-		conditions := AppendCondition((*plc).Status.CompliancyDetails[index].Conditions, cond, "", false)
-		(*plc).Status.CompliancyDetails[index].Conditions = conditions
+	if !checkMessageSimilarity(plc.Status.CompliancyDetails[index].Conditions, cond) {
+		conditions := AppendCondition(plc.Status.CompliancyDetails[index].Conditions, cond, "", false)
+		plc.Status.CompliancyDetails[index].Conditions = conditions
 		update = true
 	}
 
@@ -1454,10 +1457,8 @@ func isSorted(arr []interface{}) (result bool) {
 	sort.Slice(arr, func(i, j int) bool {
 		return fmt.Sprintf("%v", arr[i]) < fmt.Sprintf("%v", arr[j])
 	})
-	if fmt.Sprint(arrCopy) != fmt.Sprint(arr) {
-		return false
-	}
-	return true
+
+	return fmt.Sprint(arrCopy) == fmt.Sprint(arr)
 }
 
 // mergeArrays is a helper function that takes a list from the existing object and merges in all the data that is
@@ -1677,8 +1678,10 @@ func handleKeys(
 
 		// only look at labels and annotations for metadata - configurationPolicies do not update other metadata fields
 		if key == "metadata" {
-			existingObj.UnstructuredContent()["metadata"].(map[string]interface{})["annotations"] = mergedObj.(map[string]interface{})["annotations"]
-			existingObj.UnstructuredContent()["metadata"].(map[string]interface{})["labels"] = mergedObj.(map[string]interface{})["labels"]
+			mergedAnnotations := mergedObj.(map[string]interface{})["annotations"]
+			mergedLabels := mergedObj.(map[string]interface{})["labels"]
+			existingObj.UnstructuredContent()["metadata"].(map[string]interface{})["annotations"] = mergedAnnotations
+			existingObj.UnstructuredContent()["metadata"].(map[string]interface{})["labels"] = mergedLabels
 		} else {
 			existingObj.UnstructuredContent()[key] = mergedObj
 		}

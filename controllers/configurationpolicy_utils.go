@@ -62,15 +62,14 @@ func updateRelatedObjectsStatus(
 	present := false
 
 	for index, currentObject := range list {
-		if currentObject.Object.APIVersion ==
-			relatedObject.Object.APIVersion && currentObject.Object.Kind == relatedObject.Object.Kind {
-			if currentObject.Object.Metadata.Name ==
-				relatedObject.Object.Metadata.Name && currentObject.Object.Metadata.Namespace ==
-				relatedObject.Object.Metadata.Namespace {
-				present = true
-				if currentObject.Compliant != relatedObject.Compliant {
-					list[index] = relatedObject
-				}
+		if currentObject.Object.APIVersion == relatedObject.Object.APIVersion &&
+			currentObject.Object.Kind == relatedObject.Object.Kind &&
+			currentObject.Object.Metadata.Name == relatedObject.Object.Metadata.Name &&
+			currentObject.Object.Metadata.Namespace == relatedObject.Object.Metadata.Namespace {
+			present = true
+
+			if currentObject.Compliant != relatedObject.Compliant {
+				list[index] = relatedObject
 			}
 		}
 	}

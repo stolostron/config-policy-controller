@@ -71,7 +71,7 @@ func TestAddObject(t *testing.T) {
 	}
 
 	_, found2 := sm.GetObject("void")
-	if found1 {
+	if found2 {
 		t.Fatalf("expecting found = false, however found = %v", found2)
 	}
 

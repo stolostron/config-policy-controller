@@ -140,13 +140,11 @@ func ListWithTimeout(
 		list, err = clientHubDynamic.Resource(gvr).List(context.TODO(), opts)
 		if err != nil {
 			return err
-		} else {
-			if len(list.Items) != size {
-				return fmt.Errorf("list size doesn't match, expected %d actual %d", size, len(list.Items))
-			} else {
-				return nil
-			}
+		} else if len(list.Items) != size {
+			return fmt.Errorf("list size doesn't match, expected %d actual %d", size, len(list.Items))
 		}
+
+		return nil
 	}, timeout, 1).Should(BeNil())
 
 	if wantFound {
@@ -156,7 +154,9 @@ func ListWithTimeout(
 	return nil
 }
 
-func GetMatchingEvents(client kubernetes.Interface, namespace, objName, reasonRegex, msgRegex string, timeout int) []corev1.Event {
+func GetMatchingEvents(
+	client kubernetes.Interface, namespace, objName, reasonRegex, msgRegex string, timeout int,
+) []corev1.Event {
 	var eventList *corev1.EventList
 
 	Eventually(func() error {
@@ -205,8 +205,9 @@ func GetComplianceState(managedPlc *unstructured.Unstructured) (result interface
 // GetStatusMessage parses status field to get message
 func GetStatusMessage(managedPlc *unstructured.Unstructured) (result interface{}) {
 	if managedPlc.Object["status"] != nil {
-		details := managedPlc.Object["status"].(map[string]interface{})["compliancyDetails"]
-		return details.([]interface{})[0].(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["message"]
+		detail := managedPlc.Object["status"].(map[string]interface{})["compliancyDetails"].([]interface{})[0]
+
+		return detail.(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["message"]
 	}
 
 	return nil
