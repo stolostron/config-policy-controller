@@ -203,7 +203,7 @@ issues:
     - path: ^api/
       linters:
         - tagliatelle
-      source: json:"policy-templates|json:"extra_vars
+      source: json:"object-templates|json:"Validity|json:"Compliant
     # Don't enforce max line length for kubebuilder markers
     - linters:
         - lll

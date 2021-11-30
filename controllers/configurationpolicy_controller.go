@@ -322,7 +322,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(
 
 		if !disableTemplates {
 			// first check to make sure there are no hub-templates with delimiter - {{hub
-			// if they exists, it means the template resolution on the hub did not succeed.
+			// if one exists, it means the template resolution on the hub did not succeed.
 			if templates.HasTemplate(objectT.ObjectDefinition.Raw, "{{hub") {
 				tmplErr := fmt.Errorf("configurationPolicy has hub-templates")
 				log.Error(tmplErr, "An error might have occurred while processing hub-templates on the Hub Cluster")
