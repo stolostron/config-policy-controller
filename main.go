@@ -48,9 +48,8 @@ func printVersion() {
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(policyv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+	utilruntime.Must(policyv1.AddToScheme(scheme))
 }
 
 func main() {
@@ -58,9 +57,10 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 
-	var eventOnParent, clusterName, hubConfigSecretNs, hubConfigSecretName string
+	var eventOnParent, clusterName, hubConfigSecretNs, hubConfigSecretName, probeAddr string
 	var frequency uint
-	var enableLease bool
+	var enableLease, enableLeaderElection, legacyLeaderElection bool
+
 	pflag.UintVar(&frequency, "update-frequency", 10,
 		"The status update frequency (in seconds) of a mutation policy")
 	pflag.StringVar(&eventOnParent, "parent-event", "ifpresent",
@@ -68,11 +68,10 @@ func main() {
 	pflag.BoolVar(&enableLease, "enable-lease", false,
 		"If enabled, the controller will start the lease controller to report its status")
 	pflag.StringVar(&clusterName, "cluster-name", "acm-managed-cluster", "Name of the cluster")
-	pflag.StringVar(&hubConfigSecretNs, "hubconfig-secret-ns", "open-cluster-management-agent-addon", "Namespace for hub config kube-secret")
-	pflag.StringVar(&hubConfigSecretName, "hubconfig-secret-name", "policy-controller-hub-kubeconfig", "Name of the hub config kube-secret")
-
-	var enableLeaderElection, legacyLeaderElection bool
-	var probeAddr string
+	pflag.StringVar(&hubConfigSecretNs, "hubconfig-secret-ns", "open-cluster-management-agent-addon",
+		"Namespace for hub config kube-secret")
+	pflag.StringVar(&hubConfigSecretName, "hubconfig-secret-name", "policy-controller-hub-kubeconfig",
+		"Name of the hub config kube-secret")
 	pflag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	pflag.BoolVar(&enableLeaderElection, "leader-elect", true,
 		"Enable leader election for controller manager. "+
@@ -143,6 +142,7 @@ func main() {
 		log.Error(err, "Unable to set up health check")
 		os.Exit(1)
 	}
+
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		log.Error(err, "Unable to set up ready check")
 		os.Exit(1)
@@ -193,6 +193,7 @@ func main() {
 	}
 
 	log.Info("Starting manager")
+
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Error(err, "Problem running manager")
 		os.Exit(1)

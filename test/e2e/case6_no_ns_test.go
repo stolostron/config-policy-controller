@@ -26,32 +26,43 @@ var _ = Describe("Test multiple obj template handling", func() {
 		It("should create a violation if the object should be namespaced", func() {
 			By("Creating policies on managed")
 			utils.Kubectl("apply", "-f", case6RoleYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case6ConfigPolicyNameRole, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case6ConfigPolicyNameRole, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case6ConfigPolicyNameRole, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case6ConfigPolicyNameRole, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should create pods on managed cluster", func() {
 			By("creating cluster level objects")
 			utils.Kubectl("apply", "-f", case6NSYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case6ConfigPolicyNameNS, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case6ConfigPolicyNameNS, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case6ConfigPolicyNameNS, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case6ConfigPolicyNameNS, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("apply", "-f", case6ComboYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case6ConfigPolicyNameCombo, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case6ConfigPolicyNameCombo, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				comboPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case6ConfigPolicyNameCombo, testNamespace, true, defaultTimeoutSeconds)
+				comboPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case6ConfigPolicyNameCombo, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(comboPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
-			ns1 := utils.GetClusterLevelWithTimeout(clientManagedDynamic, gvrNS, case6NSName1, true, defaultTimeoutSeconds)
+			ns1 := utils.GetClusterLevelWithTimeout(clientManagedDynamic, gvrNS,
+				case6NSName1, true, defaultTimeoutSeconds)
 			Expect(ns1).NotTo(BeNil())
-			ns2 := utils.GetClusterLevelWithTimeout(clientManagedDynamic, gvrNS, case6NSName2, true, defaultTimeoutSeconds)
+			ns2 := utils.GetClusterLevelWithTimeout(clientManagedDynamic, gvrNS,
+				case6NSName2, true, defaultTimeoutSeconds)
 			Expect(ns2).NotTo(BeNil())
 		})
 	})

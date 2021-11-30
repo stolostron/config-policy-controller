@@ -24,10 +24,13 @@ var _ = Describe("Test cluster version obj template handling", func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case4ConfigPolicyName + " on managed")
 			utils.Kubectl("apply", "-f", case4PolicyYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case4ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case4ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case4ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case4ConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("delete", "configurationpolicy", case4ConfigPolicyName, "-n", testNamespace)
@@ -35,22 +38,29 @@ var _ = Describe("Test cluster version obj template handling", func() {
 		It("should be patched properly on the managed cluster", func() {
 			By("Creating " + case4ConfigPolicyNamePatch + " on managed")
 			utils.Kubectl("apply", "-f", case4PolicyYamlPatch, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case4ConfigPolicyNamePatch, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case4ConfigPolicyNamePatch, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case4ConfigPolicyNamePatch, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case4ConfigPolicyNamePatch, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})
 		It("should be generate status properly for cluster-level resources", func() {
 			By("Creating " + case4ConfigPolicyNameInform + " on managed")
 			utils.Kubectl("apply", "-f", case4PolicyYamlInform, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case4ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case4ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case4ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case4ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetStatusMessage(managedPlc)
-			}, 120, 1).Should(Equal("clusterversions [version] found as specified, therefore this Object template is compliant"))
+			}, 120, 1).Should(Equal(
+				"clusterversions [version] found as specified, therefore this Object template is compliant"))
 		})
 	})
 })

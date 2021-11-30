@@ -28,6 +28,7 @@ func Pause(s uint) {
 	if s < 1 {
 		s = 1
 	}
+
 	time.Sleep(time.Duration(float64(s)) * time.Second)
 }
 
@@ -35,13 +36,16 @@ func Pause(s uint) {
 func ParseYaml(file string) *unstructured.Unstructured {
 	yamlFile, err := ioutil.ReadFile(file)
 	Expect(err).To(BeNil())
+
 	yamlPlc := &unstructured.Unstructured{}
 	err = yaml.Unmarshal(yamlFile, yamlPlc)
 	Expect(err).To(BeNil())
+
 	return yamlPlc
 }
 
-// GetClusterLevelWithTimeout keeps polling to get the object for timeout seconds until wantFound is met (true for found, false for not found)
+// GetClusterLevelWithTimeout keeps polling to get the object for timeout seconds until wantFound is met
+// (true for found, false for not found)
 func GetClusterLevelWithTimeout(
 	clientHubDynamic dynamic.Interface,
 	gvr schema.GroupVersionResource,
@@ -67,15 +71,19 @@ func GetClusterLevelWithTimeout(
 		if !wantFound && err != nil && !errors.IsNotFound(err) {
 			return err
 		}
+
 		return nil
 	}, timeout, 1).Should(BeNil())
+
 	if wantFound {
 		return obj
 	}
+
 	return nil
 }
 
-// GetWithTimeout keeps polling to get the object for timeout seconds until wantFound is met (true for found, false for not found)
+// GetWithTimeout keeps polling to get the object for timeout seconds until wantFound is met
+// (true for found, false for not found)
 func GetWithTimeout(
 	clientHubDynamic dynamic.Interface,
 	gvr schema.GroupVersionResource,
@@ -101,15 +109,19 @@ func GetWithTimeout(
 		if !wantFound && err != nil && !errors.IsNotFound(err) {
 			return err
 		}
+
 		return nil
 	}, timeout, 1).Should(BeNil())
+
 	if wantFound {
 		return obj
 	}
+
 	return nil
 }
 
-// ListWithTimeout keeps polling to get the object for timeout seconds until wantFound is met (true for found, false for not found)
+// ListWithTimeout keeps polling to get the object for timeout seconds until wantFound is met
+// (true for found, false for not found)
 func ListWithTimeout(
 	clientHubDynamic dynamic.Interface,
 	gvr schema.GroupVersionResource,
@@ -136,25 +148,31 @@ func ListWithTimeout(
 			}
 		}
 	}, timeout, 1).Should(BeNil())
+
 	if wantFound {
 		return list
 	}
+
 	return nil
 }
 
 func GetMatchingEvents(client kubernetes.Interface, namespace, objName, reasonRegex, msgRegex string, timeout int) []corev1.Event {
 	var eventList *corev1.EventList
+
 	Eventually(func() error {
 		var err error
 		eventList, err = client.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
+
 		return err
 	}, timeout, 1).Should(BeNil())
 
 	matchingEvents := make([]corev1.Event, 0)
 	msgMatcher := regexp.MustCompile(msgRegex)
 	reasonMatcher := regexp.MustCompile(reasonRegex)
+
 	for _, event := range eventList.Items {
-		if event.InvolvedObject.Name == objName && reasonMatcher.MatchString(event.Reason) && msgMatcher.MatchString(event.Message) {
+		if event.InvolvedObject.Name == objName && reasonMatcher.MatchString(event.Reason) &&
+			msgMatcher.MatchString(event.Message) {
 			matchingEvents = append(matchingEvents, event)
 		}
 	}
@@ -165,9 +183,11 @@ func GetMatchingEvents(client kubernetes.Interface, namespace, objName, reasonRe
 // Kubectl executes kubectl commands
 func Kubectl(args ...string) {
 	cmd := exec.Command("kubectl", args...)
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		// in case of failure, print command output (including error)
+		//nolint:forbidigo
 		fmt.Printf("%s\n", output)
 		Fail(fmt.Sprintf("Error: %v", err))
 	}
@@ -178,6 +198,7 @@ func GetComplianceState(managedPlc *unstructured.Unstructured) (result interface
 	if managedPlc.Object["status"] != nil {
 		return managedPlc.Object["status"].(map[string]interface{})["compliant"]
 	}
+
 	return nil
 }
 
@@ -187,6 +208,7 @@ func GetStatusMessage(managedPlc *unstructured.Unstructured) (result interface{}
 		details := managedPlc.Object["status"].(map[string]interface{})["compliancyDetails"]
 		return details.([]interface{})[0].(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["message"]
 	}
+
 	return nil
 }
 
@@ -195,5 +217,6 @@ func GetFieldFromSecret(secret *unstructured.Unstructured, field string) (result
 	if secret.Object["data"] != nil {
 		return secret.Object["data"].(map[string]interface{})[field]
 	}
+
 	return nil
 }

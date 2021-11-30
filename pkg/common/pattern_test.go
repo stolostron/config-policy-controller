@@ -97,11 +97,13 @@ func TestDeduplicateItems(t *testing.T) {
 
 	actualResult := DeduplicateItems(included, excluded)
 	expectedResult := []string{"World-Hello", "nothing"}
+
 	if len(actualResult) != len(expectedResult) {
 		t.Fatalf("Expected %s but got %s", expectedResult, actualResult)
 	} else {
 		sort.Strings(expectedResult)
 		sort.Strings(actualResult)
+
 		if !reflect.DeepEqual(actualResult, expectedResult) {
 			t.Fatalf("Expected %s but got %s", expectedResult, actualResult)
 		}

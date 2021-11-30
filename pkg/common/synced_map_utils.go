@@ -20,13 +20,16 @@ type SyncedPolicyMap struct {
 func (spm *SyncedPolicyMap) GetObject(key string) (value *policiesv1.ConfigurationPolicy, found bool) {
 	spm.Mx.Lock()
 	defer spm.Mx.Unlock()
+
 	// check if the map is initialized, if not initilize it
 	if spm.PolicyMap == nil {
 		return nil, false
 	}
+
 	if val, ok := spm.PolicyMap[key]; ok {
 		return val, true
 	}
+
 	return nil, false
 }
 
@@ -34,10 +37,12 @@ func (spm *SyncedPolicyMap) GetObject(key string) (value *policiesv1.Configurati
 func (spm *SyncedPolicyMap) AddObject(key string, plc *policiesv1.ConfigurationPolicy) {
 	spm.Mx.Lock()
 	defer spm.Mx.Unlock()
+
 	// check if the map is initialized, if not initilize it
 	if spm.PolicyMap == nil {
 		spm.PolicyMap = make(map[string]*policiesv1.ConfigurationPolicy)
 	}
+
 	spm.PolicyMap[key] = plc
 }
 
@@ -45,9 +50,11 @@ func (spm *SyncedPolicyMap) AddObject(key string, plc *policiesv1.ConfigurationP
 func (spm *SyncedPolicyMap) RemoveObject(key string) {
 	spm.Mx.Lock()
 	defer spm.Mx.Unlock()
+
 	// check if the map is initialized, if not return
 	if spm.PolicyMap == nil {
 		return
 	}
+
 	delete(spm.PolicyMap, key)
 }

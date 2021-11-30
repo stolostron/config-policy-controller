@@ -42,11 +42,14 @@ func TestMain(m *testing.M) {
 func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (context.CancelFunc, *sync.WaitGroup) {
 	ctx := context.Background()
 	ctx, stop := context.WithCancel(ctx)
+
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
+
 	go func() {
 		g.Expect(mgr.Start(ctx)).NotTo(gomega.HaveOccurred())
 		wg.Done()
 	}()
+
 	return stop, wg
 }

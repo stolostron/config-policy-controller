@@ -26,48 +26,64 @@ var _ = Describe("Test img vulnerability obj template handling", func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case3ConfigPolicyNameCSV + " on managed")
 			utils.Kubectl("apply", "-f", case3PolicyYamlCSV, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameCSV, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case3ConfigPolicyNameCSV, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameCSV, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case3ConfigPolicyNameCSV, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should check for a subscription on managed cluster", func() {
 			By("Creating " + case3ConfigPolicyNameSub + " on managed")
 			utils.Kubectl("apply", "-f", case3PolicyYamlSub, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameSub, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case3ConfigPolicyNameSub, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameSub, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case3ConfigPolicyNameSub, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should be noncompliant for no CRD found (kind)", func() {
 			By("Creating " + case3ConfigPolicyNameVuln + " on managed")
 			utils.Kubectl("apply", "-f", case3PolicyYamlVuln, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameVuln, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case3ConfigPolicyNameVuln, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameVuln, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case3ConfigPolicyNameVuln, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 			Consistently(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameVuln, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case3ConfigPolicyNameVuln, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, 20, 1).Should(Equal("NonCompliant"))
 		})
 		It("should be noncompliant for no CRD found (object)", func() {
 			By("Creating " + case3ConfigPolicyNameVulnObj + " on managed")
 			utils.Kubectl("apply", "-f", case3PolicyYamlVulnObj, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameVulnObj, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case3ConfigPolicyNameVulnObj, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameVulnObj, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case3ConfigPolicyNameVulnObj, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 			Consistently(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case3ConfigPolicyNameVulnObj, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case3ConfigPolicyNameVulnObj, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, 20, 1).Should(Equal("NonCompliant"))
 		})

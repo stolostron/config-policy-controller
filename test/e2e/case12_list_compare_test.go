@@ -81,36 +81,49 @@ var _ = Describe("Test list handling for musthave", func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case12ConfigPolicyNameEnforce + " and " + case12ConfigPolicyNameInform + " on managed")
 			utils.Kubectl("apply", "-f", case12EnforceYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ConfigPolicyNameEnforce, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12ConfigPolicyNameEnforce, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ConfigPolicyNameEnforce, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12ConfigPolicyNameEnforce, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("apply", "-f", case12InformYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12ConfigPolicyNameInform, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})
 	})
 	Describe("Create a policy with a list field on managed cluster in ns:"+testNamespace, func() {
 		It("should be created properly on the managed cluster", func() {
-			By("Creating " + case12ConfigPolicyNameRoleEnforce + " and " + case12ConfigPolicyNameRoleInform + " on managed")
+			By("Creating " + case12ConfigPolicyNameRoleEnforce + " and " +
+				case12ConfigPolicyNameRoleInform + " on managed")
 			utils.Kubectl("apply", "-f", case12RoleEnforceYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ConfigPolicyNameRoleEnforce, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12ConfigPolicyNameRoleEnforce, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ConfigPolicyNameRoleEnforce, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12ConfigPolicyNameRoleEnforce, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("apply", "-f", case12RoleInformYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ConfigPolicyNameRoleInform, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12ConfigPolicyNameRoleInform, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ConfigPolicyNameRoleInform, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12ConfigPolicyNameRoleInform, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
@@ -119,24 +132,33 @@ var _ = Describe("Test list handling for musthave", func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case12RoleToPatch + " and " + case12RolePatchEnforce + " on managed")
 			utils.Kubectl("apply", "-f", case12RoleToPatchYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12RoleToPatch, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12RoleToPatch, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12RoleToPatch, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12RoleToPatch, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("apply", "-f", case12RolePatchEnforceYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12RolePatchEnforce, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12RolePatchEnforce, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12RolePatchEnforce, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12RolePatchEnforce, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("apply", "-f", case12RolePatchInformYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12RolePatchInform, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12RolePatchInform, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12RolePatchInform, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12RolePatchInform, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})
@@ -145,26 +167,35 @@ var _ = Describe("Test list handling for musthave", func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case12OauthCreate + " and " + case12OauthPatch + " on managed")
 			utils.Kubectl("apply", "-f", case12OauthCreateYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12OauthCreate, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12OauthCreate, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12OauthCreate, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12OauthCreate, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("delete", "-f", case12OauthCreateYaml, "-n", testNamespace)
 
 			utils.Kubectl("apply", "-f", case12OauthPatchYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12OauthPatch, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12OauthPatch, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12OauthPatch, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12OauthPatch, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("apply", "-f", case12OauthVerifyYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12OauthVerify, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12OauthVerify, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12OauthVerify, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12OauthVerify, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})
@@ -172,25 +203,34 @@ var _ = Describe("Test list handling for musthave", func() {
 		It("should handle lists with just one object properly on the managed cluster", func() {
 			By("Creating " + case12SingleItemListCreate + " and " + case12SingleItemListPatch + " on managed")
 			utils.Kubectl("apply", "-f", case12SingleItemListCreateYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SingleItemListCreate, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12SingleItemListCreate, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SingleItemListCreate, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12SingleItemListCreate, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 
 			utils.Kubectl("apply", "-f", case12SingleItemListPatchYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SingleItemListPatch, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12SingleItemListPatch, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SingleItemListPatch, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12SingleItemListPatch, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("apply", "-f", case12SingleItemListInformYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SingleItemListInform, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12SingleItemListInform, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SingleItemListInform, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12SingleItemListInform, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})
@@ -198,25 +238,34 @@ var _ = Describe("Test list handling for musthave", func() {
 		It("should handle lists with fewer items in existing than the template", func() {
 			By("Creating " + case12SmallerListExistingCreate + " and " + case12SmallerListExistingPatch + " on managed")
 			utils.Kubectl("apply", "-f", case12SmallerListExistingCreateYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SmallerListExistingCreate, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12SmallerListExistingCreate, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SmallerListExistingCreate, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12SmallerListExistingCreate, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 
 			utils.Kubectl("apply", "-f", case12SmallerListExistingPatchYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SmallerListExistingPatch, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12SmallerListExistingPatch, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SmallerListExistingPatch, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12SmallerListExistingPatch, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("apply", "-f", case12SmallerListExistingInformYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SmallerListExistingInform, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12SmallerListExistingInform, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12SmallerListExistingInform, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12SmallerListExistingInform, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})
@@ -226,24 +275,33 @@ var _ = Describe("Test list handling for musthave", func() {
 			By("Creating " + case12WhitespaceListCreate + " and " + case12WhitespaceListInform + " on managed")
 			utils.Kubectl("apply", "-f", case12WhitespaceListCreateYaml, "-n", testNamespace)
 
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12WhitespaceListCreate, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12WhitespaceListCreate, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12WhitespaceListCreate, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12WhitespaceListCreate, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			// Ensure it remains compliant for a while - need to ensure there were multiple enforce checks/attempts.
 			Consistently(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12WhitespaceListCreate, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12WhitespaceListCreate, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, time.Second*20, 1).Should(Equal("Compliant"))
 
-			// Verify that the conatiner list and its environment variable list is correct (there are no duplicates)
-			deploy := utils.GetWithTimeout(clientManagedDynamic, gvrDeployment, case12WhitespaceDeployment, "default", true, defaultTimeoutSeconds)
+			// Verify that the container list and its environment variable list is correct (there are no duplicates)
+			deploy := utils.GetWithTimeout(clientManagedDynamic, gvrDeployment,
+				case12WhitespaceDeployment, "default", true, defaultTimeoutSeconds)
 			Expect(deploy).NotTo(BeNil())
-			tmplSpec := deploy.Object["spec"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})
-			containers := tmplSpec["containers"].([]interface{})
+			//nolint:forcetypeassert
+			tmpl := deploy.Object["spec"].(map[string]interface{})["template"].(map[string]interface{})
+			//nolint:forcetypeassert
+			containers := tmpl["spec"].(map[string]interface{})["containers"].([]interface{})
 			Expect(len(containers)).To(Equal(1))
+			//nolint:forcetypeassert
 			envvars := containers[0].(map[string]interface{})["env"].([]interface{})
 			Expect(len(envvars)).To(Equal(1))
 		})
@@ -252,24 +310,32 @@ var _ = Describe("Test list handling for musthave", func() {
 		It("should only add the list item with the rounded byte value once", func() {
 			By("Creating " + case12ByteCreate + " and " + case12ByteInform + " on managed")
 			utils.Kubectl("apply", "-f", case12ByteCreateYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ByteCreate, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12ByteCreate, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ByteCreate, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12ByteCreate, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			// Ensure it remains compliant for a while - need to ensure there were multiple enforce checks/attempts.
 			Consistently(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ByteCreate, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12ByteCreate, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, time.Second*20, 1).Should(Equal("Compliant"))
 
-			// Verify that the conatiner list and its environment variable list is correct (there are no duplicates)
+			// Verify that the container list and its environment variable list is correct (there are no duplicates)
 			utils.Kubectl("apply", "-f", case12ByteInformYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ByteInform, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case12ByteInform, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case12ByteInform, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case12ByteInform, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})

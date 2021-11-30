@@ -26,34 +26,45 @@ var _ = Describe("Test policy compliance with namespace selection", func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case14PolicyNamed + " on managed")
 			utils.Kubectl("apply", "-f", case14PolicyNamed, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should stay noncompliant when limitrange is in one matching namespace", func() {
 			By("Creating limitrange " + case14LimitRangeName + " on range1")
 			utils.Kubectl("apply", "-f", case14LimitRangeFile, "-n", "range1")
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 			Consistently(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, time.Second*20, 1).Should(Equal("NonCompliant"))
 		})
 		It("should be compliant with limitrange in all matching namespaces", func() {
 			By("Creating " + case14LimitRangeName + " on range2")
 			utils.Kubectl("apply", "-f", case14LimitRangeFile, "-n", "range2")
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case14PolicyNamedName, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})
@@ -68,34 +79,45 @@ var _ = Describe("Test policy compliance with namespace selection", func() {
 		It("should be created properly on the managed cluster", func() {
 			By("Creating " + case14PolicyUnnamed + " on managed")
 			utils.Kubectl("apply", "-f", case14PolicyUnnamed, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
 		It("should stay noncompliant when limitrange is in one matching namespace", func() {
 			By("Creating limitrange " + case14LimitRangeName + " on range1")
 			utils.Kubectl("apply", "-f", case14LimitRangeFile, "-n", "range1")
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 			Consistently(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, time.Second*20, 1).Should(Equal("NonCompliant"))
 		})
 		It("should be compliant with limitrange in all matching namespaces", func() {
 			By("Creating " + case14LimitRangeName + " on range2")
 			utils.Kubectl("apply", "-f", case14LimitRangeFile, "-n", "range2")
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case14PolicyUnnamedName, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 		})

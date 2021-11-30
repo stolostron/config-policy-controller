@@ -17,7 +17,6 @@ import (
 
 const (
 	case13Secret                 string = "e2esecret"
-	case13SecretCopy             string = "e2esecret2"
 	case13SecretYaml             string = "../resources/case13_templatization/case13_secret.yaml"
 	case13CfgPolCreateSecret     string = "tmplt-policy-secret-duplicate"
 	case13CfgPolCheckSecret      string = "tmplt-policy-secret-duplicate-check"
@@ -26,15 +25,17 @@ const (
 )
 
 const (
-	case13ClusterClaim                     string = "testclaim.open-cluster-management.io"
-	case13ClusterClaimYaml                 string = "../resources/case13_templatization/case13_clusterclaim.yaml"
-	case13CfgPolVerifyPod                  string = "policy-pod-templatized-name-verify"
-	case13CfgPolCreatePod                  string = "policy-pod-templatized-name"
-	case13CfgPolCreatePodYaml              string = "../resources/case13_templatization/case13_pod_nameFromClusterClaim.yaml"
-	case13CfgPolVerifyPodYaml              string = "../resources/case13_templatization/case13_pod_name_verify.yaml"
-	case13ConfigMap                        string = "e2e13config"
-	case13ConfigMapYaml                    string = "../resources/case13_templatization/case13_configmap.yaml"
-	case13CfgPolVerifyPodWithConfigMap     string = "policy-pod-configmap-name"
+	case13ClusterClaim        string = "testclaim.open-cluster-management.io"
+	case13ClusterClaimYaml    string = "../resources/case13_templatization/case13_clusterclaim.yaml"
+	case13CfgPolVerifyPod     string = "policy-pod-templatized-name-verify"
+	case13CfgPolCreatePod     string = "policy-pod-templatized-name"
+	case13CfgPolCreatePodYaml string = "../resources/case13_templatization/case13_pod_nameFromClusterClaim.yaml"
+	case13CfgPolVerifyPodYaml string = "../resources/case13_templatization/case13_pod_name_verify.yaml"
+	case13ConfigMap           string = "e2e13config"
+	case13ConfigMapYaml       string = "../resources/case13_templatization/case13_configmap.yaml"
+
+	case13CfgPolVerifyPodWithConfigMap string = "policy-pod-configmap-name"
+	//nolint:lll
 	case13CfgPolVerifyPodWithConfigMapYaml string = "../resources/case13_templatization/case13_pod_name_verify_configmap.yaml"
 )
 
@@ -63,26 +64,35 @@ var _ = Describe("Test templatization", func() {
 			By("Creating " + case13CfgPolCreateSecret + " and " + case13CfgPolCheckSecret + " on managed")
 			// create secret
 			utils.Kubectl("apply", "-f", case13SecretYaml, "-n", "default")
-			secret := utils.GetWithTimeout(clientManagedDynamic, gvrSecret, case13Secret, "default", true, defaultTimeoutSeconds)
+			secret := utils.GetWithTimeout(clientManagedDynamic, gvrSecret,
+				case13Secret, "default", true, defaultTimeoutSeconds)
 			Expect(secret).NotTo(BeNil())
 			// create copy with password from original secret using a templatized policy
 			utils.Kubectl("apply", "-f", case13CfgPolCreateSecretYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolCreateSecret, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case13CfgPolCreateSecret, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolCreateSecret, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case13CfgPolCreateSecret, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			Eventually(func() interface{} {
-				copiedSecret := utils.GetWithTimeout(clientManagedDynamic, gvrSecret, case13Secret, "default", true, defaultTimeoutSeconds)
+				copiedSecret := utils.GetWithTimeout(clientManagedDynamic, gvrSecret,
+					case13Secret, "default", true, defaultTimeoutSeconds)
+
 				return utils.GetFieldFromSecret(copiedSecret, "PASSWORD")
 			}, defaultTimeoutSeconds, 1).Should(Equal("MWYyZDFlMmU2N2Rm"))
 			// check copied secret with a templatized inform policy
 			utils.Kubectl("apply", "-f", case13CfgPolCheckSecretYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolCheckSecret, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case13CfgPolCheckSecret, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolCheckSecret, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case13CfgPolCheckSecret, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("delete", "configurationpolicy", case13CfgPolCreateSecret, "-n", testNamespace)
@@ -94,33 +104,44 @@ var _ = Describe("Test templatization", func() {
 			By("Creating " + case13CfgPolCreatePod + " and " + case13CfgPolVerifyPod + " on managed")
 			// create clusterclaim
 			utils.Kubectl("apply", "-f", case13ClusterClaimYaml)
-			cc := utils.GetClusterLevelWithTimeout(clientManagedDynamic, gvrClusterClaim, case13ClusterClaim, true, defaultTimeoutSeconds)
+			cc := utils.GetClusterLevelWithTimeout(clientManagedDynamic, gvrClusterClaim,
+				case13ClusterClaim, true, defaultTimeoutSeconds)
 			Expect(cc).NotTo(BeNil())
 			// create pod named after value from clusterclaim using a templatized policy
 			utils.Kubectl("apply", "-f", case13CfgPolCreatePodYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolCreatePod, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case13CfgPolCreatePod, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolCreatePod, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case13CfgPolCreatePod, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			// check copied value with an inform policy
 			utils.Kubectl("apply", "-f", case13CfgPolVerifyPodYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolVerifyPod, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case13CfgPolVerifyPod, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolVerifyPod, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case13CfgPolVerifyPod, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			// check configmap by creating an inform policy that pulls the pod name from a configmap
 			utils.Kubectl("apply", "-f", case13ConfigMapYaml, "-n", "default")
-			cm := utils.GetWithTimeout(clientManagedDynamic, gvrConfigMap, case13ConfigMap, "default", true, defaultTimeoutSeconds)
+			cm := utils.GetWithTimeout(clientManagedDynamic, gvrConfigMap,
+				case13ConfigMap, "default", true, defaultTimeoutSeconds)
 			Expect(cm).NotTo(BeNil())
 			utils.Kubectl("apply", "-f", case13CfgPolVerifyPodWithConfigMapYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolVerifyPodWithConfigMap, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case13CfgPolVerifyPodWithConfigMap, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13CfgPolVerifyPodWithConfigMap, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case13CfgPolVerifyPodWithConfigMap, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			utils.Kubectl("delete", "configurationpolicy", case13CfgPolCreatePod, "-n", testNamespace)
@@ -132,20 +153,28 @@ var _ = Describe("Test templatization", func() {
 			By("Creating inform policies on managed")
 			// create inform policy to check secret using generic lookup
 			utils.Kubectl("apply", "-f", case13LookupSecretYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13LookupSecret, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case13LookupSecret, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13LookupSecret, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case13LookupSecret, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
 			// create inform policy to check clusterclaim using generic lookup
 			utils.Kubectl("apply", "-f", case13LookupClusterClaimYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13LookupClusterClaim, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case13LookupClusterClaim, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13LookupClusterClaim, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case13LookupClusterClaim, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetStatusMessage(managedPlc)
-			}, defaultTimeoutSeconds, 1).Should(Equal("pods [testvalue] in namespace default found as specified, therefore this Object template is compliant"))
+			}, defaultTimeoutSeconds, 1).Should(Equal(
+				"pods [testvalue] in namespace default found as specified, therefore this Object template is compliant",
+			))
 			utils.Kubectl("delete", "configurationpolicy", case13LookupSecret, "-n", testNamespace)
 			utils.Kubectl("delete", "configurationpolicy", case13LookupClusterClaim, "-n", testNamespace)
 		})
@@ -155,18 +184,24 @@ var _ = Describe("Test templatization", func() {
 			By("Creating policies on managed")
 			// create policy with unterminated template
 			utils.Kubectl("apply", "-f", case13UnterminatedYaml, "-n", testNamespace)
-			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13Unterminated, testNamespace, true, defaultTimeoutSeconds)
+			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case13Unterminated, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13Unterminated, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case13Unterminated, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 			// create policy with incomplete args in template
 			utils.Kubectl("apply", "-f", case13WrongArgsYaml, "-n", testNamespace)
-			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13WrongArgs, testNamespace, true, defaultTimeoutSeconds)
+			plc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case13WrongArgs, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
 			Eventually(func() interface{} {
-				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, case13WrongArgs, testNamespace, true, defaultTimeoutSeconds)
+				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+					case13WrongArgs, testNamespace, true, defaultTimeoutSeconds)
+
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
@@ -202,6 +237,7 @@ var _ = Describe("Test templatization", func() {
 						true,
 						defaultTimeoutSeconds,
 					)
+
 					return utils.GetComplianceState(managedPlc)
 				},
 				defaultTimeoutSeconds,
@@ -234,6 +270,7 @@ var _ = Describe("Test templatization", func() {
 					if err != nil {
 						return ""
 					}
+
 					return replConfigMap.Data["message"]
 				},
 				defaultTimeoutSeconds,

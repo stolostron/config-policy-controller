@@ -7,36 +7,25 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	coretypes "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	policiesv1alpha1 "github.com/open-cluster-management/config-policy-controller/api/v1"
 	"github.com/open-cluster-management/config-policy-controller/pkg/common"
 )
 
-var (
-	mgr manager.Manager
-	err error
-)
-
 func TestReconcile(t *testing.T) {
-	var (
-		name      = "foo"
-		namespace = "default"
-	)
+	name := "foo"
+	namespace := "default"
 	instance := &policiesv1alpha1.ConfigurationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
@@ -65,6 +54,7 @@ func TestReconcile(t *testing.T) {
 	s.AddKnownTypes(policiesv1alpha1.GroupVersion, instance)
 
 	// Create a fake client to mock API calls.
+	//nolint:staticcheck
 	cl := fake.NewFakeClient(objs...)
 	// Create a ReconcileConfigurationPolicy object with the scheme and fake client
 	r := &ConfigurationPolicyReconciler{Client: cl, Scheme: s, Recorder: nil}
@@ -77,12 +67,15 @@ func TestReconcile(t *testing.T) {
 			Namespace: namespace,
 		},
 	}
-	var simpleClient kubernetes.Interface = testclient.NewSimpleClientset()
+
+	simpleClient := testclient.NewSimpleClientset()
 	common.Initialize(simpleClient, nil)
+
 	res, err := r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
+
 	t.Log(res)
 }
 
@@ -99,10 +92,12 @@ func TestCompareSpecs(t *testing.T) {
 			"test":  "test",
 		},
 	}
+
 	merged, err := compareSpecs(spec1, spec2, "mustonlyhave")
 	if err != nil {
 		t.Fatalf("compareSpecs: (%v)", err)
 	}
+
 	mergedExpected := map[string]interface{}{
 		"containers": map[string]string{
 			"image": "nginx1.7.9",
@@ -110,6 +105,7 @@ func TestCompareSpecs(t *testing.T) {
 		},
 	}
 	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
+
 	spec1 = map[string]interface{}{
 		"containers": map[string]interface{}{
 			"image": "nginx1.7.9",
@@ -128,10 +124,12 @@ func TestCompareSpecs(t *testing.T) {
 			},
 		},
 	}
+
 	merged, err = compareSpecs(spec1, spec2, "musthave")
 	if err != nil {
 		t.Fatalf("compareSpecs: (%v)", err)
 	}
+
 	mergedExpected = map[string]interface{}{
 		"containers": map[string]interface{}{
 			"image": "nginx1.7.9",
@@ -145,6 +143,7 @@ func TestCompareSpecs(t *testing.T) {
 			},
 		},
 	}
+
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
@@ -175,10 +174,12 @@ func TestCompareLists(t *testing.T) {
 			},
 		},
 	}
+
 	merged, err := compareLists(rules2, rules1, "musthave")
 	if err != nil {
 		t.Fatalf("compareSpecs: (%v)", err)
 	}
+
 	mergedExpected := []interface{}{
 		map[string]interface{}{
 			"apiGroups": []string{
@@ -203,11 +204,14 @@ func TestCompareLists(t *testing.T) {
 			},
 		},
 	}
+
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
+
 	merged, err = compareLists(rules2, rules1, "mustonlyhave")
 	if err != nil {
 		t.Fatalf("compareSpecs: (%v)", err)
 	}
+
 	mergedExpected = []interface{}{
 		map[string]interface{}{
 			"apiGroups": []string{
@@ -221,6 +225,7 @@ func TestCompareLists(t *testing.T) {
 			},
 		},
 	}
+
 	assert.Equal(t, reflect.DeepEqual(fmt.Sprint(merged), fmt.Sprint(mergedExpected)), true)
 }
 
@@ -241,11 +246,12 @@ func TestConvertPolicyStatusToString(t *testing.T) {
 	}
 	samplePolicy.Status = samplePolicyStatus
 	policyInString := convertPolicyStatusToString(&samplePolicy)
+
 	assert.NotNil(t, policyInString)
 }
 
 func TestHandleAddingPolicy(t *testing.T) {
-	var simpleClient kubernetes.Interface = testclient.NewSimpleClientset()
+	simpleClient := testclient.NewSimpleClientset()
 	typeMeta := metav1.TypeMeta{
 		Kind: "namespace",
 	}
@@ -256,10 +262,15 @@ func TestHandleAddingPolicy(t *testing.T) {
 		TypeMeta:   typeMeta,
 		ObjectMeta: objMeta,
 	}
-	simpleClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
-	common.Initialize(simpleClient, nil)
-	err := handleAddingPolicy(&samplePolicy)
+	_, err := simpleClient.CoreV1().Namespaces().Create(context.TODO(), &ns, metav1.CreateOptions{})
+
 	assert.Nil(t, err)
+
+	common.Initialize(simpleClient, nil)
+
+	err = handleAddingPolicy(&samplePolicy)
+	assert.Nil(t, err)
+
 	handleRemovingPolicy(samplePolicy.GetName())
 }
 
@@ -280,10 +291,13 @@ func TestMerge(t *testing.T) {
 			"b": "boy",
 		},
 	}
+
 	merged1 := mergeArrays(newList, oldList, "musthave")
 	assert.Equal(t, checkListsMatch(oldList, merged1), true)
+
 	merged2 := mergeArrays(newList, oldList, "mustonlyhave")
 	assert.Equal(t, checkListsMatch(newList, merged2), true)
+
 	newList2 := []interface{}{
 		map[string]interface{}{
 			"b": "boy",
@@ -310,7 +324,9 @@ func TestMerge(t *testing.T) {
 		},
 	}
 	merged3 := mergeArrays(newList2, oldList2, "musthave")
+
 	assert.Equal(t, checkListsMatch(checkList2, merged3), true)
+
 	newList3 := []interface{}{
 		map[string]interface{}{
 			"a": "apple",
@@ -320,6 +336,7 @@ func TestMerge(t *testing.T) {
 		},
 	}
 	merged4 := mergeArrays(newList3, oldList2, "musthave")
+
 	assert.Equal(t, checkListsMatch(checkList2, merged4), true)
 }
 
@@ -352,6 +369,7 @@ func TestAddRelatedObject(t *testing.T) {
 	reason := "reason"
 	relatedList := addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, reason)
 	related := relatedList[0]
+
 	// get the related object and validate what we added is in the status
 	assert.True(t, related.Compliant == string(policiesv1alpha1.Compliant))
 	assert.True(t, related.Reason == "reason")
@@ -365,6 +383,7 @@ func TestAddRelatedObject(t *testing.T) {
 	compliant = false
 	relatedList = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, reason)
 	related = relatedList[0]
+
 	assert.True(t, len(relatedList) == 1)
 	assert.True(t, related.Compliant == string(policiesv1alpha1.NonCompliant))
 	assert.True(t, related.Reason == "new")
@@ -373,7 +392,9 @@ func TestAddRelatedObject(t *testing.T) {
 	name = "bar"
 	relatedList = append(relatedList, addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, reason)...)
 	assert.True(t, len(relatedList) == 2)
+
 	related = relatedList[1]
+
 	assert.True(t, related.Object.Metadata.Name == name)
 }
 
@@ -407,6 +428,7 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 	relatedList = append(relatedList, addRelatedObjects(policy, true, rsrc, "default", true, []string{name}, "reason")...)
 
 	empty := []policiesv1alpha1.RelatedObject{}
+
 	sortRelatedObjectsAndUpdate(policy, relatedList, empty)
 	assert.True(t, relatedList[0].Object.Metadata.Name == "bar")
 
@@ -416,26 +438,12 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 	assert.True(t, relatedList[0].Object.Metadata.Namespace == "bar")
 
 	// clear related objects and test sorting with no namespace
-	relatedList = []policiesv1alpha1.RelatedObject{}
 	name = "foo"
 	relatedList = addRelatedObjects(policy, true, rsrc, "", false, []string{name}, "reason")
 	name = "bar"
 	relatedList = append(relatedList, addRelatedObjects(policy, true, rsrc, "", false, []string{name}, "reason")...)
 	sortRelatedObjectsAndUpdate(policy, relatedList, empty)
 	assert.True(t, relatedList[0].Object.Metadata.Name == "bar")
-}
-
-func newRule(verbs, apiGroups, resources, nonResourceURLs string) rbacv1.PolicyRule {
-	return rbacv1.PolicyRule{
-		Verbs:           strings.Split(verbs, ","),
-		APIGroups:       strings.Split(apiGroups, ","),
-		Resources:       strings.Split(resources, ","),
-		NonResourceURLs: strings.Split(nonResourceURLs, ","),
-	}
-}
-
-func newRole(name, namespace string, rules ...rbacv1.PolicyRule) *rbacv1.Role {
-	return &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}, Rules: rules}
 }
 
 func TestCreateInformStatus(t *testing.T) {
@@ -468,8 +476,8 @@ func TestCreateInformStatus(t *testing.T) {
 	mustNotHave := false
 	numCompliant := 0
 	numNonCompliant := 1
-	var nonCompliantObjects map[string]map[string]interface{} = make(map[string]map[string]interface{})
-	var compliantObjects map[string]map[string]interface{} = make(map[string]map[string]interface{})
+	nonCompliantObjects := make(map[string]map[string]interface{})
+	compliantObjects := make(map[string]map[string]interface{})
 	nonCompliantObjects["test1"] = map[string]interface{}{
 		"names":  []string{"myobject"},
 		"reason": "my reason",
@@ -522,6 +530,7 @@ func TestCreateInformStatus(t *testing.T) {
 	}
 	numCompliant = 2
 	numNonCompliant = 0
+
 	delete(nonCompliantObjects, "test2")
 
 	// Test 2 compliant resources
