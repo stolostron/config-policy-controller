@@ -892,7 +892,7 @@ func getResourceAndDynamicClient(mapping *meta.RESTMapping, apiresourcelist []*m
 	rsrc = mapping.Resource
 
 	for _, apiresourcegroup := range apiresourcelist {
-		if apiresourcegroup.GroupVersion == join(mapping.GroupVersionKind.Group, "/", mapping.GroupVersionKind.Version) {
+		if apiresourcegroup.GroupVersion == buildGV(mapping.GroupVersionKind.Group, mapping.GroupVersionKind.Version) {
 			for _, apiresource := range apiresourcegroup.APIResources {
 				if apiresource.Name == mapping.Resource.Resource && apiresource.Kind == mapping.GroupVersionKind.Kind {
 					namespaced = apiresource.Namespaced
@@ -1833,16 +1833,14 @@ func handleAddingPolicy(plc *policyv1.ConfigurationPolicy) error {
 	return err
 }
 
-// Helper function to join strings
-func join(strs ...string) string {
-	var result string
-	if strs[0] == "" {
-		return strs[len(strs)-1]
+// Builds the GroupVersion string from the inputs, by combining them with a "/" in the middle.
+// If the group is empty, just returns the version string.
+func buildGV(group, version string) string {
+	if group == "" {
+		return version
 	}
-	for _, str := range strs {
-		result += str
-	}
-	return result
+
+	return group + "/" + version
 }
 
 // Helper functions that pretty prints a map to a string
