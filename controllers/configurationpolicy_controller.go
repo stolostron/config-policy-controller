@@ -393,8 +393,8 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 
 		// iterate through all namespaces the configurationpolicy is set on
 		for _, ns := range relevantNamespaces {
-			names, compliant, reason, objKind, related, update, namespaced := r.handleObjects(objectT, ns, indx, &plc, config,
-				apiresourcelist, apigroups)
+			names, compliant, reason, objKind, related, update, namespaced := r.handleObjects(
+				objectT, ns, indx, &plc, apiresourcelist, apigroups)
 			if update {
 				parentUpdate = true
 			}
@@ -598,10 +598,22 @@ func createInformStatus(mustNotHave bool, numCompliant int, numNonCompliant int,
 }
 
 // handleObjects controls the processing of each individual object template within a configurationpolicy
-func (r *ConfigurationPolicyReconciler) handleObjects(objectT *policyv1.ObjectTemplate, namespace string, index int, policy *policyv1.ConfigurationPolicy,
-	config *rest.Config, apiresourcelist []*metav1.APIResourceList,
-	apigroups []*restmapper.APIGroupResources) (objNameList []string, compliant bool, reason string,
-	rsrcKind string, relatedObjects []policyv1.RelatedObject, pUpdate bool, isNamespaced bool) {
+func (r *ConfigurationPolicyReconciler) handleObjects(
+	objectT *policyv1.ObjectTemplate,
+	namespace string,
+	index int,
+	policy *policyv1.ConfigurationPolicy,
+	apiresourcelist []*metav1.APIResourceList,
+	apigroups []*restmapper.APIGroupResources,
+) (
+	objNameList []string,
+	compliant bool,
+	reason string,
+	rsrcKind string,
+	relatedObjects []policyv1.RelatedObject,
+	pUpdate bool,
+	isNamespaced bool,
+) {
 	if namespace != "" {
 		log.V(2).Info("Handling object template", "index", index, "namespace", namespace)
 	} else {
@@ -716,9 +728,9 @@ func (r *ConfigurationPolicyReconciler) handleObjects(objectT *policyv1.ObjectTe
 
 	if complianceCalculated {
 		// enforce could clear the objNames array so use name instead
-		relatedObjects = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, reason)
+		relatedObjects = addRelatedObjects(compliant, rsrc, namespace, namespaced, []string{name}, reason)
 	} else {
-		relatedObjects = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, objNames, reason)
+		relatedObjects = addRelatedObjects(compliant, rsrc, namespace, namespaced, objNames, reason)
 	}
 
 	return objNames, compliant, reason, rsrcKind, relatedObjects, needUpdate, namespaced
@@ -812,7 +824,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(policy *policyv1.Configu
 	if exists {
 		updated, throwSpecViolation, msg, pErr := checkAndUpdateResource(
 			strings.ToLower(string(objectT.ComplianceType)),
-			data, remediation, rsrc, dclient, unstruct.Object["kind"].(string), nil)
+			data, remediation, rsrc, dclient, unstruct.Object["kind"].(string))
 		if !updated && throwSpecViolation {
 			specViolation = throwSpecViolation
 			compliant = false
@@ -1641,10 +1653,16 @@ func handleKeys(unstruct unstructured.Unstructured, existingObj *unstructured.Un
 // checkAndUpdateResource checks each individual key of a resource and passes it to handleKeys to see if it
 // matches the template and update it if the remediationAction is enforce
 func checkAndUpdateResource(
-	complianceType string, metadata map[string]interface{}, remediation policyv1.RemediationAction,
-	rsrc schema.GroupVersionResource, dclient dynamic.Interface,
-	typeStr string, parent *policyv1.ConfigurationPolicy) (success bool, throwSpecViolation bool,
-	message string, processingErr bool) {
+	complianceType string,
+	metadata map[string]interface{},
+	remediation policyv1.RemediationAction,
+	rsrc schema.GroupVersionResource,
+	dclient dynamic.Interface,
+	typeStr string,
+) (
+	success bool, throwSpecViolation bool, message string, processingErr bool,
+) {
+	//nolint:forcetypeassert
 	name := metadata["name"].(string)
 	//nolint:forcetypeassert
 	namespace := metadata["namespace"].(string)

@@ -341,33 +341,13 @@ func TestMerge(t *testing.T) {
 }
 
 func TestAddRelatedObject(t *testing.T) {
-	policy := &policiesv1alpha1.ConfigurationPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
-		},
-		Spec: policiesv1alpha1.ConfigurationPolicySpec{
-			Severity: "low",
-			NamespaceSelector: policiesv1alpha1.Target{
-				Include: []policiesv1alpha1.NonEmptyString{"default", "kube-*"},
-				Exclude: []policiesv1alpha1.NonEmptyString{"kube-system"},
-			},
-			RemediationAction: "inform",
-			ObjectTemplates: []*policiesv1alpha1.ObjectTemplate{
-				{
-					ComplianceType:   "musthave",
-					ObjectDefinition: runtime.RawExtension{},
-				},
-			},
-		},
-	}
 	compliant := true
 	rsrc := policiesv1alpha1.SchemeBuilder.GroupVersion.WithResource("ConfigurationPolicy")
 	namespace := "default"
 	namespaced := true
 	name := "foo"
 	reason := "reason"
-	relatedList := addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, reason)
+	relatedList := addRelatedObjects(compliant, rsrc, namespace, namespaced, []string{name}, reason)
 	related := relatedList[0]
 
 	// get the related object and validate what we added is in the status
@@ -381,7 +361,7 @@ func TestAddRelatedObject(t *testing.T) {
 	// add the same object and make sure the existing one is overwritten
 	reason = "new"
 	compliant = false
-	relatedList = addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, reason)
+	relatedList = addRelatedObjects(compliant, rsrc, namespace, namespaced, []string{name}, reason)
 	related = relatedList[0]
 
 	assert.True(t, len(relatedList) == 1)
@@ -390,7 +370,9 @@ func TestAddRelatedObject(t *testing.T) {
 
 	// add a new related object and make sure the entry is appended
 	name = "bar"
-	relatedList = append(relatedList, addRelatedObjects(policy, compliant, rsrc, namespace, namespaced, []string{name}, reason)...)
+	relatedList = append(relatedList,
+		addRelatedObjects(compliant, rsrc, namespace, namespaced, []string{name}, reason)...)
+
 	assert.True(t, len(relatedList) == 2)
 
 	related = relatedList[1]
@@ -421,11 +403,11 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 	}
 	rsrc := policiesv1alpha1.SchemeBuilder.GroupVersion.WithResource("ConfigurationPolicy")
 	name := "foo"
-	relatedList := addRelatedObjects(policy, true, rsrc, "default", true, []string{name}, "reason")
+	relatedList := addRelatedObjects(true, rsrc, "default", true, []string{name}, "reason")
 
 	// add the same object but after sorting it should be first
 	name = "bar"
-	relatedList = append(relatedList, addRelatedObjects(policy, true, rsrc, "default", true, []string{name}, "reason")...)
+	relatedList = append(relatedList, addRelatedObjects(true, rsrc, "default", true, []string{name}, "reason")...)
 
 	empty := []policiesv1alpha1.RelatedObject{}
 
@@ -433,15 +415,17 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 	assert.True(t, relatedList[0].Object.Metadata.Name == "bar")
 
 	// append another object named bar but also with namespace bar
-	relatedList = append(relatedList, addRelatedObjects(policy, true, rsrc, "bar", true, []string{name}, "reason")...)
+	relatedList = append(relatedList, addRelatedObjects(true, rsrc, "bar", true, []string{name}, "reason")...)
+
 	sortRelatedObjectsAndUpdate(policy, relatedList, empty)
 	assert.True(t, relatedList[0].Object.Metadata.Namespace == "bar")
 
 	// clear related objects and test sorting with no namespace
 	name = "foo"
-	relatedList = addRelatedObjects(policy, true, rsrc, "", false, []string{name}, "reason")
+	relatedList = addRelatedObjects(true, rsrc, "", false, []string{name}, "reason")
 	name = "bar"
-	relatedList = append(relatedList, addRelatedObjects(policy, true, rsrc, "", false, []string{name}, "reason")...)
+	relatedList = append(relatedList, addRelatedObjects(true, rsrc, "", false, []string{name}, "reason")...)
+
 	sortRelatedObjectsAndUpdate(policy, relatedList, empty)
 	assert.True(t, relatedList[0].Object.Metadata.Name == "bar")
 }
