@@ -848,6 +848,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 	if exists {
 		updated, throwSpecViolation, msg, pErr := checkAndUpdateResource(
 			strings.ToLower(string(objectT.ComplianceType)),
+			strings.ToLower(string(objectT.MetadataComplianceType)),
 			data, remediation, rsrc, dclient, unstruct.Object["kind"].(string))
 		if !updated && throwSpecViolation {
 			specViolation = throwSpecViolation
@@ -1654,6 +1655,7 @@ func handleKeys(
 	existingObj *unstructured.Unstructured,
 	remediation policyv1.RemediationAction,
 	complianceType string,
+	mdComplianceType string,
 	typeStr string,
 	name string,
 	res dynamic.ResourceInterface,
@@ -1663,8 +1665,14 @@ func handleKeys(
 	for key := range unstruct.Object {
 		isStatus := key == "status"
 
+		// use metadatacompliancetype to evaluate metadata if it is set
+		keyComplianceType := complianceType
+		if key == "metadata" && mdComplianceType != "" {
+			keyComplianceType = mdComplianceType
+		}
+
 		// check key for mismatch
-		errorMsg, updateNeeded, mergedObj, skipped := handleSingleKey(key, unstruct, existingObj, complianceType)
+		errorMsg, updateNeeded, mergedObj, skipped := handleSingleKey(key, unstruct, existingObj, keyComplianceType)
 		if errorMsg != "" {
 			return false, false, errorMsg, true
 		}
@@ -1719,6 +1727,7 @@ func handleKeys(
 // matches the template and update it if the remediationAction is enforce
 func checkAndUpdateResource(
 	complianceType string,
+	mdComplianceType string,
 	metadata map[string]interface{},
 	remediation policyv1.RemediationAction,
 	rsrc schema.GroupVersionResource,
@@ -1745,7 +1754,7 @@ func checkAndUpdateResource(
 	if err != nil {
 		log.Error(err, "Could not retrieve object from the API server", "name", name, "namespace", namespace)
 	} else {
-		return handleKeys(unstruct, existingObj, remediation, complianceType, typeStr, name, res)
+		return handleKeys(unstruct, existingObj, remediation, complianceType, mdComplianceType, typeStr, name, res)
 	}
 
 	return false, false, "", false
