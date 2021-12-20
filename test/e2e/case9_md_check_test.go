@@ -182,5 +182,9 @@ var _ = Describe("Test pod obj template handling", func() {
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
 		})
+		It("should clean up the created namespace", func() {
+			By("Deleting the namespace from " + case9MultiAnnoNSCreate)
+			utils.Kubectl("delete", "ns", "case9-test-multi-annotation")
+		})
 	})
 })

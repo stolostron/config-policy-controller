@@ -162,7 +162,7 @@ const (
 	MustOnlyHave ComplianceType = "Mustonlyhave"
 )
 
-// MetadataComplianceType describes how to check compliance for the labels/annotations of a given resource
+// MetadataComplianceType describes how to check compliance for the labels/annotations of a given object
 // +kubebuilder:validation:Enum=MustHave;Musthave;musthave;MustOnlyHave;Mustonlyhave;mustonlyhave
 type MetadataComplianceType string
 
