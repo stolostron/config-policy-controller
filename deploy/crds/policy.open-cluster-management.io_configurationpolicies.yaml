@@ -75,7 +75,7 @@ spec:
                       type: string
                     metadataComplianceType:
                       description: MetadataComplianceType describes how to check compliance
-                        for the labels/annotations of a given resource
+                        for the labels/annotations of a given object
                       enum:
                       - MustHave
                       - Musthave
