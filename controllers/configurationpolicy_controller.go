@@ -450,6 +450,12 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(
 				parentUpdate = true
 			}
 		}
+
+		// If the object is not namespaced, then there is no need to check the remainder of
+		// the namespaces in relevantNamespaces.
+		if !objNamespaced {
+			break
+		}
 	}
 
 	r.checkRelatedAndUpdate(parentUpdate, plc, relatedObjects, oldRelated)
