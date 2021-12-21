@@ -155,6 +155,7 @@ var _ = Describe("Test pod obj template handling", func() {
 
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
+			utils.Kubectl("delete", "configurationpolicy", case9MultiAnnoNSCreate, "-n", testNamespace)
 		})
 		It("should be compliant if metadataComplianceType is musthave", func() {
 			By("Creating " + case9CheckNSMusthave + " on managed")
@@ -168,6 +169,7 @@ var _ = Describe("Test pod obj template handling", func() {
 
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("Compliant"))
+			utils.Kubectl("delete", "configurationpolicy", case9CheckNSMusthave, "-n", testNamespace)
 		})
 		It("should return noncompliant if metadataComplianceType is mustonlyhave", func() {
 			By("Creating " + case9CheckNSMustonlyhave + " on managed")
@@ -181,6 +183,7 @@ var _ = Describe("Test pod obj template handling", func() {
 
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
+			utils.Kubectl("delete", "configurationpolicy", case9CheckNSMustonlyhave, "-n", testNamespace)
 		})
 		It("should clean up the created namespace", func() {
 			By("Deleting the namespace from " + case9MultiAnnoNSCreate)
