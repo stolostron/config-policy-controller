@@ -1,4 +1,4 @@
-module github.com/open-cluster-management/config-policy-controller
+module github.com/stolostron/config-policy-controller
 
 go 1.17
 
@@ -7,9 +7,9 @@ require (
 	github.com/google/go-cmp v0.5.5
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
-	github.com/open-cluster-management/addon-framework v0.0.0-20210621074027-a81f712c10c2
-	github.com/open-cluster-management/go-template-utils v1.3.0
-	github.com/open-cluster-management/governance-policy-propagator v0.0.0-20211012174109-95c3b77cce09
+	github.com/stolostron/addon-framework v0.0.0-20210621074027-a81f712c10c2
+	github.com/stolostron/go-template-utils v1.3.0
+	github.com/stolostron/governance-policy-propagator v0.0.0-20211012174109-95c3b77cce09
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	k8s.io/api v0.21.3
@@ -57,7 +57,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
-	github.com/open-cluster-management/multicloud-operators-placementrule v1.2.4-0-20210816-699e5 // indirect
+	github.com/stolostron/multicloud-operators-placementrule v1.2.4-0-20210816-699e5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.11.0 // indirect

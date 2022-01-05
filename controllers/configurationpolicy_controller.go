@@ -15,8 +15,8 @@ import (
 	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
-	templates "github.com/open-cluster-management/go-template-utils/pkg/templates"
-	extpoliciesv1 "github.com/open-cluster-management/governance-policy-propagator/api/v1"
+	templates "github.com/stolostron/go-template-utils/pkg/templates"
+	extpoliciesv1 "github.com/stolostron/governance-policy-propagator/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	policyv1 "github.com/open-cluster-management/config-policy-controller/api/v1"
-	common "github.com/open-cluster-management/config-policy-controller/pkg/common"
+	policyv1 "github.com/stolostron/config-policy-controller/api/v1"
+	common "github.com/stolostron/config-policy-controller/pkg/common"
 )
 
 const ControllerName string = "configuration-policy-controller"
