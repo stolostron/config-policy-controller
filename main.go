@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/stolostron/addon-framework/pkg/lease"
+	"github.com/open-cluster-management/addon-framework/pkg/lease"
 	"github.com/spf13/pflag"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
