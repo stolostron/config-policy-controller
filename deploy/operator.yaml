@@ -58,7 +58,7 @@ spec:
               fieldPath: metadata.name
         - name: OPERATOR_NAME
           value: config-policy-controller
-        image: quay.io/open-cluster-management/config-policy-controller:latest
+        image: quay.io/stolostron/config-policy-controller:latest
         imagePullPolicy: Always
         name: config-policy-controller
       serviceAccountName: config-policy-controller

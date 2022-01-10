@@ -28,10 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	policyv1 "github.com/open-cluster-management/config-policy-controller/api/v1"
-	"github.com/open-cluster-management/config-policy-controller/controllers"
-	"github.com/open-cluster-management/config-policy-controller/pkg/common"
-	"github.com/open-cluster-management/config-policy-controller/version"
+	policyv1 "github.com/stolostron/config-policy-controller/api/v1"
+	"github.com/stolostron/config-policy-controller/controllers"
+	"github.com/stolostron/config-policy-controller/pkg/common"
+	"github.com/stolostron/config-policy-controller/version"
 )
 
 // Change below variables to serve metrics on different host or port.

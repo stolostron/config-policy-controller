@@ -452,10 +452,6 @@ github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f/go.mod
 github.com/open-cluster-management/api v0.0.0-20210513122330-d76f10481f05/go.mod h1:ot+A1DWq+v1IV+e1S7nhIteYAmNByFgtazvzpoeAfRQ=
 github.com/open-cluster-management/api v0.0.0-20210527013639-a6845f2ebcb1 h1:AaFycHD9YOfFXe9C5VsYxKf4LKCXKSLZgK2DnFdHY4M=
 github.com/open-cluster-management/api v0.0.0-20210527013639-a6845f2ebcb1/go.mod h1:ot+A1DWq+v1IV+e1S7nhIteYAmNByFgtazvzpoeAfRQ=
-github.com/open-cluster-management/go-template-utils v1.3.0 h1:AQ7pIWyBaXArFoIrouv06U2GRC9YSpXEZaqfpJ6hJNE=
-github.com/open-cluster-management/go-template-utils v1.3.0/go.mod h1:+D8buOYN/VMVuTEd8WnnJQn+Z1oU4sT2OXbYZE+mIDk=
-github.com/open-cluster-management/governance-policy-propagator v0.0.0-20211012174109-95c3b77cce09 h1:IVEk3zwwml9gBp1V8POLULOd6qmk4Ny1lx8Sr0XbTXw=
-github.com/open-cluster-management/governance-policy-propagator v0.0.0-20211012174109-95c3b77cce09/go.mod h1:r872adbSCRnQT+4w6vE2egMEfdmamVXy8SMwLqlzIfk=
 github.com/open-cluster-management/klusterlet-addon-controller v0.0.0-20210303215539-1d12cebe6f19/go.mod h1:YWcjLe+zqmdqPFvwzASizCa8JdXe5briBgxoP+r3CRM=
 github.com/open-cluster-management/library-e2e-go v0.0.0-20200620112055-c80fc3c14997/go.mod h1:glvUOJg5EAb1Lq0OPcYhl57PJTxN2T5xuSfdV3Iab4Y=
 github.com/open-cluster-management/library-go v0.0.0-20200828173847-299c21e6c3fc/go.mod h1:X9KdKajEnrx6+LQSjo+61gLdk4Ntmwp+YEYD0CIJT7I=
@@ -555,6 +551,10 @@ github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DM
 github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/yZzE=
 github.com/spf13/viper v1.7.0/go.mod h1:8WkrPz2fc9jxqZNCJI/76HCieCp4Q8HaLFoCha5qpdg=
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
+github.com/stolostron/go-template-utils v1.3.1 h1:qI0oMrvtc25nHk9Eq4cbJngxUkjOgQvyP9e9pIINGFw=
+github.com/stolostron/go-template-utils v1.3.1/go.mod h1:h/DAr8riSiXW+JYlfwxsXJ3vZif8Z318lqvCy8+Jy3Y=
+github.com/stolostron/governance-policy-propagator v0.0.0-20220106234408-4675151f7b90 h1:Crf883OOyGFoSQcMn3aX8e/KuQvGnmePajCKWN5UHfs=
+github.com/stolostron/governance-policy-propagator v0.0.0-20220106234408-4675151f7b90/go.mod h1:girfcjt7mx3FDBSPgwQXvbzjLmMynQk0Ao5KNNKfJxQ=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.2.0/go.mod h1:qt09Ya8vawLte6SNmTgCsAVtYtaKzEcn8ATUoHMkEqE=

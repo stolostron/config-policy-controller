@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	policyv1 "github.com/open-cluster-management/config-policy-controller/api/v1"
+	policyv1 "github.com/stolostron/config-policy-controller/api/v1"
 )
 
 // addRelatedObjects builds the list of kubernetes resources related to the policy.  The list contains
