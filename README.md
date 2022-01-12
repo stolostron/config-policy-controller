@@ -4,8 +4,8 @@
 
 Open Cluster Management - Configuration Policy Controller
 
-[![Build](https://img.shields.io/badge/build-Prow-informational)](https://prow.ci.openshift.org/?repo=open-cluster-management%2Fconfig-policy-controller)
-[![KinD tests](https://github.com/open-cluster-management/config-policy-controller/actions/workflows/kind.yml/badge.svg?branch=main&event=push)](https://github.com/open-cluster-management/config-policy-controller/actions/workflows/kind.yml)
+[![Build](https://img.shields.io/badge/build-Prow-informational)](https://prow.ci.openshift.org/?repo=stolostron%2Fconfig-policy-controller)
+[![KinD tests](https://github.com/stolostron/config-policy-controller/actions/workflows/kind.yml/badge.svg?branch=main&event=push)](https://github.com/stolostron/config-policy-controller/actions/workflows/kind.yml)
 [![License](https://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 ## Description
@@ -128,7 +128,7 @@ Go to the [Contributing guide](CONTRIBUTING.md) to learn how to get involved.
     ```
     - The image registry, name, and tag used in the image build, are configurable with:
       ```bash
-      export REGISTRY=''  # (defaults to 'quay.io/open-cluster-management')
+      export REGISTRY=''  # (defaults to 'quay.io/stolostron')
       export IMG=''       # (defaults to the repository name)
       export TAG=''       # (defaults to 'latest')
       ```
@@ -149,7 +149,7 @@ Go to the [Contributing guide](CONTRIBUTING.md) to learn how to get involved.
        ```bash
        make deploy
        ```
-    **NOTE:** Please be aware of the community's [deployment images](https://github.com/open-cluster-management/community#deployment-images) special note.
+    **NOTE:** Please be aware of the community's [deployment images](https://github.com/open-cluster-management-io/community#deployment-images) special note.
 
 
 ### Steps for test
