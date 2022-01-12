@@ -8,7 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/config-policy-controller/test/utils"
+	"github.com/stolostron/config-policy-controller/test/utils"
 )
 
 const case14PolicyNamed string = "../resources/case14_namespaces/case14_limitrange_named.yaml"

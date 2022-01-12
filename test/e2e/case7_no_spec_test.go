@@ -8,7 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/config-policy-controller/test/utils"
+	"github.com/stolostron/config-policy-controller/test/utils"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

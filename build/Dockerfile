@@ -4,7 +4,7 @@
 FROM golang:1.17 AS builder
 
 ENV COMPONENT=config-policy-controller
-ENV REPO_PATH=/go/src/github.com/open-cluster-management/${COMPONENT}
+ENV REPO_PATH=/go/src/github.com/stolostron/${COMPONENT}
 WORKDIR ${REPO_PATH}
 COPY . .
 RUN make build
@@ -13,7 +13,7 @@ RUN make build
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 ENV COMPONENT=config-policy-controller
-ENV REPO_PATH=/go/src/github.com/open-cluster-management/${COMPONENT}
+ENV REPO_PATH=/go/src/github.com/stolostron/${COMPONENT}
 ENV OPERATOR=/usr/local/bin/${COMPONENT} \
     USER_UID=1001 \
     USER_NAME=${COMPONENT}

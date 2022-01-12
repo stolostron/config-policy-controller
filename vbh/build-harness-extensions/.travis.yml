@@ -24,7 +24,7 @@ jobs:
       name: "Build the image and push it"
       script:
         - |
-          docker build --tag quay.io/open-cluster-management/build-harness:latest .
+          docker build --tag quay.io/stolostron/build-harness:latest .
           docker login quay.io/open-cluster-management -u ${DOCKER_USER} -p ${DOCKER_PASS}
           docker push quay.io/open-cluster-management/build-harness:latest
 
