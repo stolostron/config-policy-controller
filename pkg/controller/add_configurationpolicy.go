@@ -4,7 +4,7 @@
 package controller
 
 import (
-	configurationpolicy "github.com/open-cluster-management/config-policy-controller/pkg/controller/configurationpolicy"
+	configurationpolicy "github.com/stolostron/config-policy-controller/pkg/controller/configurationpolicy"
 )
 
 func init() {

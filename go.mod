@@ -1,4 +1,4 @@
-module github.com/open-cluster-management/config-policy-controller
+module github.com/stolostron/config-policy-controller
 
 go 1.17
 
@@ -83,7 +83,8 @@ require (
 
 replace (
 	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
-	github.com/open-cluster-management/config-policy-controller/test => ./test
+	github.com/open-cluster-management/addon-framework => github.com/stolostron/addon-framework v0.0.0-20210621074027-a81f712c10c2
+	github.com/open-cluster-management/api => open-cluster-management.io/api v0.3.1-0.20210409125704-06f2aec1a73f
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20211202192323-5770296d904e // CVE-2021-43565
 	k8s.io/client-go => k8s.io/client-go v0.20.5
 )

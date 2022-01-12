@@ -6,7 +6,7 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-cluster-management/config-policy-controller/test/utils"
+	"github.com/stolostron/config-policy-controller/test/utils"
 )
 
 const case9ConfigPolicyNamePod string = "policy-pod-c9-create"
