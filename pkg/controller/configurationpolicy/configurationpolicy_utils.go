@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	policyv1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policy/v1"
+	policyv1 "github.com/stolostron/config-policy-controller/pkg/apis/policy/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )

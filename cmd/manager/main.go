@@ -16,11 +16,11 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 
-	"github.com/open-cluster-management/config-policy-controller/pkg/apis"
-	"github.com/open-cluster-management/config-policy-controller/pkg/common"
-	"github.com/open-cluster-management/config-policy-controller/pkg/controller"
-	policyStatusHandler "github.com/open-cluster-management/config-policy-controller/pkg/controller/configurationpolicy"
-	"github.com/open-cluster-management/config-policy-controller/version"
+	"github.com/stolostron/config-policy-controller/pkg/apis"
+	"github.com/stolostron/config-policy-controller/pkg/common"
+	"github.com/stolostron/config-policy-controller/pkg/controller"
+	policyStatusHandler "github.com/stolostron/config-policy-controller/pkg/controller/configurationpolicy"
+	"github.com/stolostron/config-policy-controller/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"

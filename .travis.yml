@@ -51,10 +51,10 @@ jobs:
           make component/push
           if [ "$IMAGE_SCAN" != "false" ]; then make security/scans; fi;
         - if [ "$TRAVIS_PULL_REQUEST" == "false" -a "$TRAVIS_BRANCH" == "master" ]; then 
-            export COMPONENT_NEWTAG="latest-dev";
+            export COMPONENT_NEWTAG="latest-2.2";
             make component/tag;
             export COMPONENT_VERSION="latest";
-            export COMPONENT_TAG_EXTENSION="-dev";
+            export COMPONENT_TAG_EXTENSION="-2.2";
             make component/push;
           fi;
     - stage: unit-test

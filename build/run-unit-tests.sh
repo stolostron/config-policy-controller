@@ -35,8 +35,8 @@ if ! which gocovmerge > /dev/null; then
     go get -u github.com/wadey/gocovmerge;
 fi
 echo "Installing ginkgo ..."
-go get github.com/onsi/ginkgo/ginkgo
-go get github.com/onsi/gomega/...
+go get github.com/onsi/ginkgo/ginkgo@v1.12.2
+go get github.com/onsi/gomega/...@v1.10.1
 
 # run e2e test
 make build-instrumented
