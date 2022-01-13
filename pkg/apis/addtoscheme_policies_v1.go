@@ -3,7 +3,7 @@
 package apis
 
 import (
-	v1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policy/v1"
+	v1 "github.com/stolostron/config-policy-controller/pkg/apis/policy/v1"
 )
 
 func init() {

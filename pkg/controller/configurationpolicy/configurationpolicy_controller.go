@@ -15,8 +15,8 @@ import (
 
 	"github.com/golang/glog"
 	gocmp "github.com/google/go-cmp/cmp"
-	policyv1 "github.com/open-cluster-management/config-policy-controller/pkg/apis/policy/v1"
-	common "github.com/open-cluster-management/config-policy-controller/pkg/common"
+	policyv1 "github.com/stolostron/config-policy-controller/pkg/apis/policy/v1"
+	common "github.com/stolostron/config-policy-controller/pkg/common"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

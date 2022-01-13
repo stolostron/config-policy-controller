@@ -15,8 +15,8 @@ if ! which kind > /dev/null; then
     sudo mv ./kind /usr/local/bin/kind
 fi
 echo "Installing ginkgo ..."
-go get github.com/onsi/ginkgo/ginkgo
-go get github.com/onsi/gomega/...
+go get github.com/onsi/ginkgo/ginkgo@v1.12.2
+go get github.com/onsi/gomega/...@v1.10.1
 
 make kind-create-cluster 
 
