@@ -50,7 +50,7 @@ jobs:
           make component/build
           make component/push
           if [ "$IMAGE_SCAN" != "false" ]; then make security/scans; fi;
-        - if [ "$TRAVIS_PULL_REQUEST" == "false" -a "$TRAVIS_BRANCH" == "master" ]; then 
+        - if [ "$TRAVIS_PULL_REQUEST" == "false" -a "$TRAVIS_BRANCH" == "release-2.2" ]; then 
             export COMPONENT_NEWTAG="latest-2.2";
             make component/tag;
             export COMPONENT_VERSION="latest";
