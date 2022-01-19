@@ -133,23 +133,23 @@ func checkFieldsWithSort(mergedObj map[string]interface{}, oldObj map[string]int
 				}
 			}
 		case string:
-			//extra check to see if value is a byte value
+			// extra check to see if value is a byte value
 			mQty, err := apiRes.ParseQuantity(mVal)
 			if err != nil {
-				//if the value is a regular string, check equality normally
-				oVal := oldObj[i]
-				if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
-					match = false
+				// An error indicates the value is a regular string, so check equality normally
+				if fmt.Sprint(oldObj[i]) != fmt.Sprint(mVal) {
+					return false
 				}
 			} else {
-				//if the value is a quantity of bytes, convert original
-				oQty, err := apiRes.ParseQuantity(mVal)
-				if err != nil {
-					match = false
-				} else {
-					if !oQty.Equal(mQty) {
-						match = false
-					}
+				// if the value is a quantity of bytes, convert original
+				oVal, ok := oldObj[i].(string)
+				if !ok {
+					return false
+				}
+
+				oQty, err := apiRes.ParseQuantity(oVal)
+				if err != nil || !oQty.Equal(mQty) {
+					return false
 				}
 			}
 		default:
@@ -199,23 +199,23 @@ func checkListFieldsWithSort(mergedObj []map[string]interface{}, oldObj []map[st
 					match = false
 				}
 			case string:
-				//extra check to see if value is a byte value
+				// extra check to see if value is a byte value
 				mQty, err := apiRes.ParseQuantity(mVal)
 				if err != nil {
-					//if the value is a regular string, check equality normally
-					oVal := oldItem[i]
-					if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
-						match = false
+					// An error indicates the value is a regular string, so check equality normally
+					if fmt.Sprint(oldItem[i]) != fmt.Sprint(mVal) {
+						return false
 					}
 				} else {
-					//if the value is a quantity of bytes, convert original
-					oQty, err := apiRes.ParseQuantity(mVal)
-					if err != nil {
-						match = false
-					} else {
-						if !oQty.Equal(mQty) {
-							match = false
-						}
+					// if the value is a quantity of bytes, convert original
+					oVal, ok := oldItem[i].(string)
+					if !ok {
+						return false
+					}
+
+					oQty, err := apiRes.ParseQuantity(oVal)
+					if err != nil || !oQty.Equal(mQty) {
+						return false
 					}
 				}
 			default:
