@@ -166,7 +166,7 @@ create-ns:
 
 # Run against the current locally configured Kubernetes cluster
 run:
-	go run ./cmd/manager/main.go
+	go run ./main.go --leader-elect=false
 
 ############################################################
 # clean section
