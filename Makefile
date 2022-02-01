@@ -157,12 +157,6 @@ clean::
 	rm -f build/_output/bin/$(IMG)
 
 ############################################################
-# check copyright section
-############################################################
-copyright-check:
-	./build/copyright-check.sh $(TRAVIS_BRANCH)
-
-############################################################
 # Generate manifests
 ############################################################
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
