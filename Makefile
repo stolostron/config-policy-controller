@@ -224,25 +224,19 @@ ifndef DOCKER_PASS
 endif
 
 kind-deploy-controller: generate-operator-yaml
-	@echo installing config policy controller
+	@echo Installing $(IMG)
 	kubectl create ns $(KIND_NAMESPACE) || true
-	kubectl apply -f deploy/crds/policy.open-cluster-management.io_configurationpolicies.yaml
 	kubectl apply -f deploy/operator.yaml -n $(KIND_NAMESPACE)
 	kubectl patch deployment $(IMG) -n $(KIND_NAMESPACE) -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"$(IMG)\",\"env\":[{\"name\":\"WATCH_NAMESPACE\",\"value\":\"$(WATCH_NAMESPACE)\"}]}]}}}}"
 
 deploy-controller: kind-deploy-controller
 
-kind-deploy-controller-dev: generate-operator-yaml
+kind-deploy-controller-dev: kind-deploy-controller
 	@echo Pushing image to KinD cluster
 	kind load docker-image $(REGISTRY)/$(IMG):$(TAG) --name $(KIND_NAME)
-	@echo Installing $(IMG)
-	kubectl create ns $(KIND_NAMESPACE)
-	kubectl apply -f deploy/crds/policy.open-cluster-management.io_configurationpolicies.yaml
-	kubectl apply -f deploy/operator.yaml -n $(KIND_NAMESPACE)
 	@echo "Patch deployment image"
 	kubectl patch deployment $(IMG) -n $(KIND_NAMESPACE) -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"$(IMG)\",\"imagePullPolicy\":\"Never\"}]}}}}"
 	kubectl patch deployment $(IMG) -n $(KIND_NAMESPACE) -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"$(IMG)\",\"image\":\"$(REGISTRY)/$(IMG):$(TAG)\"}]}}}}"
-	kubectl patch deployment $(IMG) -n $(KIND_NAMESPACE) -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"$(IMG)\",\"env\":[{\"name\":\"WATCH_NAMESPACE\",\"value\":\"$(WATCH_NAMESPACE)\"}]}]}}}}"
 	kubectl rollout status -n $(KIND_NAMESPACE) deployment $(IMG) --timeout=180s
 
 # Specify KIND_VERSION to indicate the version tag of the KinD image
@@ -264,6 +258,7 @@ install-crds:
 	kubectl apply -f test/crds/clusterclaims.cluster.open-cluster-management.io.yaml
 	kubectl apply -f test/crds/oauths.config.openshift.io_crd.yaml
 	kubectl apply -f https://raw.githubusercontent.com/stolostron/governance-policy-propagator/main/deploy/crds/policy.open-cluster-management.io_policies.yaml
+	kubectl apply -f deploy/crds/policy.open-cluster-management.io_configurationpolicies.yaml
 
 install-resources:
 	@echo creating namespaces
