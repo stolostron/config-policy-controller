@@ -34,7 +34,7 @@ GOBIN_DEFAULT := $(GOPATH)/bin
 export GOBIN ?= $(GOBIN_DEFAULT)
 GOARCH = $(shell go env GOARCH)
 GOOS = $(shell go env GOOS)
-TESTARGS_DEFAULT := "-v"
+TESTARGS_DEFAULT := -v
 export TESTARGS ?= $(TESTARGS_DEFAULT)
 DEST ?= $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 VERSION ?= $(shell cat COMPONENT_VERSION 2> /dev/null)
@@ -113,9 +113,14 @@ lint: lint-dependencies lint-all
 KUBEBUILDER_DIR = /usr/local/kubebuilder/bin
 KBVERSION = 3.2.0
 K8S_VERSION = 1.21.2
+GOSEC = $(shell pwd)/bin/gosec
+GOSEC_VERSION = 2.9.6
 
 test:
-	@go test ${TESTARGS} `go list ./... | grep -v test/e2e`
+	go test $(TESTARGS) `go list ./... | grep -v test/e2e`
+
+test-coverage: TESTARGS = -json -cover -covermode=atomic -coverprofile=coverage_unit.out
+test-coverage: test
 
 test-dependencies:
 	@if (ls $(KUBEBUILDER_DIR)/*); then \
@@ -127,6 +132,13 @@ test-dependencies:
 	sudo curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KBVERSION)/kubebuilder_$(GOOS)_$(GOARCH) -o $(KUBEBUILDER_DIR)/kubebuilder
 	sudo chmod +x $(KUBEBUILDER_DIR)/kubebuilder
 	curl -L "https://go.kubebuilder.io/test-tools/$(K8S_VERSION)/$(GOOS)/$(GOARCH)" | sudo tar xz --strip-components=2 -C $(KUBEBUILDER_DIR)/
+
+gosec-install:
+	curl -L https://github.com/securego/gosec/releases/download/v$(GOSEC_VERSION)/gosec_$(GOSEC_VERSION)_$(GOOS)_$(GOARCH).tar.gz | tar -xz -C /tmp/
+	sudo mv /tmp/gosec $(GOSEC)
+
+gosec-scan:
+	$(GOSEC) -fmt sonarqube -out gosec.json -no-fail -exclude-dir=.go ./...
 
 ############################################################
 # build section
@@ -159,7 +171,7 @@ create-ns:
 
 # Run against the current locally configured Kubernetes cluster
 run:
-	go run ./main.go --leader-elect=false
+	WATCH_NAMESPACE=$(WATCH_NAMESPACE) go run ./main.go --leader-elect=false
 
 ############################################################
 # clean section
@@ -265,7 +277,10 @@ install-resources:
 	kubectl create ns $(WATCH_NAMESPACE)
 
 e2e-test:
-	${GOPATH}/bin/ginkgo -v --failFast --slowSpecThreshold=10 test/e2e
+	$(GOPATH)/bin/ginkgo -v --fail-fast --slow-spec-threshold=10s $(E2E_TEST_ARGS) test/e2e
+
+e2e-test-coverage: E2E_TEST_ARGS = --race --cover --coverpkg=$(GIT_HOST)/$(IMG)/... --coverprofile=coverage_e2e.out -r --json-report=report_e2e.json --output-dir=.
+e2e-test-coverage: e2e-test
 
 e2e-dependencies:
 	go get github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
@@ -281,20 +296,3 @@ e2e-debug:
 	kubectl get namespace open-cluster-management-agent-addon
 	kubectl get namespaces
 	kubectl get secrets -n open-cluster-management-agent-addon
-
-############################################################
-# e2e test coverage
-############################################################
-build-instrumented:
-	go test -covermode=atomic -coverpkg=github.com/stolostron/$(IMG)... -c -tags e2e ./cmd/manager -o build/_output/bin/$(IMG)-instrumented
-
-run-instrumented:
-	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" ./build/_output/bin/$(IMG)-instrumented -test.run "^TestRunMain$$" -test.coverprofile=coverage_e2e.out &>/dev/null &
-
-stop-instrumented:
-	ps -ef | grep 'config-po' | grep -v grep | awk '{print $$2}' | xargs kill
-
-coverage-merge:
-	@echo merging the coverage report
-	gocovmerge $(PWD)/coverage_* >> coverage.out
-	cat coverage.out
