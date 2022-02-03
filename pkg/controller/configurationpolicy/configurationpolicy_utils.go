@@ -398,7 +398,7 @@ func createMustHaveStatus(desiredName string, kind string, complianceObjects map
 	// Noncompliant with no resources -- return violation immediately
 	if !compliant && desiredName == "" {
 		message := fmt.Sprintf("No instances of `%v` found as specified", kind)
-		if len(sortedNamespaces) > 0 {
+		if namespaced && len(sortedNamespaces) > 0 {
 			message = fmt.Sprintf("No instances of `%v` found as specified in namespaces: %v",
 				kind, strings.Join(sortedNamespaces, ", "))
 		}
