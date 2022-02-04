@@ -82,6 +82,12 @@ jobs:
         export GOPATH=$(go env GOPATH)
         make e2e-dependencies
         make e2e-test-coverage
+        
+    - name: Test Coverage Verification
+      if: ${{ github.event_name == 'pull_request' }}
+      run: |
+        make test-coverage
+        make coverage-verify
 
     - name: Test Coverage and Report Generation
       if: ${{ github.event_name == 'push' }}

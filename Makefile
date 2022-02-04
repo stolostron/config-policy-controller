@@ -53,6 +53,8 @@ endif
 # Fetch Ginkgo/Gomega versions from go.mod
 GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' go.mod)
 GOMEGA_VERSION := $(shell awk '/github.com\/onsi\/gomega/ {print $$2}' go.mod)
+# Test coverage threshold
+export COVERAGE_MIN ?= 75
 
 LOCAL_OS := $(shell uname)
 ifeq ($(LOCAL_OS),Linux)
@@ -296,3 +298,18 @@ e2e-debug:
 	kubectl get namespace open-cluster-management-agent-addon
 	kubectl get namespaces
 	kubectl get secrets -n open-cluster-management-agent-addon
+
+############################################################
+# test coverage
+############################################################
+GOCOVMERGE = $(shell pwd)/bin/gocovmerge
+coverage-dependencies:
+	$(call go-get-tool,$(GOCOVMERGE),github.com/wadey/gocovmerge)
+
+COVERAGE_FILE = coverage.out
+coverage-merge: coverage-dependencies
+	@echo Merging the coverage reports into $(COVERAGE_FILE)
+	$(GOCOVMERGE) $(PWD)/coverage_* > $(COVERAGE_FILE)
+
+coverage-verify:
+	./build/common/scripts/coverage_calc.sh
