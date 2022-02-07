@@ -97,7 +97,7 @@ jobs:
         cat gosec.json
 
     - name: SonarCloud Analysis
-      if: ${{ github.event_name == 'push' }}
+      if: ${{ github.event_name == 'push' && github.repository_owner == 'stolostron' }}
       uses: sonarsource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
