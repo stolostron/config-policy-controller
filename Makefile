@@ -278,15 +278,24 @@ install-resources:
 	@echo creating namespaces
 	kubectl create ns $(WATCH_NAMESPACE)
 
-e2e-test:
-	$(GOPATH)/bin/ginkgo -v --fail-fast --slow-spec-threshold=10s $(E2E_TEST_ARGS) test/e2e
-
-e2e-test-coverage: E2E_TEST_ARGS = --race --cover --coverpkg=$(GIT_HOST)/$(IMG)/... --coverprofile=coverage_e2e.out -r --json-report=report_e2e.json --output-dir=.
-e2e-test-coverage: e2e-test
-
 e2e-dependencies:
 	go get github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 	go get github.com/onsi/gomega/...@$(GOMEGA_VERSION)
+
+e2e-test:
+	$(GOPATH)/bin/ginkgo -v --fail-fast --slow-spec-threshold=10s $(E2E_TEST_ARGS) test/e2e
+
+e2e-test-coverage: E2E_TEST_ARGS = --json-report=report_e2e.json --output-dir=.
+e2e-test-coverage: e2e-test
+
+e2e-build-instrumented:
+	go test -covermode=atomic -coverpkg=$(GIT_HOST)/$(IMG)/... -c -tags e2e ./ -o build/_output/bin/$(IMG)-instrumented
+
+e2e-run-instrumented:
+	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" ./build/_output/bin/$(IMG)-instrumented -test.run "^TestRunMain$$" -test.coverprofile=coverage_e2e.out &>/dev/null &
+
+e2e-stop-instrumented:
+	ps -ef | grep '$(IMG)' | grep -v grep | awk '{print $$2}' | xargs kill
 
 e2e-debug:
 	kubectl get all -n $(KIND_NAMESPACE)
