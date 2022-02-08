@@ -92,17 +92,20 @@ jobs:
       if: ${{ github.event_name == 'push' }}
       run: |
         make test-coverage | tee report_unit.json
-        make gosec-install
         make gosec-scan
         cat gosec.json
 
     - name: SonarCloud Analysis
-      if: ${{ github.event_name == 'push' && github.repository_owner == 'stolostron' }}
+      if: |
+        github.event_name == 'push' && 
+        github.repository_owner == 'stolostron'  &&
+        matrix.kind == 'latest'
       uses: sonarsource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
+        projectBaseDir: config-policy-controller
         args: >
           --debug
 
