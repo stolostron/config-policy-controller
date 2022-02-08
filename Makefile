@@ -135,11 +135,11 @@ test-dependencies:
 	sudo chmod +x $(KUBEBUILDER_DIR)/kubebuilder
 	curl -L "https://go.kubebuilder.io/test-tools/$(K8S_VERSION)/$(GOOS)/$(GOARCH)" | sudo tar xz --strip-components=2 -C $(KUBEBUILDER_DIR)/
 
-gosec-install:
+$(GOSEC):
 	curl -L https://github.com/securego/gosec/releases/download/v$(GOSEC_VERSION)/gosec_$(GOSEC_VERSION)_$(GOOS)_$(GOARCH).tar.gz | tar -xz -C /tmp/
 	sudo mv /tmp/gosec $(GOSEC)
 
-gosec-scan:
+gosec-scan: $(GOSEC)
 	$(GOSEC) -fmt sonarqube -out gosec.json -no-fail -exclude-dir=.go ./...
 
 ############################################################
