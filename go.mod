@@ -84,5 +84,5 @@ require (
 
 replace (
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // CVE-2021-43565
-	k8s.io/client-go => k8s.io/client-go v0.23.2
+	k8s.io/client-go => k8s.io/client-go v0.23.3
 )
