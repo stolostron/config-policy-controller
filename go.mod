@@ -8,7 +8,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.1.3
 	github.com/onsi/gomega v1.18.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stolostron/go-template-utils/v2 v2.2.2
+	github.com/stolostron/go-template-utils/v2 v2.4.0
 	github.com/stolostron/governance-policy-propagator v0.0.0-20220217025800-1a04477f8f38
 	github.com/stretchr/testify v1.7.0
 	k8s.io/api v0.23.3
