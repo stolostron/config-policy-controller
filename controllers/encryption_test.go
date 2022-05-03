@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	policyv1 "github.com/stolostron/config-policy-controller/api/v1"
+	policyv1 "open-cluster-management.io/config-policy-controller/api/v1"
 )
 
 const (

@@ -11,7 +11,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/stolostron/config-policy-controller/test/utils"
+	"open-cluster-management.io/config-policy-controller/test/utils"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/stolostron/config-policy-controller/test/utils"
+	"open-cluster-management.io/config-policy-controller/test/utils"
 )
 
 const (
