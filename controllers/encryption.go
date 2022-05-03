@@ -12,7 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	policyv1 "github.com/stolostron/config-policy-controller/api/v1"
+	policyv1 "open-cluster-management.io/config-policy-controller/api/v1"
 )
 
 const IVAnnotation = "policy.open-cluster-management.io/encryption-iv"

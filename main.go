@@ -33,10 +33,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	policyv1 "github.com/stolostron/config-policy-controller/api/v1"
-	"github.com/stolostron/config-policy-controller/controllers"
-	"github.com/stolostron/config-policy-controller/pkg/common"
-	"github.com/stolostron/config-policy-controller/version"
+	policyv1 "open-cluster-management.io/config-policy-controller/api/v1"
+	"open-cluster-management.io/config-policy-controller/controllers"
+	"open-cluster-management.io/config-policy-controller/pkg/common"
+	"open-cluster-management.io/config-policy-controller/version"
 )
 
 // Change below variables to serve metrics on different host or port.

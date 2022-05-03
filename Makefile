@@ -19,10 +19,6 @@ IMG ?= $(shell cat COMPONENT_NAME 2> /dev/null)
 REGISTRY ?= quay.io/stolostron
 TAG ?= latest
 
-# Github host to use for checking the source tree;
-# Override this variable ue with your own value if you're working on forked repo.
-GIT_HOST ?= github.com/stolostron
-
 PWD := $(shell pwd)
 BASE_DIR := $(shell basename $(PWD))
 export PATH := $(PWD)/bin:$(PATH)
@@ -36,7 +32,6 @@ GOARCH = $(shell go env GOARCH)
 GOOS = $(shell go env GOOS)
 TESTARGS_DEFAULT := -v
 export TESTARGS ?= $(TESTARGS_DEFAULT)
-DEST ?= $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 VERSION ?= $(shell cat COMPONENT_VERSION 2> /dev/null)
 IMAGE_NAME_AND_VERSION ?= $(REGISTRY)/$(IMG)
 # Handle KinD configuration
@@ -289,7 +284,7 @@ e2e-test-coverage: E2E_TEST_ARGS = --json-report=report_e2e.json --output-dir=.
 e2e-test-coverage: e2e-test
 
 e2e-build-instrumented:
-	go test -covermode=atomic -coverpkg=$(GIT_HOST)/$(IMG)/... -c -tags e2e ./ -o build/_output/bin/$(IMG)-instrumented
+	go test -covermode=atomic -coverpkg=$(shell cat go.mod | head -1 | cut -d ' ' -f 2)/... -c -tags e2e ./ -o build/_output/bin/$(IMG)-instrumented
 
 e2e-run-instrumented:
 	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" ./build/_output/bin/$(IMG)-instrumented -test.run "^TestRunMain$$" -test.coverprofile=coverage_e2e.out &>/dev/null &
