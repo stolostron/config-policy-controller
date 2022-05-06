@@ -74,10 +74,12 @@ include build/common/Makefile.common.mk
 ############################################################
 # work section
 ############################################################
+
 $(GOBIN):
 	@echo "create gobin"
 	@mkdir -p $(GOBIN)
 
+.PHONY: work
 work: $(GOBIN)
 
 ############################################################
@@ -89,6 +91,7 @@ fmt-dependencies:
 	$(call go-get-tool,$(PWD)/bin/gci,github.com/daixiang0/gci@v0.2.9)
 	$(call go-get-tool,$(PWD)/bin/gofumpt,mvdan.cc/gofumpt@v0.2.0)
 
+.PHONY: fmt
 fmt: fmt-dependencies
 	find . -not \( -path "./.go" -prune \) -name "*.go" | xargs gofmt -s -w
 	find . -not \( -path "./.go" -prune \) -name "*.go" | xargs gci -w -local "$(shell cat go.mod | head -1 | cut -d " " -f 2)"
@@ -102,11 +105,13 @@ fmt: fmt-dependencies
 lint-dependencies:
 	$(call go-get-tool,$(PWD)/bin/golangci-lint,github.com/golangci/golangci-lint/cmd/golangci-lint@v1.41.1)
 
+.PHONY: check
 check: lint
 
 # All available linters: lint-dockerfiles lint-scripts lint-yaml lint-copyright-banner lint-go lint-python lint-helm lint-markdown lint-sass lint-typescript lint-protos
 # Default value will run all linters, override these make target with your requirements:
 #    eg: lint: lint-go lint-yaml
+.PHONY: lint
 lint: lint-dependencies lint-all
 
 ############################################################
@@ -118,37 +123,33 @@ K8S_VERSION = 1.21.2
 GOSEC = $(shell pwd)/bin/gosec
 GOSEC_VERSION = 2.9.6
 
-test:
-	go test $(TESTARGS) `go list ./... | grep -v test/e2e`
+.PHONY: test
 
+.PHONY: test-coverage
 test-coverage: TESTARGS = -json -cover -covermode=atomic -coverprofile=coverage_unit.out
 test-coverage: test
 
-test-dependencies:
-	@if (ls $(KUBEBUILDER_DIR)/*); then \
-		echo "^^^ Files found in $(KUBEBUILDER_DIR). Skipping installation."; exit 1; \
-	else \
-		echo "^^^ Kubebuilder binaries not found. Installing Kubebuilder binaries."; \
+.PHONY: test-dependencies
 	fi
 	sudo mkdir -p $(KUBEBUILDER_DIR)
 	sudo curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KBVERSION)/kubebuilder_$(GOOS)_$(GOARCH) -o $(KUBEBUILDER_DIR)/kubebuilder
 	sudo chmod +x $(KUBEBUILDER_DIR)/kubebuilder
 	curl -L "https://go.kubebuilder.io/test-tools/$(K8S_VERSION)/$(GOOS)/$(GOARCH)" | sudo tar xz --strip-components=2 -C $(KUBEBUILDER_DIR)/
 
-$(GOSEC):
-	curl -L https://github.com/securego/gosec/releases/download/v$(GOSEC_VERSION)/gosec_$(GOSEC_VERSION)_$(GOOS)_$(GOARCH).tar.gz | tar -xz -C /tmp/
-	sudo mv /tmp/gosec $(GOSEC)
+.PHONY: kubebuilder-dependencies
 
-gosec-scan: $(GOSEC)
+.PHONY: gosec
 	$(GOSEC) -fmt sonarqube -out gosec.json -no-fail -exclude-dir=.go ./...
 
 ############################################################
 # build section
 ############################################################
 
+.PHONY: build
 build:
 	@build/common/scripts/gobuild.sh build/_output/bin/$(IMG) ./
 
+.PHONY: local
 local:
 	@GOOS=darwin build/common/scripts/gobuild.sh build/_output/bin/$(IMG) ./cmd/manager
 
@@ -156,30 +157,34 @@ local:
 # images section
 ############################################################
 
+.PHONY: build-images
 build-images:
 	@docker build -t ${IMAGE_NAME_AND_VERSION} -f build/Dockerfile .
 	@docker tag ${IMAGE_NAME_AND_VERSION} $(REGISTRY)/$(IMG):$(TAG)
 
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+.PHONY: deploy
 deploy: generate-operator-yaml
 	kubectl apply -f deploy/operator.yaml -n $(CONTROLLER_NAMESPACE)
 	kubectl apply -f deploy/crds/policy.open-cluster-management.io_configurationpolicies.yaml -n $(CONTROLLER_NAMESPACE)
 	kubectl set env deployment/$(IMG) -n $(CONTROLLER_NAMESPACE) WATCH_NAMESPACE=$(WATCH_NAMESPACE)
 
+.PHONY: create-ns
 create-ns:
 	@kubectl create namespace $(CONTROLLER_NAMESPACE) || true
 	@kubectl create namespace $(WATCH_NAMESPACE) || true
 
 # Run against the current locally configured Kubernetes cluster
+.PHONY: run
 run:
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) go run ./main.go --leader-elect=false
 
 ############################################################
 # clean section
 ############################################################
-clean::
-	rm -f build/_output/bin/$(IMG)
+
+.PHONY: clean
 
 ############################################################
 # Generate manifests
@@ -229,22 +234,17 @@ kind-bootstrap-cluster: kind-create-cluster install-crds kind-deploy-controller 
 .PHONY: kind-bootstrap-cluster-dev
 kind-bootstrap-cluster-dev: kind-create-cluster install-crds install-resources
 
-check-env:
-ifndef DOCKER_USER
-	$(error DOCKER_USER is undefined)
-endif
-ifndef DOCKER_PASS
-	$(error DOCKER_PASS is undefined)
-endif
-
+.PHONY: kind-deploy-controller
 kind-deploy-controller: generate-operator-yaml
 	@echo Installing $(IMG)
 	kubectl create ns $(KIND_NAMESPACE) || true
 	kubectl apply -f deploy/operator.yaml -n $(KIND_NAMESPACE)
 	kubectl patch deployment $(IMG) -n $(KIND_NAMESPACE) -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"$(IMG)\",\"env\":[{\"name\":\"WATCH_NAMESPACE\",\"value\":\"$(WATCH_NAMESPACE)\"}]}]}}}}"
 
+.PHONY: deploy-controller
 deploy-controller: kind-deploy-controller
 
+.PHONY: kind-deploy-controller-dev
 kind-deploy-controller-dev: kind-deploy-controller
 	@echo Pushing image to KinD cluster
 	kind load docker-image $(REGISTRY)/$(IMG):$(TAG) --name $(KIND_NAME)
@@ -254,16 +254,20 @@ kind-deploy-controller-dev: kind-deploy-controller
 	kubectl rollout status -n $(KIND_NAMESPACE) deployment $(IMG) --timeout=180s
 
 # Specify KIND_VERSION to indicate the version tag of the KinD image
+.PHONY: kind-create-cluster
 kind-create-cluster:
 	@echo "creating cluster"
 	kind create cluster --name $(KIND_NAME) $(KIND_ARGS)
 	kind get kubeconfig --name $(KIND_NAME) > $(PWD)/kubeconfig_managed
 
+.PHONY: kind-delete-cluster
 kind-delete-cluster:
 	kind delete cluster --name $(KIND_NAME) || true
 
+.PHONY: kind-tests
 kind-tests: kind-delete-cluster kind-bootstrap-cluster-dev build-images kind-deploy-controller-dev e2e-test
 
+.PHONY: install-crds
 install-crds:
 	@echo installing crds
 	kubectl apply -f test/crds/clusterversions.config.openshift.io.yaml
@@ -274,29 +278,37 @@ install-crds:
 	kubectl apply -f https://raw.githubusercontent.com/stolostron/governance-policy-propagator/main/deploy/crds/policy.open-cluster-management.io_policies.yaml
 	kubectl apply -f deploy/crds/policy.open-cluster-management.io_configurationpolicies.yaml
 
+.PHONY: install-resources
 install-resources:
 	@echo creating namespaces
 	kubectl create ns $(WATCH_NAMESPACE)
 
+.PHONY: e2e-dependencies
 e2e-dependencies:
 	go get github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 	go get github.com/onsi/gomega/...@$(GOMEGA_VERSION)
 
+.PHONY: e2e-test
 e2e-test:
 	$(GOPATH)/bin/ginkgo -v --fail-fast --slow-spec-threshold=10s $(E2E_TEST_ARGS) test/e2e
 
+.PHONY: e2e-test-coverage
 e2e-test-coverage: E2E_TEST_ARGS = --json-report=report_e2e.json --output-dir=.
 e2e-test-coverage: e2e-test
 
+.PHONY: e2e-build-instrumented
 e2e-build-instrumented:
 	go test -covermode=atomic -coverpkg=$(GIT_HOST)/$(IMG)/... -c -tags e2e ./ -o build/_output/bin/$(IMG)-instrumented
 
+.PHONY: e2e-run-instrumented
 e2e-run-instrumented:
 	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" ./build/_output/bin/$(IMG)-instrumented -test.run "^TestRunMain$$" -test.coverprofile=coverage_e2e.out &>/dev/null &
 
+.PHONY: e2e-stop-instrumented
 e2e-stop-instrumented:
 	ps -ef | grep '$(IMG)' | grep -v grep | awk '{print $$2}' | xargs kill
 
+.PHONY: e2e-debug
 e2e-debug:
 	kubectl get all -n $(KIND_NAMESPACE)
 	kubectl get all -n $(WATCH_NAMESPACE)
@@ -312,13 +324,16 @@ e2e-debug:
 # test coverage
 ############################################################
 GOCOVMERGE = $(shell pwd)/bin/gocovmerge
+.PHONY: coverage-dependencies
 coverage-dependencies:
 	$(call go-get-tool,$(GOCOVMERGE),github.com/wadey/gocovmerge)
 
 COVERAGE_FILE = coverage.out
+.PHONY: coverage-merge
 coverage-merge: coverage-dependencies
 	@echo Merging the coverage reports into $(COVERAGE_FILE)
 	$(GOCOVMERGE) $(PWD)/coverage_* > $(COVERAGE_FILE)
 
+.PHONY: coverage-verify
 coverage-verify:
 	./build/common/scripts/coverage_calc.sh
