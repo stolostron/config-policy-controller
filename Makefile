@@ -103,25 +103,36 @@ lint: lint-dependencies lint-all
 # test section
 ############################################################
 GOSEC = $(LOCAL_BIN)/gosec
+KUBEBUILDER = $(LOCAL_BIN)/kubebuilder
 KBVERSION = 3.2.0
 K8S_VERSION = 1.21.2
-GOSEC = $(shell pwd)/bin/gosec
-GOSEC_VERSION = 2.9.6
 
 .PHONY: test
+test: test-dependencies
+	KUBEBUILDER_ASSETS=$(LOCAL_BIN) go test $(TESTARGS) `go list ./... | grep -v test/e2e`
 
 .PHONY: test-coverage
 test-coverage: TESTARGS = -json -cover -covermode=atomic -coverprofile=coverage_unit.out
 test-coverage: test
 
 .PHONY: test-dependencies
+test-dependencies: kubebuilder-dependencies kubebuilder
+
+.PHONY: kubebuilder
+kubebuilder:
+	@if [ "$$($(KUBEBUILDER) version 2>/dev/null | grep -o KubeBuilderVersion:\"[0-9]*\.[0-9]\.[0-9]*\")" != "KubeBuilderVersion:\"$(KBVERSION)\"" ]; then \
+		echo "Installing Kubebuilder"; \
+		curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KBVERSION)/kubebuilder_$(GOOS)_$(GOARCH) -o $(KUBEBUILDER); \
+		chmod +x $(KUBEBUILDER); \
 	fi
-	sudo mkdir -p $(KUBEBUILDER_DIR)
-	sudo curl -L https://github.com/kubernetes-sigs/kubebuilder/releases/download/v$(KBVERSION)/kubebuilder_$(GOOS)_$(GOARCH) -o $(KUBEBUILDER_DIR)/kubebuilder
-	sudo chmod +x $(KUBEBUILDER_DIR)/kubebuilder
-	curl -L "https://go.kubebuilder.io/test-tools/$(K8S_VERSION)/$(GOOS)/$(GOARCH)" | sudo tar xz --strip-components=2 -C $(KUBEBUILDER_DIR)/
 
 .PHONY: kubebuilder-dependencies
+kubebuilder-dependencies:
+	@if [ ! -f $(LOCAL_BIN)/etcd ] || [ ! -f $(LOCAL_BIN)/kube-apiserver ] || [ ! -f $(LOCAL_BIN)/kubectl ] || \
+	[ "$$($(KUBEBUILDER) version 2>/dev/null | grep -o KubeBuilderVersion:\"[0-9]*\.[0-9]\.[0-9]*\")" != "KubeBuilderVersion:\"$(KBVERSION)\"" ]; then \
+		echo "Installing envtest Kubebuilder assets"; \
+		curl -L "https://go.kubebuilder.io/test-tools/$(K8S_VERSION)/$(GOOS)/$(GOARCH)" | tar xz --strip-components=2 -C $(LOCAL_BIN); \
+	fi
 
 .PHONY: gosec
 gosec:
