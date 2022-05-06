@@ -175,6 +175,13 @@ run:
 ############################################################
 
 .PHONY: clean
+clean:
+	-rm bin/*
+	-rm build/_output/bin/*
+	-rm coverage*.out
+	-rm report*.json
+	-rm kubeconfig_managed
+	-rm -r vendor/
 
 ############################################################
 # Generate manifests
