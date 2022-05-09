@@ -61,7 +61,6 @@ jobs:
 
     - name: Unit and Integration Tests
       run: |
-        make test-dependencies
         make test
 
     - name: Create K8s KinD Cluster - ${{ matrix.kind }}
@@ -70,17 +69,10 @@ jobs:
       run: |
         make kind-bootstrap-cluster-dev
 
-    - name: Start instrumented controller
-      run: |
-        make e2e-build-instrumented
-        make e2e-run-instrumented
-
     - name: E2E Tests
       run: |
         export GOPATH=$(go env GOPATH)
-        make e2e-dependencies
         make e2e-test-coverage
-        make e2e-stop-instrumented
 
     - name: Test Coverage Verification
       if: ${{ github.event_name == 'pull_request' }}
