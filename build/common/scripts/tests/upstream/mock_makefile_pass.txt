@@ -321,10 +321,6 @@ e2e-debug:
 check-upstream-references:
 	./build/common/scripts/detect_upstream.sh -m "cat Makefile" -i "go list -mod readonly -m all"
 
-.PHONY: test-check-upstream-references
-test-check-upstream-references:
-	./build/common/scripts/tests/upstream/test_detect_upstream.sh
-
 ############################################################
 # test coverage
 ############################################################

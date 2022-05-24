@@ -1,0 +1,33 @@
+name: Upstream references
+
+on:
+  push:
+    branches:
+      - main
+      - release-2.[3-9]
+  pull_request:
+    branches:
+      - main
+      - release-2.[3-9]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: config-policy-controller
+
+jobs:
+  upstream-references:
+    runs-on: ubuntu-latest
+    name: Upstream reference checks
+    steps:
+    - name: Checkout Config Policy Controller
+      uses: actions/checkout@v2
+      with:
+        path: config-policy-controller
+        fetch-depth: 0 # Fetch all history for all tags and branches
+    - name: Detect upstream references that should be replaced
+      run: |
+        make check-upstream-references
+    - name: Verify upstream references checking is working properly
+      run: |
+        make test-check-upstream-references

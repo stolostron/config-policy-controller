@@ -273,7 +273,7 @@ install-crds:
 	kubectl apply -f test/crds/apiservers.config.openshift.io_crd.yaml
 	kubectl apply -f test/crds/clusterclaims.cluster.open-cluster-management.io.yaml
 	kubectl apply -f test/crds/oauths.config.openshift.io_crd.yaml
-	kubectl apply -f https://raw.githubusercontent.com/stolostron/governance-policy-propagator/main/deploy/crds/policy.open-cluster-management.io_policies.yaml
+	kubectl apply -f https://raw.githubusercontent.com/open-cluster-management/governance-policy-propagator/main/deploy/crds/policy.open-cluster-management.io_policies.yaml
 	kubectl apply -f deploy/crds/policy.open-cluster-management.io_configurationpolicies.yaml
 
 .PHONY: install-resources
@@ -320,10 +320,6 @@ e2e-debug:
 .PHONY: check-upstream-references
 check-upstream-references:
 	./build/common/scripts/detect_upstream.sh -m "cat Makefile" -i "go list -mod readonly -m all"
-
-.PHONY: test-check-upstream-references
-test-check-upstream-references:
-	./build/common/scripts/tests/upstream/test_detect_upstream.sh
 
 ############################################################
 # test coverage
