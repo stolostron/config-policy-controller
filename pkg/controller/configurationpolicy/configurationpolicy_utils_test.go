@@ -50,3 +50,20 @@ func TestFormatTemplateStringAnnotation(t *testing.T) {
 	policyTemplateFormatted := formatMetadata(policyTemplate)
 	assert.Equal(t, policyTemplateFormatted["annotations"], "not-an-annotation")
 }
+
+func TestCheckFieldsWithSort(t *testing.T) {
+	t.Parallel()
+
+	oldObj := map[string]interface{}{
+		"nonResourceURLs": []string{"/version", "/healthz"},
+		"verbs":           []string{"get"},
+	}
+	mergedObj := map[string]interface{}{
+		"nonResourceURLs": []string{"/version", "/healthz"},
+		"verbs":           []string{"get"},
+		"apiGroups":       []interface{}{},
+		"resources":       []interface{}{},
+	}
+
+	assert.True(t, checkFieldsWithSort(mergedObj, oldObj))
+}
