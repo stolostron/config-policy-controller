@@ -1,0 +1,43 @@
+name: Upstream reference checks
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release-2.[5-9]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  kind-tests:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: localhost:5000
+
+    name: Upstream reference checks
+    steps:
+    - name: Checkout Config Policy Controller
+      uses: actions/checkout@v2
+      with:
+        path: config-policy-controller
+        fetch-depth: 0 # Fetch all history for all tags and branches
+
+    - name: Checkout Policy Framework
+      uses: actions/checkout@v2
+      with:
+        path: governance-policy-framework
+        repository: stolostron/governance-policy-framework
+        ref: ${{ github.event.pull_request.base.ref }}
+
+    - name: Set up Go 1.17
+      uses: actions/setup-go@v2
+      id: go
+      with:
+        go-version: '1.17'
+
+    - name: Detect upstream references that should be replaced
+      working-directory: config-policy-controller
+      run: |
+        ./../governance-policy-framework/build/detect-upstream.sh -m "cat Makefile" -i "go list -mod readonly -m all" -q "deploy/manager/manager.yaml" -q "deploy/operator.yaml"
