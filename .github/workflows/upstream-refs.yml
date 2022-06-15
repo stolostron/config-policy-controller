@@ -15,17 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REGISTRY: localhost:5000
-    strategy:
-      matrix:
-        # Run tests on oldest and newest supported OCP Kubernetes
-        # - OCP 4.5 runs Kubernetes v1.18
-        # KinD tags: https://hub.docker.com/r/kindest/node/tags
-        kind:
-          - 'v1.18.15'
-          - 'latest'
-        deployOnHub:
-          - 'true'
-          - 'false'
 
     name: Upstream reference checks
     steps:
@@ -52,8 +41,3 @@ jobs:
       working-directory: config-policy-controller
       run: |
         ./../governance-policy-framework/build/detect-upstream.sh -m "cat Makefile" -i "go list -mod readonly -m all" -q "deploy/manager/manager.yaml" -q "deploy/operator.yaml"
-
-    - name: Verify upstream references checking is working properly
-      working-directory: governance-policy-framework
-      run: |
-        ./build/detect-upstream-tests/test_detect_upstream.sh
