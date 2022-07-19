@@ -299,7 +299,7 @@ e2e-build-instrumented:
 
 .PHONY: e2e-run-instrumented
 e2e-run-instrumented: e2e-build-instrumented
-	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" ./build/_output/bin/$(IMG)-instrumented -test.run "^TestRunMain$$" -test.coverprofile=coverage_e2e.out &>/dev/null &
+	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" ./build/_output/bin/$(IMG)-instrumented -test.run "^TestRunMain$$" -test.coverprofile=coverage_e2e.out &>build/_output/controller.log &
 
 .PHONY: e2e-stop-instrumented
 e2e-stop-instrumented:
@@ -307,15 +307,10 @@ e2e-stop-instrumented:
 
 .PHONY: e2e-debug
 e2e-debug:
-	kubectl get all -n $(KIND_NAMESPACE)
-	kubectl get all -n $(WATCH_NAMESPACE)
-	kubectl get leases -n $(KIND_NAMESPACE)
-	kubectl get configurationpolicies.policy.open-cluster-management.io --all-namespaces
-	kubectl describe pods -n $(KIND_NAMESPACE)
-	kubectl logs $$(kubectl get pods -n $(KIND_NAMESPACE) -o name | grep $(IMG)) -n $(KIND_NAMESPACE)
-	kubectl get namespace open-cluster-management-agent-addon
-	kubectl get namespaces
-	kubectl get secrets -n open-cluster-management-agent-addon
+	@echo local controller log:
+	-cat build/_output/controller.log
+	@echo remote controller log:
+	-kubectl logs $$(kubectl get pods -n $(KIND_NAMESPACE) -o name | grep $(IMG)) -n $(KIND_NAMESPACE)
 
 ############################################################
 # test coverage
