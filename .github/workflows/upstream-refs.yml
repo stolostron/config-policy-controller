@@ -31,11 +31,10 @@ jobs:
         repository: stolostron/governance-policy-framework
         ref: ${{ github.event.pull_request.base.ref }}
 
-    - name: Set up Go 1.17
-      uses: actions/setup-go@v2
-      id: go
+    - name: Set up Go
+      uses: actions/setup-go@v3
       with:
-        go-version: '1.17'
+        go-version-file: governance-policy-framework/go.mod
 
     - name: Detect upstream references that should be replaced
       working-directory: config-policy-controller
