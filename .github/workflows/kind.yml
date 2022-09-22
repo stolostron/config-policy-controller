@@ -89,7 +89,6 @@ jobs:
         make coverage-verify
 
     - name: Test Coverage and Report Generation
-      if: ${{ github.event_name == 'push' }}
       run: |
         make test-coverage | tee report_unit.json
         make gosec-scan
@@ -97,9 +96,9 @@ jobs:
 
     - name: SonarCloud Analysis
       if: |
-        github.event_name == 'push' && 
-        github.repository_owner == 'stolostron'  &&
-        matrix.kind == 'latest'
+        matrix.kind == 'latest' &&
+        github.repository_owner == 'stolostron' &&
+        (github.event_name == 'push' || github.event_name == 'pull_request')
       uses: sonarsource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
