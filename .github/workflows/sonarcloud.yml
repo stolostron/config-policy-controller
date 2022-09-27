@@ -1,0 +1,48 @@
+on:
+  workflow_run:
+    workflows:
+      - KinD tests
+    types:
+      - completed
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+    if: |
+      github.repository.owner.login == 'stolostron' &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'pull_request') &&
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Download the coverage report
+        uses: actions/github-script@v6
+        with:
+          # Taken from https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_run
+          script: |
+            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: context.payload.workflow_run.id,
+            });
+
+            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "coverage"
+            })[0];
+
+            let download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+
+            let fs = require('fs');
+            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/coverage.zip`, Buffer.from(download.data));
+
+      - name: SonarCloud Analysis
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            --debug
