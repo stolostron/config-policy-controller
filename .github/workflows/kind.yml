@@ -94,15 +94,25 @@ jobs:
         make gosec-scan
         cat gosec.json
 
-    - name: Upload coverage
+    - name: Store the GitHub triggering event for the sonarcloud workflow
+      if: |
+        matrix.kind == 'latest' &&
+        github.repository_owner == 'stolostron'
+      run: |
+        cat <<EOF > event.json
+        ${{ toJSON(github.event) }}
+        EOF
+
+    - name: Upload artifacts for the sonarcloud workflow
       if: |
         matrix.kind == 'latest' &&
         github.repository_owner == 'stolostron'
       uses: actions/upload-artifact@v3
       with:
-        name: coverage
+        name: artifacts
         path: |
           config-policy-controller/coverage*.out
+          config-policy-controller/event.json
           config-policy-controller/gosec.json
 
     - name: Debug
