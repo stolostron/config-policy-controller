@@ -1,3 +1,5 @@
+name: Sonarcloud scan
+
 on:
   workflow_run:
     workflows:
@@ -9,7 +11,7 @@ jobs:
   sonarcloud:
     runs-on: ubuntu-latest
     if: |
-      github.repository.owner.login == 'stolostron' &&
+      github.repository_owner == 'stolostron' &&
       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'pull_request') &&
       github.event.workflow_run.conclusion == 'success'
     steps:
