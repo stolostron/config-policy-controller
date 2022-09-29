@@ -15,6 +15,10 @@ jobs:
       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'pull_request') &&
       github.event.workflow_run.conclusion == 'success'
     steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history for all tags and branches
       - name: Download the coverage report
         uses: actions/github-script@v6
         with:
