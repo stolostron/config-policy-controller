@@ -43,7 +43,8 @@ jobs:
 
             let fs = require('fs');
             fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/coverage.zip`, Buffer.from(download.data));
-
+      - name: Unzip coverage.zip
+        run: unzip coverage.zip
       - name: SonarCloud Analysis
         uses: sonarsource/sonarcloud-github-action@master
         env:
