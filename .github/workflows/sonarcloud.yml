@@ -23,7 +23,7 @@ jobs:
         run: |
           git fetch origin "+refs/pull/*/head:refs/remotes/origin/pr/*"
           git checkout ${{ github.event.workflow_run.head_commit.id }}
-      - name: Download the coverage report
+      - name: Download the artifacts
         uses: actions/github-script@v6
         with:
           # Taken from https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_run
@@ -35,7 +35,7 @@ jobs:
             });
 
             let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
-              return artifact.name == "coverage"
+              return artifact.name == "artifacts"
             })[0];
 
             let download = await github.rest.actions.downloadArtifact({
@@ -46,9 +46,15 @@ jobs:
             });
 
             let fs = require('fs');
-            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/coverage.zip`, Buffer.from(download.data));
-      - name: Unzip coverage.zip
-        run: unzip coverage.zip
+            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/artifacts.zip`, Buffer.from(download.data));
+      - name: Unzip the artifacts
+        run: unzip artifacts.zip
+      - name: Set the PR properties in SonarCloud
+        if: github.event.workflow_run.event == 'pull_request'
+        run: |
+          echo "sonar.pullrequest.base=$(jq -r .pull_request.base.ref event.json)" >> sonar-project.properties
+          echo "sonar.pullrequest.key=$(jq -r .pull_request.number event.json)" >> sonar-project.properties
+          echo "sonar.pullrequest.branch=$(jq -r .pull_request.head.ref event.json)" >> sonar-project.properties
       - name: SonarCloud Analysis
         uses: sonarsource/sonarcloud-github-action@master
         env:
