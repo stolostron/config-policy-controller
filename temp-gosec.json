@@ -1,0 +1,49 @@
+{
+	"issues": [
+		{
+			"engineId": "gosec",
+			"ruleId": "G304",
+			"primaryLocation": {
+				"message": "Potential file inclusion via variable",
+				"filePath": "test/utils/utils.go",
+				"textRange": {
+					"startLine": 37,
+					"endLine": 37
+				}
+			},
+			"type": "VULNERABILITY",
+			"severity": "MAJOR",
+			"effortMinutes": 5
+		},
+		{
+			"engineId": "gosec",
+			"ruleId": "G601",
+			"primaryLocation": {
+				"message": "Implicit memory aliasing in for loop.",
+				"filePath": "api/v1/zz_generated.deepcopy.go",
+				"textRange": {
+					"startLine": 56,
+					"endLine": 56
+				}
+			},
+			"type": "VULNERABILITY",
+			"severity": "MAJOR",
+			"effortMinutes": 5
+		},
+		{
+			"engineId": "gosec",
+			"ruleId": "G601",
+			"primaryLocation": {
+				"message": "Implicit memory aliasing in for loop.",
+				"filePath": "api/v1/zz_generated.deepcopy.go",
+				"textRange": {
+					"startLine": 26,
+					"endLine": 26
+				}
+			},
+			"type": "VULNERABILITY",
+			"severity": "MAJOR",
+			"effortMinutes": 5
+		}
+	]
+}

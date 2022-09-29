@@ -2,6 +2,8 @@
 
 # Configuration Policy Controller
 
+test
+
 Open Cluster Management - Configuration Policy Controller
 
 [![Build](https://img.shields.io/badge/build-Prow-informational)](https://prow.ci.openshift.org/?repo=stolostron%2Fconfig-policy-controller)
