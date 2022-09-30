@@ -55,6 +55,9 @@ jobs:
           echo "sonar.pullrequest.base=$(jq -r .pull_request.base.ref event.json)" >> sonar-project.properties
           echo "sonar.pullrequest.key=$(jq -r .pull_request.number event.json)" >> sonar-project.properties
           echo "sonar.pullrequest.branch=$(jq -r .pull_request.head.ref event.json)" >> sonar-project.properties
+      - name: Set additional properties in SonarCloud
+        run: |
+          echo "sonar.scm.revision=${{ github.event.workflow_run.head_commit.id }}" >> sonar-project.properties
       - name: SonarCloud Analysis
         uses: sonarsource/sonarcloud-github-action@master
         env:
