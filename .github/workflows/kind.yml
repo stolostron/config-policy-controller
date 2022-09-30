@@ -82,15 +82,10 @@ jobs:
         export GOPATH=$(go env GOPATH)
         make e2e-test-hosted-mode-coverage
 
-    - name: Test Coverage Verification
-      if: ${{ github.event_name == 'pull_request' }}
-      run: |
-        make test-coverage
-        make coverage-verify
-
     - name: Test Coverage and Report Generation
       run: |
         make test-coverage | tee report_unit.json
+        make coverage-verify
         make gosec-scan
         cat gosec.json
 
