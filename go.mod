@@ -18,9 +18,9 @@ require (
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.70.1
+	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf
 	k8s.io/kubectl v0.23.9
 	open-cluster-management.io/addon-framework v0.3.0
-	open-cluster-management.io/governance-policy-propagator v0.0.0
 	sigs.k8s.io/controller-runtime v0.11.2
 )
 
@@ -65,6 +65,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/openshift/library-go v0.0.0-20220203150523-45e0cded6a36 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
@@ -76,23 +77,23 @@ require (
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220321153916-2c7772ba3064 // indirect
-	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.23.5 // indirect
 	k8s.io/component-base v0.23.9 // indirect
-	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf // indirect
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
-	open-cluster-management.io/multicloud-operators-subscription v0.8.0 // indirect
+	open-cluster-management.io/api v0.6.1-0.20220208144021-3297cac74dc5 // indirect
 	sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
@@ -100,6 +101,7 @@ require (
 
 replace (
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // CVE-2021-43565
+	golang.org/x/text => golang.org/x/text v0.3.8 // CVE-2022-32149
 	k8s.io/client-go => k8s.io/client-go v0.23.9
 	open-cluster-management.io/governance-policy-propagator => github.com/stolostron/governance-policy-propagator v0.0.0-20220727212642-86a318ab17cf
 	open-cluster-management.io/multicloud-operators-subscription => github.com/stolostron/multicloud-operators-subscription v1.2.4-0-20211122-7277a37.0.20220727170504-931d9002a21f
