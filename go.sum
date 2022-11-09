@@ -546,8 +546,8 @@ github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
 github.com/stolostron/go-log-utils v0.1.1 h1:T48GyfuGpn2+6817FQVec1CyxGf0ibuVhoBiz9SeCec=
 github.com/stolostron/go-log-utils v0.1.1/go.mod h1:2Uc5mbuLvSFpoXFFEKRTEFOlR7nqGVMu9mbU+FIttTI=
-github.com/stolostron/go-template-utils/v2 v2.5.1 h1:bXuPH3tpkvilGNMVVNikS96O/+/VGyjQuZ69tfjlTEQ=
-github.com/stolostron/go-template-utils/v2 v2.5.1/go.mod h1:sWRijO7EblHCoFUvZASmWHmFxG6ARrQ9SfGQDiwrz4A=
+github.com/stolostron/go-template-utils/v2 v2.6.0 h1:pBotX+kmDKCHRLFZ5WtcKL5LfI1Ve7gVQlQLJieetwo=
+github.com/stolostron/go-template-utils/v2 v2.6.0/go.mod h1:pKGWkJIzXK869kazZ69kWtdRuMUtqPmWYI1mlJYJMgM=
 github.com/stolostron/governance-policy-propagator v0.0.0-20220727212642-86a318ab17cf h1:QS3ZBOxKCb2cw/Z/OUYXemHo+rcqWpcQI6orlRdciDs=
 github.com/stolostron/governance-policy-propagator v0.0.0-20220727212642-86a318ab17cf/go.mod h1:KlNXC4atGcdpISHZ9smR7p9oI84uOgEfoXCknYcy1M0=
 github.com/stolostron/multicloud-operators-subscription v1.2.4-0-20211122-7277a37.0.20220727170504-931d9002a21f h1:sTiAulZPOPftn3XIEQhkSiWbOA5BGqOFWMwGQeXydVQ=
