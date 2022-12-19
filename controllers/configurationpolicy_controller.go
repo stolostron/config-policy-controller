@@ -91,7 +91,7 @@ type cachedEncryptionKey struct {
 	previousKey []byte
 }
 
-//nolint: structcheck
+// nolint: structcheck
 type discoveryInfo struct {
 	apiResourceList        []*metav1.APIResourceList
 	apiGroups              []*restmapper.APIGroupResources
