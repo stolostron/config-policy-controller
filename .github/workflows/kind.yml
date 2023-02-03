@@ -66,10 +66,14 @@ jobs:
       run: |
         make kind-bootstrap-cluster-dev
 
+    - name: Ensure Service Account kubeconfig
+      run: |
+        KUBECONFIG=${PWD}/kubeconfig_managed make kind-ensure-sa
+
     - name: E2E Tests
       run: |
         export GOPATH=$(go env GOPATH)
-        make e2e-test-coverage
+        KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-coverage
 
     - name: Create K8s KinD Cluster to simulate hosted mode - ${{ matrix.kind }}
       env:
@@ -80,7 +84,7 @@ jobs:
     - name: E2E tests that simulate hosted mode
       run: |
         export GOPATH=$(go env GOPATH)
-        make e2e-test-hosted-mode-coverage
+        KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-hosted-mode-coverage
 
     - name: Test Coverage and Report Generation
       run: |
