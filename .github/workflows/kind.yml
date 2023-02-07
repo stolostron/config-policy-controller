@@ -86,6 +86,16 @@ jobs:
         export GOPATH=$(go env GOPATH)
         KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-hosted-mode-coverage
 
+    - name: Verify Deployment Configuration
+      run: |
+        make build-images
+        KUBECONFIG=${PWD}/kubeconfig_managed_e2e make kind-deploy-controller-dev
+
+    - name: E2E tests that require the controller running in a cluster
+      run: |
+        export GOPATH=$(go env GOPATH)
+        KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-running-in-cluster
+
     - name: Test Coverage and Report Generation
       run: |
         make test-coverage | tee report_unit.json
