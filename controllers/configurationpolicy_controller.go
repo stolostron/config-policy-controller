@@ -43,6 +43,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	yaml "sigs.k8s.io/yaml"
 
 	policyv1 "open-cluster-management.io/config-policy-controller/api/v1"
 	common "open-cluster-management.io/config-policy-controller/pkg/common"
@@ -841,6 +842,22 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 		}
 	}
 
+	// set up raw data for template processing
+	var rawDataList [][]byte
+	var isRawObjTemplate bool
+
+	if plc.Spec.ObjectTemplatesRaw != "" {
+		rawDataList = [][]byte{[]byte(plc.Spec.ObjectTemplatesRaw)}
+		isRawObjTemplate = true
+	} else {
+		for _, objectT := range plc.Spec.ObjectTemplates {
+			rawDataList = append(rawDataList, objectT.ObjectDefinition.Raw)
+		}
+		isRawObjTemplate = false
+	}
+
+	tmplResolverCfg.InputIsYAML = isRawObjTemplate
+
 	tmplResolver, err := templates.NewResolver(&r.TargetK8sClient, r.TargetK8sConfig, tmplResolverCfg)
 	if err != nil {
 		// If the encryption key is invalid, clear the cache.
@@ -859,10 +876,13 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 	if !disableTemplates {
 		startTime := time.Now().UTC()
 
-		for _, objectT := range plc.Spec.ObjectTemplates {
+		var objTemps []*policyv1.ObjectTemplate
+
+		// process object templates for go template usage
+		for i, rawData := range rawDataList {
 			// first check to make sure there are no hub-templates with delimiter - {{hub
 			// if one exists, it means the template resolution on the hub did not succeed.
-			if templates.HasTemplate(objectT.ObjectDefinition.Raw, "{{hub", false) {
+			if templates.HasTemplate(rawData, "{{hub", false) {
 				// check to see there is an annotation set to the hub error msg,
 				// if not ,set a generic msg
 				hubTemplatesErrMsg, ok := annotations["policy.open-cluster-management.io/hub-templates-error"]
@@ -882,10 +902,10 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 				return
 			}
 
-			if templates.HasTemplate(objectT.ObjectDefinition.Raw, "", true) {
+			if templates.HasTemplate(rawData, "", true) {
 				log.V(1).Info("Processing policy templates")
 
-				resolvedTemplate, tplErr := tmplResolver.ResolveTemplate(objectT.ObjectDefinition.Raw, nil)
+				resolvedTemplate, tplErr := tmplResolver.ResolveTemplate(rawData, nil)
 
 				if errors.Is(tplErr, templates.ErrMissingAPIResource) ||
 					errors.Is(tplErr, templates.ErrMissingAPIResourceInvalidTemplate) {
@@ -897,7 +917,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 					discoveryErr := r.refreshDiscoveryInfo()
 					if discoveryErr == nil {
 						tmplResolver.SetKubeAPIResourceList(r.apiResourceList)
-						resolvedTemplate, tplErr = tmplResolver.ResolveTemplate(objectT.ObjectDefinition.Raw, nil)
+						resolvedTemplate, tplErr = tmplResolver.ResolveTemplate(rawData, nil)
 					} else {
 						log.V(2).Info(
 							"Failed to refresh the API discovery information after a template encountered an unknown " +
@@ -939,7 +959,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 						return
 					}
 
-					resolvedTemplate, tplErr = tmplResolver.ResolveTemplate(objectT.ObjectDefinition.Raw, nil)
+					resolvedTemplate, tplErr = tmplResolver.ResolveTemplate(rawData, nil)
 				}
 
 				if tplErr != nil {
@@ -948,8 +968,35 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 					return
 				}
 
-				// Set the resolved data for use in further processing
-				objectT.ObjectDefinition.Raw = resolvedTemplate.ResolvedJSON
+				// If raw data, only one passthrough is needed, since all the object templates are in it
+				if isRawObjTemplate {
+					err := json.Unmarshal(resolvedTemplate.ResolvedJSON, &objTemps)
+					if err != nil {
+						addTemplateErrorViolation("Error unmarshalling raw template", err.Error())
+
+						return
+					}
+
+					plc.Spec.ObjectTemplates = objTemps
+
+					break
+				}
+
+				// Otherwise, set the resolved data for use in further processing
+				plc.Spec.ObjectTemplates[i].ObjectDefinition.Raw = resolvedTemplate.ResolvedJSON
+			} else if isRawObjTemplate {
+				// Unmarshal raw template YAML into object if that has not already been done by the template
+				// resolution function
+				err = yaml.Unmarshal(rawData, &objTemps)
+				if err != nil {
+					addTemplateErrorViolation("Error parsing the YAML in the object-templates-raw field", err.Error())
+
+					return
+				}
+
+				plc.Spec.ObjectTemplates = objTemps
+
+				break
 			}
 		}
 
@@ -2579,13 +2626,11 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 	if policy.Spec == nil {
 		compliant = false
 	} else {
-		for index := range policy.Spec.ObjectTemplates {
-			if index < len(policy.Status.CompliancyDetails) {
-				if policy.Status.CompliancyDetails[index].ComplianceState == policyv1.NonCompliant {
-					compliant = false
+		for index := range policy.Status.CompliancyDetails {
+			if policy.Status.CompliancyDetails[index].ComplianceState == policyv1.NonCompliant {
+				compliant = false
 
-					break
-				}
+				break
 			}
 		}
 	}
