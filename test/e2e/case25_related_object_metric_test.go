@@ -56,23 +56,19 @@ var _ = Describe("Test related object metrics", Ordered, func() {
 		// Delete the policies and ignore any errors (in case it was deleted previously)
 		cmd := exec.Command("kubectl", "delete",
 			"-f", policyYaml,
-			"-n", testNamespace)
+			"-n", testNamespace, "--ignore-not-found")
 		_, _ = cmd.CombinedOutput()
 		opt := metav1.ListOptions{}
 		utils.ListWithTimeout(
 			clientManagedDynamic, gvrConfigPolicy, opt, 0, false, defaultTimeoutSeconds)
 		utils.GetWithTimeout(
 			clientManagedDynamic, gvrConfigMap, relatedObject, "default", false, defaultTimeoutSeconds)
-	}
 
-	It("should clean up", cleanup)
-
-	It("should have no common related object metrics after clean up", func() {
 		By("Checking metric endpoint for related object gauges")
 		Eventually(func() interface{} {
 			return utils.GetMetrics("common_related_objects")
 		}, defaultTimeoutSeconds, 1).Should(Equal([]string{}))
-	})
+	}
 
 	AfterAll(cleanup)
 })

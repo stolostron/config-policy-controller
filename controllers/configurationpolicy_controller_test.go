@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -753,4 +754,89 @@ func TestShouldEvaluatePolicy(t *testing.T) {
 			},
 		)
 	}
+}
+
+func TestShouldHandleSingleKeyFalse(t *testing.T) {
+	t.Parallel()
+
+	var unstruct unstructured.Unstructured
+	var unstructObj unstructured.Unstructured
+
+	policy1 := map[string]interface{}{
+		"hostIPC":   false,
+		"container": "test",
+	}
+
+	policy2 := map[string]interface{}{
+		"container": "test",
+	}
+
+	unstruct.Object = policy1
+	unstructObj.Object = policy2
+
+	_, update, _, skip := handleSingleKey("hostIPC", unstruct, &unstructObj, "musthave")
+
+	assert.False(t, update)
+	assert.False(t, skip)
+
+	policy1 = map[string]interface{}{
+		"container": map[string]interface{}{
+			"image":   "nginx1.7.9",
+			"name":    "nginx",
+			"hostIPC": false,
+		},
+	}
+
+	policy2 = map[string]interface{}{
+		"container": map[string]interface{}{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+		},
+	}
+	unstruct.Object = policy1
+	unstructObj.Object = policy2
+
+	_, update, _, skip = handleSingleKey("container", unstruct, &unstructObj, "musthave")
+
+	assert.False(t, update)
+	assert.False(t, skip)
+
+	policy1 = map[string]interface{}{
+		"hostIPC":   true,
+		"container": "test",
+	}
+
+	policy2 = map[string]interface{}{
+		"container": "test",
+	}
+
+	unstruct.Object = policy1
+	unstructObj.Object = policy2
+
+	_, update, _, skip = handleSingleKey("hostIPC", unstruct, &unstructObj, "musthave")
+
+	assert.True(t, update)
+	assert.False(t, skip)
+
+	policy1 = map[string]interface{}{
+		"container": map[string]interface{}{
+			"image":   "nginx1.7.9",
+			"name":    "nginx",
+			"hostIPC": true,
+		},
+	}
+
+	policy2 = map[string]interface{}{
+		"container": map[string]interface{}{
+			"image": "nginx1.7.9",
+			"name":  "nginx",
+		},
+	}
+	unstruct.Object = policy1
+	unstructObj.Object = policy2
+
+	_, update, _, skip = handleSingleKey("container", unstruct, &unstructObj, "musthave")
+
+	assert.True(t, update)
+	assert.False(t, skip)
 }
