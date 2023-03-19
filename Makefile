@@ -249,6 +249,9 @@ kind-bootstrap-cluster: kind-bootstrap-cluster-dev kind-deploy-controller
 
 .PHONY: kind-bootstrap-cluster-dev
 kind-bootstrap-cluster-dev: kind-create-cluster install-crds kind-controller-kubeconfig
+# not install in hosted
+	-kubectl apply -f deploy/operator.yaml -n $(CONTROLLER_NAMESPACE) --kubeconfig=$(PWD)/kubeconfig_managed
+	-kubectl apply -f deploy/crds/policy.open-cluster-management.io_configurationpolicies.yaml -n $(CONTROLLER_NAMESPACE) --kubeconfig=$(PWD)/kubeconfig_managed
 
 .PHONY: kind-deploy-controller
 kind-deploy-controller: generate-operator-yaml install-resources deploy
@@ -285,6 +288,7 @@ kind-controller-kubeconfig: install-resources
 	@kubectl config set-context $(KIND_CLUSTER_NAME) --kubeconfig=$(PWD)/kubeconfig_$(MANAGED_CLUSTER_NAME) \
 		--user=$(KIND_CLUSTER_NAME) --cluster=$(KIND_CLUSTER_NAME)
 	@kubectl config use-context $(KIND_CLUSTER_NAME) --kubeconfig=$(PWD)/kubeconfig_$(MANAGED_CLUSTER_NAME)
+
 
 .PHONY: kind-additional-cluster
 kind-additional-cluster: MANAGED_CLUSTER_SUFFIX = 2
