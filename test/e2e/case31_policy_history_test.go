@@ -24,9 +24,22 @@ const (
 	case31ConfigPolicyNumberName = "config-policy-pod-number"
 )
 
-var _ = FDescribe("Test policy history message when KubeAPI return "+
+var _ = Describe("Test policy history message when KubeAPI return "+
 	"omits values in the returned object", Ordered, func() {
 	Describe("status toggling should not be generated When Policy include default value,", Ordered, func() {
+		cleanup := func() {
+			utils.Kubectl("delete", "event",
+				"--field-selector=involvedObject.name="+case31PolicyName, "-n", "managed")
+			utils.Kubectl("delete", "event",
+				"--field-selector=involvedObject.name="+case31ConfigPolicyName, "-n", "managed")
+			utils.Kubectl("delete", "policy", case31PolicyName, "-n",
+				"managed", "--ignore-not-found")
+			configlPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				case31ConfigPolicyName, "managed", false, defaultTimeoutSeconds,
+			)
+			ExpectWithOffset(1, configlPlc).To(BeNil())
+		}
+		BeforeAll(cleanup)
 		It("creates the policyconfiguration "+case31Policy, func() {
 			utils.Kubectl("apply", "-f", case31Policy, "-n", "managed")
 		})
@@ -76,20 +89,22 @@ var _ = FDescribe("Test policy history message when KubeAPI return "+
 				return eventlen
 			}, 30, 5).Should(BeNumerically("<", 2))
 		})
-		AfterAll(func() {
+		AfterAll(cleanup)
+	})
+	Describe("status should not toggle When Policy include default value of number", Ordered, func() {
+		cleanup := func() {
 			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31PolicyName, "-n", "managed")
+				"--field-selector=involvedObject.name="+case31PolicyNumberName, "-n", "managed")
 			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31ConfigPolicyName, "-n", "managed")
-			utils.Kubectl("delete", "policy", case31PolicyName, "-n",
+				"--field-selector=involvedObject.name="+case31ConfigPolicyNumberName, "-n", "managed")
+			utils.Kubectl("delete", "policy", case31PolicyNumberName, "-n",
 				"managed", "--ignore-not-found")
 			configlPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 				case31ConfigPolicyName, "managed", false, defaultTimeoutSeconds,
 			)
 			ExpectWithOffset(1, configlPlc).To(BeNil())
-		})
-	})
-	Describe("status should not toggle When Policy include default value of number", Ordered, func() {
+		}
+		BeforeAll(cleanup)
 		It("creates the policyconfiguration "+case31PolicyNumber, func() {
 			utils.Kubectl("apply", "-f", case31PolicyNumber, "-n", "managed")
 		})
@@ -139,17 +154,6 @@ var _ = FDescribe("Test policy history message when KubeAPI return "+
 				return eventLen
 			}, 30, 5).Should(BeNumerically("<", 2))
 		})
-		AfterAll(func() {
-			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31PolicyNumberName, "-n", "managed")
-			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31ConfigPolicyNumberName, "-n", "managed")
-			utils.Kubectl("delete", "policy", case31PolicyNumberName, "-n",
-				"managed", "--ignore-not-found")
-			configlPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
-				case31ConfigPolicyName, "managed", false, defaultTimeoutSeconds,
-			)
-			ExpectWithOffset(1, configlPlc).To(BeNil())
-		})
+		AfterAll(cleanup)
 	})
 })
