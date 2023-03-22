@@ -76,15 +76,15 @@ var _ = Describe("Test policy history message when KubeAPI return "+
 			}, 30, 5).Should(BeNumerically("<", 2))
 		})
 		AfterAll(func() {
-			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31PolicyName, "-n", "managed")
-			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31ConfigPolicyName, "-n", "managed")
 			utils.Kubectl("delete", "policy", case31PolicyName, "-n",
 				"managed", "--ignore-not-found")
 			configlPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 				case31ConfigPolicyName, "managed", false, defaultTimeoutSeconds,
 			)
+			utils.Kubectl("delete", "event",
+				"--field-selector=involvedObject.name="+case31PolicyName, "-n", "managed")
+			utils.Kubectl("delete", "event",
+				"--field-selector=involvedObject.name="+case31ConfigPolicyName, "-n", "managed")
 			ExpectWithOffset(1, configlPlc).To(BeNil())
 		})
 	})
@@ -139,15 +139,16 @@ var _ = Describe("Test policy history message when KubeAPI return "+
 			}, 30, 5).Should(BeNumerically("<", 2))
 		})
 		AfterAll(func() {
-			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31PolicyNumberName, "-n", "managed")
-			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31ConfigPolicyNumberName, "-n", "managed")
 			utils.Kubectl("delete", "policy", case31PolicyNumberName, "-n",
 				"managed", "--ignore-not-found")
 			configlPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 				case31ConfigPolicyName, "managed", false, defaultTimeoutSeconds,
 			)
+			utils.Kubectl("delete", "event",
+				"--field-selector=involvedObject.name="+case31PolicyNumberName, "-n", "managed")
+			utils.Kubectl("delete", "event",
+				"--field-selector=involvedObject.name="+case31ConfigPolicyNumberName, "-n", "managed")
+
 			ExpectWithOffset(1, configlPlc).To(BeNil())
 		})
 	})
