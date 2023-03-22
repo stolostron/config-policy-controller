@@ -762,81 +762,81 @@ func TestShouldHandleSingleKeyFalse(t *testing.T) {
 	var unstruct unstructured.Unstructured
 	var unstructObj unstructured.Unstructured
 
-	policy1 := map[string]interface{}{
-		"hostIPC":   false,
-		"container": "test",
-	}
+	var update, skip bool
 
-	policy2 := map[string]interface{}{
-		"container": "test",
-	}
-
-	unstruct.Object = policy1
-	unstructObj.Object = policy2
-
-	_, update, _, skip := handleSingleKey("hostIPC", unstruct, &unstructObj, "musthave")
-
-	assert.False(t, update)
-	assert.False(t, skip)
-
-	policy1 = map[string]interface{}{
-		"container": map[string]interface{}{
-			"image":   "nginx1.7.9",
-			"name":    "nginx",
-			"hostIPC": false,
+	tests := [][]map[string]interface{}{
+		{
+			{
+				"hostIPC":   false,
+				"container": "test",
+			},
+			{
+				"container": "test",
+			},
+			{
+				"key":    "hostIPC",
+				"expect": false,
+			},
+		},
+		{
+			{
+				"container": map[string]interface{}{
+					"image":   "nginx1.7.9",
+					"name":    "nginx",
+					"hostIPC": false,
+				},
+			},
+			{
+				"container": map[string]interface{}{
+					"image": "nginx1.7.9",
+					"name":  "nginx",
+				},
+			},
+			{
+				"key":    "container",
+				"expect": false,
+			},
+		},
+		{
+			{
+				"hostIPC":   true,
+				"container": "test",
+			},
+			{
+				"container": "test",
+			},
+			{
+				"key":    "hostIPC",
+				"expect": true,
+			},
+		},
+		{
+			{
+				"container": map[string]interface{}{
+					"image":   "nginx1.7.9",
+					"name":    "nginx",
+					"hostIPC": true,
+				},
+			},
+			{
+				"container": map[string]interface{}{
+					"image": "nginx1.7.9",
+					"name":  "nginx",
+				},
+			},
+			{
+				"key":    "container",
+				"expect": true,
+			},
 		},
 	}
 
-	policy2 = map[string]interface{}{
-		"container": map[string]interface{}{
-			"image": "nginx1.7.9",
-			"name":  "nginx",
-		},
+	for _, test := range tests {
+		unstruct.Object = test[0]
+		unstructObj.Object = test[1]
+		key := test[2]["key"]
+		_, update, _, skip = handleSingleKey(key.(string), unstruct, &unstructObj, "musthave")
+		assert.Equal(t, update, test[2]["expect"])
+		assert.False(t, skip)
 	}
-	unstruct.Object = policy1
-	unstructObj.Object = policy2
-
-	_, update, _, skip = handleSingleKey("container", unstruct, &unstructObj, "musthave")
-
-	assert.False(t, update)
-	assert.False(t, skip)
-
-	policy1 = map[string]interface{}{
-		"hostIPC":   true,
-		"container": "test",
-	}
-
-	policy2 = map[string]interface{}{
-		"container": "test",
-	}
-
-	unstruct.Object = policy1
-	unstructObj.Object = policy2
-
-	_, update, _, skip = handleSingleKey("hostIPC", unstruct, &unstructObj, "musthave")
-
-	assert.True(t, update)
-	assert.False(t, skip)
-
-	policy1 = map[string]interface{}{
-		"container": map[string]interface{}{
-			"image":   "nginx1.7.9",
-			"name":    "nginx",
-			"hostIPC": true,
-		},
-	}
-
-	policy2 = map[string]interface{}{
-		"container": map[string]interface{}{
-			"image": "nginx1.7.9",
-			"name":  "nginx",
-		},
-	}
-	unstruct.Object = policy1
-	unstructObj.Object = policy2
-
-	_, update, _, skip = handleSingleKey("container", unstruct, &unstructObj, "musthave")
-
-	assert.True(t, update)
-	assert.False(t, skip)
 }
