@@ -172,7 +172,7 @@ spec:
       runAfter:
       - prefetch-dependencies
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:cf39ec6c22bc806852d5f1106a80e66d1c8619bd0420bb2510dfffd793d20067
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:7c72b89f87b138e3543f96769047b3e6b8f5c5b0d325f61eb0c0711ecfdeb8ce
         name: buildah
       when:
       - input: $(tasks.init.results.build)
@@ -239,7 +239,7 @@ spec:
       - name: BASE_IMAGES_DIGESTS
         value: $(tasks.build-container.results.BASE_IMAGES_DIGESTS)
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.1@sha256:0be6c3dfcc2a35361fcf597a83fbf86acc91bc63b260a6010832156ef3fe0d55
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.1@sha256:ba55384c546ae0212d1ef70e0a148bb23729f1f04bac5992107568bca649ab68
         name: deprecated-image-check
       when:
       - input: $(params.skip-checks)
@@ -260,7 +260,7 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:3d5a2fef154d8c4f76c5260e655da8feaa64f1d655170bf1940ac381923d3882
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:cb47b41e90de8e4148bbe234803ffd201e667f109153d0d3990b64a0f52cc679
         name: clair-scan
       when:
       - input: $(params.skip-checks)
