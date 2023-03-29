@@ -434,7 +434,7 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 	assert.True(t, relatedList[0].Object.Metadata.Name == "bar")
 }
 
-func TestCreateInformStatus(t *testing.T) {
+func TestCreateMergedStatus(t *testing.T) {
 	policy := &policyv1.ConfigurationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
@@ -472,7 +472,7 @@ func TestCreateInformStatus(t *testing.T) {
 	}
 
 	// Test 1 NonCompliant resource
-	createInformStatus(!mustNotHave, numCompliant, numNonCompliant,
+	createMergedStatus(!mustNotHave, numCompliant, numNonCompliant,
 		compliantObjects, nonCompliantObjects, policy, objData)
 	assert.True(t, policy.Status.CompliancyDetails[0].ComplianceState == policyv1.NonCompliant)
 
@@ -483,7 +483,7 @@ func TestCreateInformStatus(t *testing.T) {
 	numNonCompliant = 2
 
 	// Test 2 NonCompliant resources
-	createInformStatus(!mustNotHave, numCompliant, numNonCompliant,
+	createMergedStatus(!mustNotHave, numCompliant, numNonCompliant,
 		compliantObjects, nonCompliantObjects, policy, objData)
 	assert.True(t, policy.Status.CompliancyDetails[0].ComplianceState == policyv1.NonCompliant)
 
@@ -492,7 +492,7 @@ func TestCreateInformStatus(t *testing.T) {
 
 	// Test 0 resources
 	numNonCompliant = 0
-	createInformStatus(!mustNotHave, numCompliant, numNonCompliant,
+	createMergedStatus(!mustNotHave, numCompliant, numNonCompliant,
 		compliantObjects, nonCompliantObjects, policy, objData)
 	assert.True(t, policy.Status.CompliancyDetails[0].ComplianceState == policyv1.NonCompliant)
 
@@ -508,7 +508,7 @@ func TestCreateInformStatus(t *testing.T) {
 	numNonCompliant = 1
 
 	// Test 1 compliant and 1 noncompliant resource  NOTE: This use case is the new behavior change!
-	createInformStatus(!mustNotHave, numCompliant, numNonCompliant,
+	createMergedStatus(!mustNotHave, numCompliant, numNonCompliant,
 		compliantObjects, nonCompliantObjects, policy, objData)
 	assert.True(t, policy.Status.CompliancyDetails[0].ComplianceState == policyv1.NonCompliant)
 
@@ -522,7 +522,7 @@ func TestCreateInformStatus(t *testing.T) {
 	delete(nonCompliantObjects, "test2")
 
 	// Test 2 compliant resources
-	createInformStatus(!mustNotHave, numCompliant, numNonCompliant,
+	createMergedStatus(!mustNotHave, numCompliant, numNonCompliant,
 		compliantObjects, nonCompliantObjects, policy, objData)
 	assert.True(t, policy.Status.CompliancyDetails[0].ComplianceState == policyv1.Compliant)
 }

@@ -1042,9 +1042,9 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 		nonCompliantObjects := map[string]map[string]interface{}{}
 		compliantObjects := map[string]map[string]interface{}{}
 		enforce := strings.EqualFold(string(plc.Spec.RemediationAction), string(policyv1.Enforce))
-		kind := ""
+		kind := templateObjs[indx].kind
 		objShouldExist := !strings.EqualFold(string(objectT.ComplianceType), string(policyv1.MustNotHave))
-
+		mergeMessageEnforce := false
 		// If the object does not have a namespace specified, use the previously retrieved namespaces
 		// from the NamespaceSelector. If no namespaces are found/specified, use the value from the
 		// object so that the objectTemplate is processed:
@@ -1058,10 +1058,13 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 			relevantNamespaces = []string{templateObjs[indx].namespace}
 		}
 
+		if enforce && len(relevantNamespaces) > 1 {
+			mergeMessageEnforce = true
+		}
+
 		numCompliant := 0
 		numNonCompliant := 0
 		handled := false
-
 		// iterate through all namespaces the configurationpolicy is set on
 		for _, ns := range relevantNamespaces {
 			log.Info(
@@ -1080,20 +1083,33 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 			}
 
 			if objKind != "" {
+				// object template enforced, objKind is empty
 				kind = objKind
 			}
 
+			if mergeMessageEnforce {
+				names = append([]string{}, templateObjs[indx].name)
+			}
+
 			if names == nil {
-				// object template enforced, already handled in handleObjects
 				handled = true
 			} else {
 				enforce = false
+			}
+
+			log.Info(
+				"eupper----- merge",
+				"names", names,
+			)
+
+			if mergeMessageEnforce || (!handled && !enforce) {
 				if !compliant {
 					if len(names) == 0 {
 						numNonCompliant++
 					} else {
 						numNonCompliant += len(names)
 					}
+
 					nonCompliantObjects[ns] = map[string]interface{}{
 						"names":  names,
 						"reason": reason,
@@ -1111,26 +1127,85 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 				relatedObjects = updateRelatedObjectsStatus(relatedObjects, object)
 			}
 		}
-		// violations for enforce configurationpolicies are already handled in handleObjects,
-		// so we only need to generate a violation if the remediationAction is set to inform
-		if !handled && !enforce {
-			objData := map[string]interface{}{
-				"indx":        indx,
-				"kind":        kind,
-				"desiredName": templateObjs[indx].name,
-				"namespaced":  templateObjs[indx].isNamespaced,
-			}
 
-			statusUpdateNeeded := createInformStatus(
+		objData := map[string]interface{}{
+			"indx":        indx,
+			"kind":        kind,
+			"desiredName": templateObjs[indx].name,
+			"namespaced":  templateObjs[indx].isNamespaced,
+		}
+		if !handled && !enforce {
+			statusUpdateNeeded := createMergedStatus(
 				objShouldExist, numCompliant, numNonCompliant, compliantObjects, nonCompliantObjects, &plc, objData,
 			)
 			if statusUpdateNeeded {
 				parentStatusUpdateNeeded = true
 			}
 		}
+
+		log.Info(
+			"outside merge",
+			"namespacenumber", len(relevantNamespaces),
+		)
+		// In case, when enforce and multiple namespaces, it creates integrated messages,
+		if mergeMessageEnforce {
+			// In case, when enforce and multiple namespaces, it creates integrated messages,
+			log.Info(
+				"inside merge",
+			)
+
+			parentStatusUpdateNeeded = createMergedStatus(
+				objShouldExist, numCompliant, numNonCompliant, compliantObjects, nonCompliantObjects, &plc, objData,
+			)
+
+			r.Recorder.Event(&plc, eventNormal, fmt.Sprintf(plcFmtStr, plc.GetName()),
+				convertPolicyStatusToString(&plc))
+		}
 	}
 
 	r.checkRelatedAndUpdate(plc, relatedObjects, oldRelated, parentStatusUpdateNeeded)
+}
+
+// createMergedStatus updates the status field for a configurationpolicy with remediationAction=inform
+// based on how many compliant/noncompliant objects are found when processing the templates in the configurationpolicy
+func createMergedStatus(
+	objShouldExist bool,
+	numCompliant,
+	numNonCompliant int,
+	compliantObjects,
+	nonCompliantObjects map[string]map[string]interface{},
+	plc *policyv1.ConfigurationPolicy,
+	objData map[string]interface{},
+) bool {
+	//nolint:forcetypeassert
+	desiredName := objData["desiredName"].(string)
+	//nolint:forcetypeassert
+	indx := objData["indx"].(int)
+	//nolint:forcetypeassert
+	kind := objData["kind"].(string)
+	//nolint:forcetypeassert
+	namespaced := objData["namespaced"].(bool)
+
+	if kind == "" {
+		return false
+	}
+
+	var compObjs map[string]map[string]interface{}
+	var compliant bool
+
+	if numNonCompliant > 0 {
+		compliant = false
+		compObjs = nonCompliantObjects
+	} else if objShouldExist && numCompliant == 0 {
+		// Special case: No resources found is NonCompliant
+		compliant = false
+		compObjs = nonCompliantObjects
+	} else {
+		compliant = true
+		compObjs = compliantObjects
+	}
+
+	return createStatus(desiredName, kind, compObjs, namespaced, plc, indx, compliant, objShouldExist)
 }
 
 // checkRelatedAndUpdate checks the related objects field and triggers an update on the ConfigurationPolicy
@@ -1293,48 +1368,6 @@ func addConditionToStatus(
 	}
 
 	return updateNeeded
-}
-
-// createInformStatus updates the status field for a configurationpolicy with remediationAction=inform
-// based on how many compliant/noncompliant objects are found when processing the templates in the configurationpolicy
-func createInformStatus(
-	objShouldExist bool,
-	numCompliant,
-	numNonCompliant int,
-	compliantObjects,
-	nonCompliantObjects map[string]map[string]interface{},
-	plc *policyv1.ConfigurationPolicy,
-	objData map[string]interface{},
-) bool {
-	//nolint:forcetypeassert
-	desiredName := objData["desiredName"].(string)
-	//nolint:forcetypeassert
-	indx := objData["indx"].(int)
-	//nolint:forcetypeassert
-	kind := objData["kind"].(string)
-	//nolint:forcetypeassert
-	namespaced := objData["namespaced"].(bool)
-
-	if kind == "" {
-		return false
-	}
-
-	var compObjs map[string]map[string]interface{}
-	var compliant bool
-
-	if numNonCompliant > 0 {
-		compliant = false
-		compObjs = nonCompliantObjects
-	} else if objShouldExist && numCompliant == 0 {
-		// Special case: No resources found is NonCompliant
-		compliant = false
-		compObjs = nonCompliantObjects
-	} else {
-		compliant = true
-		compObjs = compliantObjects
-	}
-
-	return createStatus(desiredName, kind, compObjs, namespaced, plc, indx, compliant, objShouldExist)
 }
 
 // handleObjects controls the processing of each individual object template within a configurationpolicy
