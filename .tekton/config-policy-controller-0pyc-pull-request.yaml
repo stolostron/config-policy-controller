@@ -145,7 +145,7 @@ spec:
       runAfter:
       - clone-repository
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-prefetch-dependencies:0.1@sha256:bebbf6521a5a203410d6b0da5da366a5aa9bdd63522d7bf3f641e81b8cc2ba2d
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-prefetch-dependencies:0.1@sha256:5c20a3b566c0977b894443481469cac4da5243665a152280a457cbce96cc1437
         name: prefetch-dependencies
       when:
       - input: $(params.hermetic)
@@ -260,7 +260,7 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:cb47b41e90de8e4148bbe234803ffd201e667f109153d0d3990b64a0f52cc679
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:1b71542275a9ef3113524668d146154cbc8b16de7f6edf741d0dca7c40192c59
         name: clair-scan
       when:
       - input: $(params.skip-checks)
@@ -299,7 +299,7 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:377a316e6a41df36f770b9c97e71aefac589d0660ef3c1570d99007ab6004ef5
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:997e3cb6f61e8456d543383baa167f2fad7b8603c171f615c4ee4238011d16ef
         name: clamav-scan
       when:
       - input: $(params.skip-checks)
