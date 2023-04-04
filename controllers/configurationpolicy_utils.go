@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	gocmp "github.com/google/go-cmp/cmp"
 	apiRes "k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -558,4 +559,15 @@ func removeConfigPlcFinalizer(plc policyv1.ConfigurationPolicy, finalizer string
 	}
 
 	return result
+}
+
+func containRelated(arr []policyv1.RelatedObject, input policyv1.RelatedObject) bool {
+	// should compare only object
+	for _, r := range arr {
+		if gocmp.Equal(r.Object, input.Object) {
+			return true
+		}
+	}
+
+	return false
 }
