@@ -545,13 +545,21 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(plc policyv1.Configu
 		// determine whether object should be deleted
 		needsDelete := false
 
-		existing, _ := getObject(
+		existing, err := getObject(
 			namespaced,
 			object.Object.Metadata.Namespace,
 			object.Object.Metadata.Name,
 			mapping.Resource,
 			r.TargetK8sDynamicClient,
 		)
+		if err != nil {
+			log.Error(err, "Failed to get child object")
+
+			deletionFailures = append(deletionFailures, gvk.String()+fmt.Sprintf(` "%s" in namespace %s`,
+				object.Object.Metadata.Name, object.Object.Metadata.Namespace))
+
+			continue
+		}
 
 		// object does not exist, no deletion logic needed
 		if existing == nil {
@@ -580,7 +588,7 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(plc policyv1.Configu
 			// if object has already been deleted and is stuck, no need to redo delete request
 			_, deletionTimeFound, _ := unstructured.NestedString(existing.Object, "metadata", "deletionTimestamp")
 			if deletionTimeFound {
-				log.Error(err, "Error: tried to delete object, but delete is hanging")
+				log.Error(fmt.Errorf("tried to delete object, but delete is hanging"), "Error")
 
 				deletionFailures = append(deletionFailures, gvk.String()+fmt.Sprintf(` "%s" in namespace %s`,
 					object.Object.Metadata.Name, object.Object.Metadata.Namespace))
@@ -2131,7 +2139,7 @@ func getObject(
 			return nil, nil
 		}
 
-		objLog.Error(err, "Could not retrieve object from the API server")
+		objLog.V(2).Error(err, "Could not retrieve object from the API server")
 
 		return nil, err
 	}
@@ -2730,7 +2738,7 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 	policy.Status.LastEvaluated = time.Now().UTC().Format(time.RFC3339)
 	policy.Status.LastEvaluatedGeneration = policy.Generation
 
-	_, err := r.updatePolicyStatus(policy, sendEvent)
+	err := r.updatePolicyStatus(policy, sendEvent)
 	policyLog := log.WithValues("name", policy.Name, "namespace", policy.Namespace)
 
 	if k8serrors.IsConflict(err) {
@@ -2752,14 +2760,14 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
 	policy *policyv1.ConfigurationPolicy,
 	sendEvent bool,
-) (*policyv1.ConfigurationPolicy, error) {
+) error {
 	if sendEvent {
 		log.V(1).Info("Sending parent policy compliance event")
 
 		// If the compliance event can't be created, then don't update the ConfigurationPolicy
 		// status. As long as that hasn't been updated, everything will be retried next loop.
 		if err := r.sendComplianceEvent(policy); err != nil {
-			return policy, err
+			return err
 		}
 	}
 
@@ -2769,7 +2777,7 @@ func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
 
 	err := r.Status().Update(context.TODO(), policy)
 	if err != nil {
-		return policy, err
+		return err
 	}
 
 	if sendEvent {
@@ -2779,7 +2787,7 @@ func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
 			fmt.Sprintf("Policy status is: %v", policy.Status.ComplianceState))
 	}
 
-	return nil, nil
+	return nil
 }
 
 func (r *ConfigurationPolicyReconciler) sendComplianceEvent(instance *policyv1.ConfigurationPolicy) error {
