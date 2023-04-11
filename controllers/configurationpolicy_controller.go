@@ -1142,11 +1142,11 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 		// violations for enforce configurationpolicies are already handled in handleObjects,
 		// so we only need to generate a violation if the remediationAction is set to inform
 		if !handled && !enforce {
-			objData := map[string]interface{}{
-				"indx":        indx,
-				"kind":        kind,
-				"desiredName": templateObjs[indx].name,
-				"namespaced":  templateObjs[indx].isNamespaced,
+			objData := templateIdentifier{
+				index:       indx,
+				kind:        kind,
+				desiredName: templateObjs[indx].name,
+				namespaced:  templateObjs[indx].isNamespaced,
 			}
 
 			statusUpdateNeeded := createInformStatus(
@@ -1320,6 +1320,13 @@ func addConditionToStatus(
 	return updateNeeded
 }
 
+type templateIdentifier struct {
+	desiredName string
+	index       int
+	kind        string
+	namespaced  bool
+}
+
 // createInformStatus updates the status field for a configurationpolicy with remediationAction=inform
 // based on how many compliant/noncompliant objects are found when processing the templates in the configurationpolicy
 func createInformStatus(
@@ -1329,18 +1336,9 @@ func createInformStatus(
 	compliantObjects,
 	nonCompliantObjects map[string]map[string]interface{},
 	plc *policyv1.ConfigurationPolicy,
-	objData map[string]interface{},
+	objData templateIdentifier,
 ) bool {
-	//nolint:forcetypeassert
-	desiredName := objData["desiredName"].(string)
-	//nolint:forcetypeassert
-	indx := objData["indx"].(int)
-	//nolint:forcetypeassert
-	kind := objData["kind"].(string)
-	//nolint:forcetypeassert
-	namespaced := objData["namespaced"].(bool)
-
-	if kind == "" {
+	if objData.kind == "" {
 		return false
 	}
 
@@ -1359,7 +1357,7 @@ func createInformStatus(
 		compObjs = compliantObjects
 	}
 
-	return createStatus(desiredName, kind, compObjs, namespaced, plc, indx, compliant, objShouldExist)
+	return createStatus(objData, compObjs, plc, compliant, objShouldExist)
 }
 
 // handleObjects controls the processing of each individual object template within a configurationpolicy
@@ -1608,6 +1606,12 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 		},
 	}
 
+	objData := templateIdentifier{
+		kind:       obj.gvr.Resource,
+		namespaced: obj.namespaced,
+		index:      obj.index,
+	}
+
 	if !exists && obj.shouldExist {
 		// it is a musthave and it does not exist, so it must be created
 		if strings.EqualFold(string(remediation), string(policyv1.Enforce)) {
@@ -1623,8 +1627,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 				// object is missing and will be created, so send noncompliant "does not exist" event first
 				// (this check has already happened, but we send the event here to avoid the status flipping on an
 				// error)
-				_ = createStatus("", obj.gvr.Resource, compliantObject, obj.namespaced, obj.policy,
-					obj.index, false, true)
+				_ = createStatus(objData, compliantObject, obj.policy, false, true)
 				obj.policy.Status.ComplianceState = policyv1.NonCompliant
 				statusStr := convertPolicyStatusToString(obj.policy)
 				objLog.Info("Sending a noncompliant status event (object missing)", "policy", obj.policy.Name, "status",
@@ -1670,8 +1673,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 		if strings.EqualFold(string(remediation), string(policyv1.Enforce)) {
 			log.V(2).Info("Entering `does not exist` and `must not have`")
 
-			statusUpdateNeeded = createStatus("", obj.gvr.Resource, compliantObject, obj.namespaced, obj.policy,
-				obj.index, compliant, false)
+			statusUpdateNeeded = createStatus(objData, compliantObject, obj.policy, compliant, false)
 		}
 	}
 
@@ -1692,8 +1694,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 
 		if triedUpdate && !strings.Contains(msg, "Error validating the object") {
 			// object has a mismatch and needs an update to be enforced, throw violation for mismatch
-			_ = createStatus("", obj.gvr.Resource, compliantObject, obj.namespaced, obj.policy, obj.index,
-				false, true)
+			_ = createStatus(objData, compliantObject, obj.policy, false, true)
 			obj.policy.Status.ComplianceState = policyv1.NonCompliant
 			statusStr := convertPolicyStatusToString(obj.policy)
 			objLog.Info("Sending an update policy status event", "policy", obj.policy.Name, "status", statusStr)
@@ -1733,8 +1734,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 
 					statusUpdateNeeded = addConditionToStatus(obj.policy, obj.index, true, reason, msg)
 				} else {
-					statusUpdateNeeded = createStatus("", obj.gvr.Resource, compliantObject, obj.namespaced, obj.policy,
-						obj.index, compliant, true)
+					statusUpdateNeeded = createStatus(objData, compliantObject, obj.policy, compliant, true)
 				}
 				created := false
 				creationInfo = &policyv1.ObjectProperties{
