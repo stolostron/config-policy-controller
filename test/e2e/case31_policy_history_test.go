@@ -5,7 +5,6 @@ package e2e
 
 import (
 	"context"
-	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,7 +14,7 @@ import (
 )
 
 var _ = Describe("Test policy history messages when KubeAPI omits values in the returned object", Ordered, func() {
-	doHistoryTest := func(policyYAML, policyName, configPolicyYAML, configPolicyName string) {
+	doHistoryTest := func(policyName, configPolicyName string) {
 		By("Waiting until the policy is initially compliant")
 		Eventually(func() interface{} {
 			managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
@@ -59,7 +58,7 @@ var _ = Describe("Test policy history messages when KubeAPI omits values in the 
 		})
 
 		It("checks the policy's history", func() {
-			doHistoryTest(policyYAML, policyName, configPolicyYAML, configPolicyName)
+			doHistoryTest(policyName, configPolicyName)
 		})
 
 		AfterAll(func() {
@@ -86,7 +85,7 @@ var _ = Describe("Test policy history messages when KubeAPI omits values in the 
 		})
 
 		It("checks the policy's history", func() {
-			doHistoryTest(policyYAML, policyName, configPolicyYAML, configPolicyName)
+			doHistoryTest(policyName, configPolicyName)
 		})
 
 		AfterAll(func() {
@@ -113,7 +112,7 @@ var _ = Describe("Test policy history messages when KubeAPI omits values in the 
 		})
 
 		It("checks the policy's history", func() {
-			doHistoryTest(policyYAML, policyName, configPolicyYAML, configPolicyName)
+			doHistoryTest(policyName, configPolicyName)
 		})
 
 		AfterAll(func() {
@@ -126,68 +125,31 @@ var _ = Describe("Test policy history messages when KubeAPI omits values in the 
 			ExpectWithOffset(1, configlPlc).To(BeNil())
 		})
 	})
-	Describe("policy message should not be truncated", func() {
+
+	Describe("status should not toggle when a struct might be omitted", Ordered, func() {
 		const (
-			case31LMPolicy           = "../resources/case31_policy_history/long-message-policy.yaml"
-			case31LMConfigPolicy     = "../resources/case31_policy_history/long-message-config-policy.yaml"
-			case31LMPolicyName       = "long-message-policy"
-			case31LMConfigPolicyName = "long-message-config-policy"
-			namespacePrefix          = "innovafertanimvsmvtatasdicereformascorporinnovafertanimvsmvt"
+			policyYAML       = rsrcPath + "event-policy-emptystruct.yaml"
+			policyName       = "test-policy-security-emptystruct"
+			configPolicyYAML = rsrcPath + "event-config-policy-emptystruct.yaml"
+			configPolicyName = "config-policy-event-emptystruct"
 		)
-		It("Test policy message length is over 1024 ", func() {
-			By("Create namespaces")
-			for i := range [15]int{} {
-				utils.Kubectl("create", "ns", namespacePrefix+strconv.Itoa(i+1))
-			}
-			utils.Kubectl("apply", "-f", case31LMPolicy, "-n", "managed")
-			By("bind policy and configurationpolicy")
-			parent := utils.GetWithTimeout(clientManagedDynamic, gvrPolicy,
-				case31LMPolicyName, testNamespace, true, defaultTimeoutSeconds)
-			Expect(parent).NotTo(BeNil())
 
-			plcDef := utils.ParseYaml(case31LMConfigPolicy)
-			ownerRefs := plcDef.GetOwnerReferences()
-			ownerRefs[0].UID = parent.GetUID()
-			plcDef.SetOwnerReferences(ownerRefs)
-			_, err := clientManagedDynamic.Resource(gvrConfigPolicy).Namespace(testNamespace).
-				Create(context.TODO(), plcDef, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-
-			By("check configurationpolicy exist")
-			Eventually(func() interface{} {
-				plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
-					case31LMConfigPolicyName, testNamespace, true, defaultTimeoutSeconds)
-				compliant := utils.GetComplianceState(plc)
-
-				return compliant
-			}, 30, 5).Should(Equal("NonCompliant"))
-
-			By("check message longer than 1024")
-			Eventually(func() int {
-				event := utils.GetMatchingEvents(clientManaged, testNamespace,
-					case31LMPolicyName, case31LMConfigPolicyName, "NonCompliant", defaultTimeoutSeconds)
-
-				Expect(len(event)).ShouldNot(BeZero())
-				message := event[len(event)-1].Message
-
-				return len(message)
-			}, 30, 5).Should(BeNumerically(">", 1024))
+		It("sets up a configuration policy with struct set to null", func() {
+			createConfigPolicyWithParent(policyYAML, policyName, configPolicyYAML)
 		})
+
+		It("checks the policy's history", func() {
+			doHistoryTest(policyName, configPolicyName)
+		})
+
 		AfterAll(func() {
-			utils.Kubectl("delete", "policy", case31LMPolicyName, "-n",
-				"managed", "--ignore-not-found")
+			utils.Kubectl("delete", "policy", policyName, "-n", "managed", "--ignore-not-found")
 			configlPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
-				case31LMPolicyName, "managed", false, defaultTimeoutSeconds,
+				configPolicyName, "managed", false, defaultTimeoutSeconds,
 			)
-			Expect(configlPlc).To(BeNil())
-			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31LMPolicyName, "-n", "managed")
-			utils.Kubectl("delete", "event",
-				"--field-selector=involvedObject.name="+case31LMConfigPolicy, "-n", "managed")
-			for i := range [15]int{} {
-				utils.Kubectl("delete", "ns", namespacePrefix+strconv.Itoa(i+1),
-					"--ignore-not-found", "--force", "--grace-period=0")
-			}
+			utils.Kubectl("delete", "event", "--field-selector=involvedObject.name="+policyName, "-n", "managed")
+			utils.Kubectl("delete", "event", "--field-selector=involvedObject.name="+configPolicyName, "-n", "managed")
+			ExpectWithOffset(1, configlPlc).To(BeNil())
 		})
 	})
 })
