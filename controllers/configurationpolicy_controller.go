@@ -2776,7 +2776,6 @@ func (r *ConfigurationPolicyReconciler) sendComplianceEvent(instance *policyv1.C
 		LastTimestamp:  metav1.NewTime(now),
 		Count:          1,
 		Type:           "Normal",
-		EventTime:      metav1.NewMicroTime(now),
 		Action:         "ComplianceStateUpdate",
 		Related: &corev1.ObjectReference{
 			Kind:       instance.Kind,
@@ -2816,12 +2815,6 @@ func convertPolicyStatusToString(plc *policyv1.ConfigurationPolicy) (results str
 				result += ", "
 			}
 		}
-	}
-
-	runeResult := []rune(result)
-
-	if len(runeResult) > 1024 {
-		result = string(append(runeResult[:1021], '.', '.', '.'))
 	}
 
 	return result
