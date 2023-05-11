@@ -2,6 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
   annotations:
+    build.appstudio.openshift.io/repo: https://github.com/stolostron/config-policy-controller?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
@@ -21,13 +22,20 @@ spec:
   - name: git-url
     value: '{{repo_url}}'
   - name: output-image
-    value: quay.io/redhat-appstudio/user-workload:{{revision}}
+    value: quay.io/redhat-user-workloads/crt-redhat-acm-tenant/config-policy-controller/config-policy-controller-0pyc:{{revision}}
   - name: path-context
     value: .
   - name: revision
     value: '{{revision}}'
   pipelineSpec:
     finally:
+    - name: show-sbom
+      params:
+      - name: IMAGE_URL
+        value: $(tasks.build-container.results.IMAGE_URL)
+      taskRef:
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-show-sbom:0.1@sha256:050bab50254e0377c68d63b6b679decfc655e30cad9ce4b0407fc8468852008d
+        name: show-sbom
     - name: show-summary
       params:
       - name: pipelinerun-name
@@ -84,6 +92,10 @@ spec:
       description: Snyk Token Secret Name
       name: snyk-secret
       type: string
+    - default: ""
+      description: Image tag expiration time, time values could be something like
+        1h, 2d, 3w for hours, days, and weeks, respectively.
+      name: image-expires-after
     results:
     - description: ""
       name: IMAGE_URL
@@ -144,7 +156,7 @@ spec:
       runAfter:
       - clone-repository
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-prefetch-dependencies:0.1@sha256:609f5c2a0d72dddb193a0fc2aef2390601172d09f093deadfb9827e28e8dea30
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-prefetch-dependencies:0.1@sha256:a7f4bb77c2e3949fa782f45c8ac9aa7f91cdde45dbc8ad408770eb902d830a0a
         name: prefetch-dependencies
       when:
       - input: $(params.hermetic)
@@ -168,10 +180,12 @@ spec:
         value: $(params.hermetic)
       - name: PREFETCH_INPUT
         value: $(params.prefetch-input)
+      - name: IMAGE_EXPIRES_AFTER
+        value: $(params.image-expires-after)
       runAfter:
       - prefetch-dependencies
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:f4c4c211a7b8c859fb23d9b01faaf1a995a33b243476a617370e35f6438096e0
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:0852e61c1018d7f7a47ac2bd63fbda1d3d2247392624c2176ec341e343386b7c
         name: buildah
       when:
       - input: $(tasks.init.results.build)
@@ -181,7 +195,7 @@ spec:
       workspaces:
       - name: source
         workspace: workspace
-    - name: sanity-inspect-image
+    - name: inspect-image
       params:
       - name: IMAGE_URL
         value: $(tasks.build-container.results.IMAGE_URL)
@@ -192,8 +206,8 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sanity-inspect-image:0.1@sha256:b9ad0ed56be21c9e3c8e2e636275f92d887e57681c718cd36f117eb6fa547824
-        name: sanity-inspect-image
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-inspect-image:0.1@sha256:f7f3f86256f12d151463133d6c4ffc667087a87281ff2bc67c53c29f6463cd99
+        name: inspect-image
       when:
       - input: $(params.skip-checks)
         operator: in
@@ -202,12 +216,12 @@ spec:
       workspaces:
       - name: source
         workspace: workspace
-    - name: sanity-label-check
+    - name: label-check
       runAfter:
-      - sanity-inspect-image
+      - inspect-image
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sanity-label-check:0.1@sha256:dd49667be76c81264a7fb28e3b43f72c527507e5691720c6262575255cb60689
-        name: sanity-label-check
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-label-check:0.1@sha256:76dee4b8c534986f98ab7d6e89aea14582faf0f1128a09a7f058a4f059d0fcf0
+        name: label-check
       when:
       - input: $(params.skip-checks)
         operator: in
@@ -216,15 +230,15 @@ spec:
       workspaces:
       - name: workspace
         workspace: workspace
-    - name: sanity-optional-label-check
+    - name: optional-label-check
       params:
       - name: POLICY_NAMESPACE
         value: optional_checks
       runAfter:
-      - sanity-inspect-image
+      - inspect-image
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sanity-label-check:0.1@sha256:dd49667be76c81264a7fb28e3b43f72c527507e5691720c6262575255cb60689
-        name: sanity-label-check
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-label-check:0.1@sha256:76dee4b8c534986f98ab7d6e89aea14582faf0f1128a09a7f058a4f059d0fcf0
+        name: label-check
       when:
       - input: $(params.skip-checks)
         operator: in
@@ -238,7 +252,7 @@ spec:
       - name: BASE_IMAGES_DIGESTS
         value: $(tasks.build-container.results.BASE_IMAGES_DIGESTS)
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.2@sha256:bf1a1cad85bb896e920f0f7ff5dda2f885b76f2617934f72e7954565cd50df49
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.2@sha256:f6ad9c9b2a019d28e712287cf3cb5fe42df3078a02af0db75f0e76e6060063ca
         name: deprecated-image-check
       when:
       - input: $(params.skip-checks)
@@ -259,7 +273,7 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:1b4951e91fdfb3188d459d0abac411a6364da5cb135e81fb4a84bbd782bb545d
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:e654ebb13c0b6d98cde388dfd33e258b7368eea5a5a37f3b2edfef7a3e23ffc2
         name: clair-scan
       when:
       - input: $(params.skip-checks)
@@ -273,7 +287,7 @@ spec:
       runAfter:
       - clone-repository
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:58f288a86ae7e1a2fff416d11720521effcf8e9b410355080a2b8a9bb8ae587c
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:1bafbb8bb1f41985be67a622080b022d2a6ff8b51b606f7002069df7e79d0cff
         name: sast-snyk-check
       when:
       - input: $(params.skip-checks)
@@ -298,7 +312,7 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:2c8dbe8aa7c0fa126a9c84e7590c4e901bcfeec6dde4ccbffda4c493cefb43ed
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:2317e03a1bc713cbfb1f7ad40b3bec587f00ec55ca6a6ae2fc33f921908c6d96
         name: clamav-scan
       when:
       - input: $(params.skip-checks)
@@ -314,7 +328,7 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sbom-json-check:0.1@sha256:9a232f343d6397bfaf9620b6e63ce6943e256ad30da93cf8e9de3ca63ada7717
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sbom-json-check:0.1@sha256:3fe90c210a4df9c98d5a32a2eeeaa36ca4a5c8a199d56b512076ffca9d3db483
         name: sbom-json-check
       when:
       - input: $(params.skip-checks)
