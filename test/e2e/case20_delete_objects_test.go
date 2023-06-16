@@ -609,7 +609,7 @@ var _ = Describe("Test objects are not deleted when the CRD is removed", Ordered
 	})
 })
 
-var _ = Describe("Clean up old object when configurationpolicy is changed", Ordered, func() {
+var _ = Describe("Clean up old object when configuraionpolicy is changed", Ordered, func() {
 	const (
 		oldPodName             string = "case20-name-changed-pod"
 		newPodName             string = "case20-name-changed-new"
