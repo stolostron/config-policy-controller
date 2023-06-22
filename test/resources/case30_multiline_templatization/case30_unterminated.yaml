@@ -8,7 +8,8 @@ spec:
     exclude: ["kube-*"]
     include: ["default"]
   object-templates-raw:  |
-    {{ range (lookup "v1" "ConfigMap" "default" "" "testcase=30").items }}
+    {{ range (lookup "v1" "ConfigMap" "default" "").items }}
+    {{- if and .metadata.labels .metadata.labels.testcase (eq .metadata.labels.testcase "30") }}
       - complianceType: musthave
         objectDefinition:
           apiVersion: v1
@@ -18,4 +19,5 @@ spec:
             namespace: default
           data:
             extraData: exists!
+    {{- end }}
     {{ end }}
