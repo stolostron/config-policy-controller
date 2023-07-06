@@ -152,11 +152,7 @@ gosec-scan: gosec
 
 .PHONY: build
 build:
-	@build/common/scripts/gobuild.sh build/_output/bin/$(IMG) ./
-
-.PHONY: local
-local:
-	@GOOS=darwin build/common/scripts/gobuild.sh build/_output/bin/$(IMG) ./cmd/manager
+	@go build -o build/_output/bin/$(IMG) ./
 
 ############################################################
 # images section
