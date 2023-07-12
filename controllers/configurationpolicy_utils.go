@@ -114,20 +114,30 @@ func equalObjWithSort(mergedObj interface{}, oldObj interface{}) (areEqual bool)
 		// this includes the case where oldObj is nil
 		return false
 	case []interface{}:
+		if len(mergedObj) == 0 && oldObj == nil {
+			return true
+		}
+
 		if oldObjList, ok := oldObj.([]interface{}); ok {
 			return checkListsMatch(mergedObj, oldObjList)
 		}
 
 		return false
-	default:
-		// NOTE: when type is string, int, bool
-		var oVal interface{}
-
+	default: // when mergedObj's type is string, int, bool, or nil
 		if oldObj == nil && mergedObj != nil {
+			// compare the zero value of mergedObj's type to mergedObj
 			ref := reflect.ValueOf(mergedObj)
-			oVal = reflect.Zero(ref.Type()).Interface()
+			zero := reflect.Zero(ref.Type()).Interface()
 
-			return fmt.Sprint(oVal) == fmt.Sprint(mergedObj)
+			return fmt.Sprint(zero) == fmt.Sprint(mergedObj)
+		}
+
+		if mergedObj == nil && oldObj != nil {
+			// compare the zero value of oldObj's type to oldObj
+			ref := reflect.ValueOf(oldObj)
+			zero := reflect.Zero(ref.Type()).Interface()
+
+			return fmt.Sprint(zero) == fmt.Sprint(oldObj)
 		}
 
 		if !reflect.DeepEqual(fmt.Sprint(mergedObj), fmt.Sprint(oldObj)) {
