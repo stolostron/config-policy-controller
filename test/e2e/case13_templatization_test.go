@@ -226,7 +226,7 @@ var _ = Describe("Test templatization", func() {
 			_, err := clientManaged.CoreV1().ConfigMaps("default").Create(
 				context.TODO(), &configMap, v1.CreateOptions{},
 			)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			By("Creating the configuration policy that references the ConfigMap")
 			utils.Kubectl("apply", "-f", case13UpdateRefObjectYaml, "-n", testNamespace)
 
@@ -252,7 +252,7 @@ var _ = Describe("Test templatization", func() {
 			replConfigMap, err := clientManaged.CoreV1().ConfigMaps("default").Get(
 				context.TODO(), configMapReplName, v1.GetOptions{},
 			)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(replConfigMap.Data["message"]).To(Equal("Hello Raleigh!\n"))
 
 			By("Sleeping 30 seconds to ensure PeriodicallyExecConfigPolicies has rerun twice")
@@ -263,7 +263,7 @@ var _ = Describe("Test templatization", func() {
 			_, err = clientManaged.CoreV1().ConfigMaps("default").Update(
 				context.TODO(), &configMap, v1.UpdateOptions{},
 			)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			By("Verifying that the replicated ConfigMap has the updated data")
 			Eventually(

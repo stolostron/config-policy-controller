@@ -98,11 +98,10 @@ type cachedEncryptionKey struct {
 	previousKey []byte
 }
 
-// nolint: structcheck
 type discoveryInfo struct {
-	apiResourceList        []*metav1.APIResourceList
-	apiGroups              []*restmapper.APIGroupResources
-	discoveryLastRefreshed time.Time
+	apiResourceList        []*metav1.APIResourceList       //nolint:structcheck
+	apiGroups              []*restmapper.APIGroupResources //nolint:structcheck
+	discoveryLastRefreshed time.Time                       //nolint:structcheck
 }
 
 // ConfigurationPolicyReconciler reconciles a ConfigurationPolicy object
@@ -131,7 +130,7 @@ type ConfigurationPolicyReconciler struct {
 
 // Reconcile currently does nothing. It is in place to satisfy the interface requirements of controller-runtime. All
 // the logic is handled in the PeriodicallyExecConfigPolicies method.
-func (r *ConfigurationPolicyReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
+func (r *ConfigurationPolicyReconciler) Reconcile(_ context.Context, _ ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
@@ -572,7 +571,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 
 			err := r.Update(context.TODO(), &plc)
 			if err != nil {
-				log.V(1).Error(err, "Error setting finalizer for configuration policy", plc)
+				log.V(1).Error(err, "Error setting finalizer for configuration policy")
 			}
 		}
 
@@ -588,7 +587,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 
 				err := r.Update(context.TODO(), &plc)
 				if err != nil {
-					log.V(1).Error(err, "Error unsetting finalizer for configuration policy", plc)
+					log.V(1).Error(err, "Error unsetting finalizer for configuration policy")
 				}
 			} else {
 				log.V(1).Info("Object cleanup failed, some objects have not been deleted from the cluster")
@@ -621,7 +620,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 		plc.SetFinalizers(removeConfigPlcFinalizer(plc, pruneObjectFinalizer))
 		err := r.Update(context.TODO(), &plc)
 		if err != nil {
-			log.V(1).Error(err, "Error unsetting finalizer for configuration policy", plc)
+			log.V(1).Error(err, "Error unsetting finalizer for configuration policy")
 		}
 	}
 
@@ -1031,7 +1030,7 @@ func addConditionToStatus(
 
 	// do not add condition unless it does not already appear in the status
 	if !checkMessageSimilarity(plc.Status.CompliancyDetails[index].Conditions, cond) {
-		conditions := AppendCondition(plc.Status.CompliancyDetails[index].Conditions, cond, "", false)
+		conditions := AppendCondition(plc.Status.CompliancyDetails[index].Conditions, cond)
 		plc.Status.CompliancyDetails[index].Conditions = conditions
 		updateNeeded = true
 	}
@@ -1582,8 +1581,7 @@ func (r *ConfigurationPolicyReconciler) getMapping(
 			policy.Status.CompliancyDetails[index].ComplianceState = policyv1.NonCompliant
 
 			if !checkMessageSimilarity(policy.Status.CompliancyDetails[index].Conditions, cond) {
-				conditions := AppendCondition(policy.Status.CompliancyDetails[index].Conditions,
-					cond, gvk.GroupKind().Kind, false)
+				conditions := AppendCondition(policy.Status.CompliancyDetails[index].Conditions, cond)
 				policy.Status.CompliancyDetails[index].Conditions = conditions
 				updateNeeded = true
 			}
@@ -1952,9 +1950,9 @@ func mergeArrays(newArr []interface{}, old []interface{}, ctype string) (result 
 		key := fmt.Sprint(val2)
 		if seen[key] {
 			continue
-		} else {
-			seen[key] = true
 		}
+
+		seen[key] = true
 
 		data := oldItemSet[key]
 		count := 0
@@ -2293,7 +2291,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 
 // AppendCondition check and appends conditions to the policy status
 func AppendCondition(
-	conditions []policyv1.Condition, newCond *policyv1.Condition, resourceType string, resolved ...bool,
+	conditions []policyv1.Condition, newCond *policyv1.Condition,
 ) (conditionsRes []policyv1.Condition) {
 	defer recoverFlow()
 
