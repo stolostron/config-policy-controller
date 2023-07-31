@@ -367,7 +367,7 @@ var _ = Describe("Test objects that should be deleted are actually being deleted
 			err := clientManagedDynamic.Resource(gvrConfigPolicy).Namespace(testNamespace).Delete(
 				context.TODO(), case20ConfigPolicyNameFinalizer, metav1.DeleteOptions{},
 			)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			Consistently(func() interface{} {
 				pod := utils.GetWithTimeout(clientManagedDynamic, gvrPod,
