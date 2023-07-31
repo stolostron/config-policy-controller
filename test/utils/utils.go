@@ -36,11 +36,11 @@ func Pause(s uint) {
 // ParseYaml read given yaml file and unmarshal it to &unstructured.Unstructured{}
 func ParseYaml(file string) *unstructured.Unstructured {
 	yamlFile, err := os.ReadFile(file)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	yamlPlc := &unstructured.Unstructured{}
 	err = yaml.Unmarshal(yamlFile, yamlPlc)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	return yamlPlc
 }
