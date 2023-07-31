@@ -50,7 +50,7 @@ var _ = Describe("Testing compliance event formatting", func() {
 		plcDef.SetOwnerReferences(ownerRefs)
 		_, err := clientManagedDynamic.Resource(gvrConfigPolicy).Namespace(testNamespace).
 			Create(context.TODO(), plcDef, metav1.CreateOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 			case15AlwaysCompliantName, testNamespace, true, defaultTimeoutSeconds)
@@ -95,7 +95,7 @@ var _ = Describe("Testing compliance event formatting", func() {
 		plcDef.SetOwnerReferences(ownerRefs)
 		_, err := clientManagedDynamic.Resource(gvrConfigPolicy).Namespace(testNamespace).
 			Create(context.TODO(), plcDef, metav1.CreateOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 			case15NeverCompliantName, testNamespace, true, defaultTimeoutSeconds)
@@ -140,7 +140,7 @@ var _ = Describe("Testing compliance event formatting", func() {
 		plcDef.SetOwnerReferences(ownerRefs)
 		_, err := clientManagedDynamic.Resource(gvrConfigPolicy).Namespace(testNamespace).
 			Create(context.TODO(), plcDef, metav1.CreateOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 			case15BecomesCompliantName, testNamespace, true, defaultTimeoutSeconds)
@@ -185,7 +185,7 @@ var _ = Describe("Testing compliance event formatting", func() {
 		plcDef.SetOwnerReferences(ownerRefs)
 		_, err := clientManagedDynamic.Resource(gvrConfigPolicy).Namespace(testNamespace).
 			Create(context.TODO(), plcDef, metav1.CreateOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 			case15BecomesNonCompliantName, testNamespace, true, defaultTimeoutSeconds)
@@ -227,7 +227,7 @@ var _ = Describe("Testing compliance event formatting", func() {
 				context.TODO(), policyName, metav1.DeleteOptions{},
 			)
 			if !k8serrors.IsNotFound(err) {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 			}
 		}
 
@@ -244,7 +244,7 @@ var _ = Describe("Testing compliance event formatting", func() {
 		err := clientManaged.CoreV1().Pods("default").Delete(
 			context.TODO(), "case15-becomescompliant", metav1.DeleteOptions{})
 		if !k8serrors.IsNotFound(err) {
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		}
 	})
 })

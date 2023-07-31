@@ -44,7 +44,7 @@ var _ = Describe("Test policy history message when KubeAPI return "+
 			plcDef.SetOwnerReferences(ownerRefs)
 			_, err := clientManagedDynamic.Resource(gvrConfigPolicy).Namespace(testNamespace).
 				Create(context.TODO(), plcDef, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			By("check configurationpolicy exist")
 			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
@@ -106,7 +106,7 @@ var _ = Describe("Test policy history message when KubeAPI return "+
 			plcDef.SetOwnerReferences(ownerRefs)
 			_, err := clientManagedDynamic.Resource(gvrConfigPolicy).Namespace(testNamespace).
 				Create(context.TODO(), plcDef, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			By("check configurationpolicy exist")
 			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
@@ -178,7 +178,7 @@ var _ = Describe("Test policy history message when KubeAPI return "+
 			plcDef.SetOwnerReferences(ownerRefs)
 			_, err := clientManagedDynamic.Resource(gvrConfigPolicy).Namespace(testNamespace).
 				Create(context.TODO(), plcDef, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			By("check configurationpolicy exist")
 			Eventually(func() interface{} {
@@ -194,7 +194,7 @@ var _ = Describe("Test policy history message when KubeAPI return "+
 				event := utils.GetMatchingEvents(clientManaged, testNamespace,
 					case31LMPolicyName, case31LMConfigPolicyName, "NonCompliant", defaultTimeoutSeconds)
 
-				Expect(len(event)).ShouldNot(BeZero())
+				Expect(event).ShouldNot(BeEmpty())
 				message := event[len(event)-1].Message
 
 				return len(message)
