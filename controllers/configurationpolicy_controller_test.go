@@ -90,7 +90,7 @@ func TestCompareSpecs(t *testing.T) {
 		},
 	}
 
-	merged, err := compareSpecs(spec1, spec2, "mustonlyhave")
+	merged, err := compareSpecs(spec1, spec2, "mustonlyhave", true)
 	if err != nil {
 		t.Fatalf("compareSpecs: (%v)", err)
 	}
@@ -122,7 +122,7 @@ func TestCompareSpecs(t *testing.T) {
 		},
 	}
 
-	merged, err = compareSpecs(spec1, spec2, "musthave")
+	merged, err = compareSpecs(spec1, spec2, "musthave", true)
 	if err != nil {
 		t.Fatalf("compareSpecs: (%v)", err)
 	}
@@ -290,7 +290,7 @@ func TestMergeArraysMustHave(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 
-			actualMergedList := mergeArrays(test.desiredList, test.currentList, "musthave")
+			actualMergedList := mergeArrays(test.desiredList, test.currentList, "musthave", true)
 			assert.Equal(t, fmt.Sprintf("%+v", test.expectedList), fmt.Sprintf("%+v", actualMergedList))
 			assert.True(t, checkListsMatch(test.expectedList, actualMergedList))
 		})
@@ -377,7 +377,7 @@ func TestMergeArraysMustOnlyHave(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 
-			actualMergedList := mergeArrays(test.desiredList, test.currentList, "mustonlyhave")
+			actualMergedList := mergeArrays(test.desiredList, test.currentList, "mustonlyhave", true)
 			assert.Equal(t, fmt.Sprintf("%+v", test.expectedList), fmt.Sprintf("%+v", actualMergedList))
 			assert.True(t, checkListsMatch(test.expectedList, actualMergedList))
 		})
@@ -1246,7 +1246,7 @@ func TestShouldHandleSingleKeyFalse(t *testing.T) {
 		unstruct.Object = test.input
 		unstructObj.Object = test.fromAPI
 		key := test.expectResult.key
-		_, update, _, skip = handleSingleKey(key, unstruct, &unstructObj, "musthave")
+		_, update, _, skip = handleSingleKey(key, unstruct, &unstructObj, "musthave", true)
 		assert.Equal(t, update, test.expectResult.expect)
 		assert.False(t, skip)
 	}
