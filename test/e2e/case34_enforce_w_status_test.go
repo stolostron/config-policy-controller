@@ -36,7 +36,7 @@ var _ = Describe("Test compliance events of enforced policies that define a stat
 		Consistently(func() interface{} {
 			return utils.GetMatchingEvents(clientManaged, testNamespace,
 				policyName, cfgPlcName, "^Compliant;", defaultTimeoutSeconds)
-		}, defaultTimeoutSeconds, 5).Should(BeEmpty())
+		}, 30, 5).Should(BeEmpty())
 
 		By("Updating the policy")
 		utils.Kubectl("apply", "-f", updatedCfgPlc, "-n", testNamespace)
@@ -45,7 +45,7 @@ var _ = Describe("Test compliance events of enforced policies that define a stat
 		Consistently(func() interface{} {
 			return utils.GetMatchingEvents(clientManaged, testNamespace,
 				policyName, cfgPlcName, "^Compliant;", defaultTimeoutSeconds)
-		}, defaultTimeoutSeconds, 5).Should(BeEmpty())
+		}, 30, 5).Should(BeEmpty())
 
 		By("Updating the nested policy to increment its generation")
 		utils.Kubectl("apply", "-f", nestedPlcYAML, "-n", testNamespace)
