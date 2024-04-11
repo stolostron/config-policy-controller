@@ -2580,7 +2580,11 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 
 	var statusMismatch bool
 
+	isInform := strings.EqualFold(string(remediation), string(policyv1.Inform))
+	handledKeys := map[string]bool{}
+
 	for key := range obj.desiredObj.Object {
+		handledKeys[key] = true
 		isStatus := key == "status"
 
 		// use metadatacompliancetype to evaluate metadata if it is set
@@ -2619,8 +2623,6 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		}
 
 		if keyUpdateNeeded {
-			isInform := strings.EqualFold(string(remediation), string(policyv1.Inform))
-
 			// If a key didn't match but the cluster supports dry run mode, then continue merging the object
 			// and then run a dry run update request to see if the Kubernetes API agrees with the assesment.
 			if isInform && !r.DryRunSupported {
@@ -2640,6 +2642,24 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 				if !isInform {
 					log.Info("Queuing an update for the object due to a value mismatch", "key", key)
 				}
+			}
+		}
+	}
+
+	// If the complianceType is "mustonlyhave", then compare the existing object's keys,
+	// skipping over: previously compared keys, metadata, and status.
+	if complianceType == "mustonlyhave" {
+		for key := range obj.existingObj.Object {
+			if handledKeys[key] || key == "status" || key == "metadata" {
+				continue
+			}
+
+			delete(obj.existingObj.Object, key)
+
+			updateNeeded = true
+
+			if !isInform {
+				log.Info("Queuing an update for the object due to a value mismatch", "key", key)
 			}
 		}
 	}
