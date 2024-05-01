@@ -987,12 +987,13 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 
 					condType, _, _ := unstructured.NestedString(condMap, "type")
 					if condType == "ResolutionFailed" {
-						return condMap["status"]
+						return condMap["reason"]
 					}
 				}
 
 				return nil
-			}, olmWaitTimeout, 5, ctx).Should(Equal("True"))
+			}, olmWaitTimeout*2, 5, ctx).Should(Equal("ConstraintsNotSatisfiable"))
+
 			check(
 				opPolName,
 				true,
