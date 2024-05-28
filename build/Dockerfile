@@ -26,7 +26,7 @@ RUN  /usr/local/bin/user_setup
 
 ENTRYPOINT ["/usr/local/bin/entrypoint", "controller"]
 
-RUN microdnf update && \
+RUN microdnf update -y && \
     microdnf clean all
 
 USER ${USER_UID}
