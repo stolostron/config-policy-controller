@@ -48,7 +48,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			GinkgoHelper()
 
 			unstructPolicy := utils.GetWithTimeout(clientManagedDynamic, gvrOperatorPolicy, polName,
-				opPolTestNS, true, eventuallyTimeout)
+				testNamespace, true, eventuallyTimeout)
 
 			unstructured.RemoveNestedField(unstructPolicy.Object, "metadata", "managedFields")
 
@@ -113,7 +113,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			}
 
 			events := utils.GetMatchingEvents(
-				clientManaged, opPolTestNS, parentPolicyName, "", expectedEventMsgSnippet, eventuallyTimeout,
+				clientManaged, testNamespace, parentPolicyName, "", expectedEventMsgSnippet, eventuallyTimeout,
 			)
 			g.Expect(events).NotTo(BeEmpty())
 
@@ -141,11 +141,15 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		BeforeAll(func() {
 			utils.Kubectl("create", "ns", opPolTestNS)
 			DeferCleanup(func() {
+				utils.Kubectl("delete", "-n", testNamespace, "operatorpolicy", "--all")
+				utils.Kubectl(
+					"delete", "event", "--field-selector=involvedObject.name="+parentPolicyName, "-n", testNamespace,
+				)
 				utils.Kubectl("delete", "ns", opPolTestNS)
 			})
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				opPolYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				opPolYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 		})
 
 		It("Should initially be NonCompliant", func() {
@@ -174,7 +178,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			)
 		})
 		It("Should create the OperatorGroup when it is enforced", func() {
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/remediationAction", "value": "enforce"}]`)
 			check(
 				opPolName,
@@ -230,7 +234,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			)
 		})
 		It("Should warn about the OperatorGroup when it doesn't match the default", func() {
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/remediationAction", "value": "inform"}]`)
 			utils.Kubectl("delete", "operatorgroup", "-n", opPolTestNS, "--all")
 			utils.Kubectl("apply", "-f", extraOpGroupYAML, "-n", opPolTestNS)
@@ -271,13 +275,17 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		BeforeAll(func() {
 			utils.Kubectl("create", "ns", opPolTestNS)
 			DeferCleanup(func() {
+				utils.Kubectl("delete", "-n", testNamespace, "operatorpolicy", "--all")
+				utils.Kubectl(
+					"delete", "event", "--field-selector=involvedObject.name="+parentPolicyName, "-n", testNamespace,
+				)
 				utils.Kubectl("delete", "ns", opPolTestNS)
 			})
 
 			utils.Kubectl("apply", "-f", incorrectOpGroupYAML, "-n", opPolTestNS)
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				opPolYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				opPolYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 		})
 
 		It("Should initially be NonCompliant", func() {
@@ -371,7 +379,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			)
 		})
 		It("Should update the OperatorGroup when it is changed to enforce", func() {
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/remediationAction", "value": "enforce"}]`)
 			check(
 				opPolName,
@@ -441,11 +449,15 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		BeforeAll(func() {
 			utils.Kubectl("create", "ns", opPolTestNS)
 			DeferCleanup(func() {
+				utils.Kubectl("delete", "-n", testNamespace, "operatorpolicy", "--all")
+				utils.Kubectl(
+					"delete", "event", "--field-selector=involvedObject.name="+parentPolicyName, "-n", testNamespace,
+				)
 				utils.Kubectl("delete", "ns", opPolTestNS)
 			})
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				opPolYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				opPolYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 		})
 
 		It("Should initially be NonCompliant", func() {
@@ -474,7 +486,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			)
 		})
 		It("Should create the Subscription when enforced", func() {
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/remediationAction", "value": "enforce"}]`)
 			check(
 				opPolName,
@@ -501,7 +513,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			)
 		})
 		It("Should apply an update to the Subscription", func() {
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/subscription/sourceNamespace", "value": "fake"}]`)
 			check(
 				opPolName,
@@ -540,13 +552,17 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		BeforeAll(func() {
 			utils.Kubectl("create", "ns", opPolTestNS)
 			DeferCleanup(func() {
+				utils.Kubectl("delete", "-n", testNamespace, "operatorpolicy", "--all")
+				utils.Kubectl(
+					"delete", "event", "--field-selector=involvedObject.name="+parentPolicyName, "-n", testNamespace,
+				)
 				utils.Kubectl("delete", "ns", opPolTestNS)
 			})
 
 			utils.Kubectl("apply", "-f", subYAML, "-n", opPolTestNS)
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				opPolYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				opPolYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 		})
 		It("Should initially notice the matching Subscription", func() {
 			check(
@@ -574,7 +590,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			)
 		})
 		It("Should notice the mismatch when the spec is changed in the policy", func() {
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/subscription/sourceNamespace", "value": "fake"}]`)
 			check(
 				opPolName,
@@ -611,14 +627,18 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		BeforeAll(func() {
 			utils.Kubectl("create", "ns", opPolTestNS)
 			DeferCleanup(func() {
+				utils.Kubectl("delete", "-n", testNamespace, "operatorpolicy", "--all")
+				utils.Kubectl(
+					"delete", "event", "--field-selector=involvedObject.name="+parentPolicyName, "-n", testNamespace,
+				)
 				utils.Kubectl("delete", "ns", opPolTestNS)
 			})
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				opPolYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				opPolYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				opPolNoExistYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				opPolNoExistYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 		})
 
 		It("Should generate conditions and relatedobjects of CSV", func(ctx SpecContext) {
@@ -735,11 +755,15 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		BeforeAll(func() {
 			utils.Kubectl("create", "ns", opPolTestNS)
 			DeferCleanup(func() {
+				utils.Kubectl("delete", "-n", testNamespace, "operatorpolicy", "--all")
+				utils.Kubectl(
+					"delete", "event", "--field-selector=involvedObject.name="+parentPolicyName, "-n", testNamespace,
+				)
 				utils.Kubectl("delete", "ns", opPolTestNS)
 			})
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				opPolYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				opPolYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 		})
 
 		It("Should generate conditions and relatedobjects of CSV", func(ctx SpecContext) {
@@ -799,7 +823,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			// This test is meant to find an incorrect compliant event that is emitted between some
 			// correct noncompliant events.
 			events := utils.GetMatchingEvents(
-				clientManaged, opPolTestNS, parentPolicyName, "", "^Compliant;", eventuallyTimeout,
+				clientManaged, testNamespace, parentPolicyName, "", "^Compliant;", eventuallyTimeout,
 			)
 
 			Expect(events).To(BeEmpty())
@@ -817,13 +841,17 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			By("Applying creating a ns and the test policy")
 			utils.Kubectl("create", "ns", opPolTestNS)
 			DeferCleanup(func() {
+				utils.Kubectl("delete", "-n", testNamespace, "operatorpolicy", "--all")
+				utils.Kubectl(
+					"delete", "event", "--field-selector=involvedObject.name="+parentPolicyName, "-n", testNamespace,
+				)
 				utils.Kubectl("patch", "catalogsource", catSrcName, "-n", "olm", "--type=json", "-p",
 					`[{"op": "replace", "path": "/spec/image", "value": "quay.io/operatorhubio/catalog:latest"}]`)
 				utils.Kubectl("delete", "ns", opPolTestNS)
 			})
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				OpPlcYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				OpPlcYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 		})
 
 		It("Should initially show the CatalogSource is compliant", func() {
@@ -854,7 +882,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		})
 		It("Should remain compliant when policy is enforced", func() {
 			By("Enforcing the policy")
-			utils.Kubectl("patch", "operatorpolicy", OpPlcName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", OpPlcName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/remediationAction", "value": "enforce"}]`)
 
 			By("Checking the condition fields")
@@ -884,7 +912,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		})
 		It("Should become NonCompliant when CatalogSource DNE", func() {
 			By("Patching the policy to reference a CatalogSource that DNE to emulate failure")
-			utils.Kubectl("patch", "operatorpolicy", OpPlcName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", OpPlcName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/subscription/source", "value": "fakeName"}]`)
 
 			By("Checking the conditions and relatedObj in the policy")
@@ -914,7 +942,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		})
 		It("Should remain NonCompliant when CatalogSource fails", func() {
 			By("Patching the policy to point to an existing CatalogSource")
-			utils.Kubectl("patch", "operatorpolicy", OpPlcName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", OpPlcName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/subscription/source", "value": "operatorhubio-catalog"}]`)
 
 			By("Patching the CatalogSource to reference a broken image link")
@@ -962,11 +990,15 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		BeforeAll(func() {
 			utils.Kubectl("create", "ns", opPolTestNS)
 			DeferCleanup(func() {
+				utils.Kubectl("delete", "-n", testNamespace, "operatorpolicy", "--all")
+				utils.Kubectl(
+					"delete", "event", "--field-selector=involvedObject.name="+parentPolicyName, "-n", testNamespace,
+				)
 				utils.Kubectl("delete", "ns", opPolTestNS)
 			})
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				opPolYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				opPolYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 		})
 
 		It("Should initially report the ConstraintsNotSatisfiable Subscription", func(ctx SpecContext) {
@@ -1047,7 +1079,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		})
 		It("Should report an available upgrade", func(ctx SpecContext) {
 			goodVersion := "strimzi-cluster-operator.v0.36.0"
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/subscription/startingCSV", "value": "`+goodVersion+`"},`+
 					`{"op": "replace", "path": "/spec/remediationAction", "value": "inform"}]`)
 			utils.Kubectl("patch", "subscription.operator", subName, "-n", opPolTestNS, "--type=json", "-p",
@@ -1089,7 +1121,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 
 			firstInstallPlanName = ipList.Items[0].GetName()
 
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/remediationAction", "value": "enforce"}]`)
 
 			Eventually(func(ctx SpecContext) int {
@@ -1151,7 +1183,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 			)
 		})
 		It("Should approve the next version when it's added to the spec", func(ctx SpecContext) {
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "add", "path": "/spec/versions/-", "value": "strimzi-cluster-operator.v0.36.1"}]`)
 
 			Eventually(func(ctx SpecContext) string {
@@ -1206,12 +1238,16 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		BeforeAll(func() {
 			utils.Kubectl("create", "ns", opPolTestNS)
 			DeferCleanup(func() {
+				utils.Kubectl("delete", "-n", testNamespace, "operatorpolicy", "--all")
+				utils.Kubectl(
+					"delete", "event", "--field-selector=involvedObject.name="+parentPolicyName, "-n", testNamespace,
+				)
 				utils.Kubectl("delete", "ns", opPolTestNS)
 				utils.Kubectl("delete", "ns", "nonexist-testns")
 			})
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
-				opPolYAML, opPolTestNS, gvrPolicy, gvrOperatorPolicy)
+				opPolYAML, testNamespace, gvrPolicy, gvrOperatorPolicy)
 		})
 
 		It("Should initially report unknown fields", func() {
@@ -1242,7 +1278,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		})
 		It("Should report about the invalid installPlanApproval value", func() {
 			// remove the "unknown" fields
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "remove", "path": "/spec/operatorGroup/foo"}, `+
 					`{"op": "remove", "path": "/spec/subscription/actually"}]`)
 			check(
@@ -1261,7 +1297,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		})
 		It("Should report about the namespaces not matching", func() {
 			// Fix the `installPlanApproval` value
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "replace", "path": "/spec/subscription/installPlanApproval", "value": "Automatic"}]`)
 			check(
 				opPolName,
@@ -1279,7 +1315,7 @@ var _ = Describe("Test installing an operator from OperatorPolicy", Ordered, fun
 		})
 		It("Should report about the namespace not existing", func() {
 			// Fix the namespace mismatch by removing the operator group spec
-			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", opPolTestNS, "--type=json", "-p",
+			utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 				`[{"op": "remove", "path": "/spec/operatorGroup"}]`)
 			check(
 				opPolName,

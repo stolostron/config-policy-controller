@@ -212,6 +212,14 @@ func main() {
 				"metadata.namespace": watchNamespace,
 			}),
 		}
+
+		if opts.enableOperatorPolicy {
+			cacheSelectors[&policyv1beta1.OperatorPolicy{}] = cache.ObjectSelector{
+				Field: fields.SelectorFromSet(fields.Set{
+					"metadata.namespace": watchNamespace,
+				}),
+			}
+		}
 	} else {
 		log.Info("Skipping restrictions on the ConfigurationPolicy cache because watchNamespace is empty")
 	}
