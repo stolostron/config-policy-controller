@@ -2573,95 +2573,15 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		res = r.TargetK8sDynamicClient.Resource(obj.gvr)
 	}
 
-	updateSucceeded = false
 	// Use a copy since some values can be directly assigned to mergedObj in handleSingleKey.
 	existingObjectCopy := obj.existingObj.DeepCopy()
 	removeFieldsForComparison(existingObjectCopy)
 
-	var statusMismatch bool
-
-	isInform := strings.EqualFold(string(remediation), string(policyv1.Inform))
-	handledKeys := map[string]bool{}
-
-	for key := range obj.desiredObj.Object {
-		handledKeys[key] = true
-		isStatus := key == "status"
-
-		// use metadatacompliancetype to evaluate metadata if it is set
-		keyComplianceType := complianceType
-		if key == "metadata" && mdComplianceType != "" {
-			keyComplianceType = mdComplianceType
-		}
-
-		// check key for mismatch
-		errorMsg, keyUpdateNeeded, mergedObj, skipped := handleSingleKey(
-			key, obj.desiredObj, existingObjectCopy, keyComplianceType, !r.DryRunSupported,
-		)
-		if errorMsg != "" {
-			log.Info(errorMsg)
-
-			return true, errorMsg, true, false
-		}
-
-		if mergedObj == nil && skipped {
-			continue
-		}
-
-		// only look at labels and annotations for metadata - configurationPolicies do not update other metadata fields
-		if key == "metadata" {
-			// if it's not the right type, the map will be empty
-			mdMap, _ := mergedObj.(map[string]interface{})
-
-			// if either isn't found, they'll just be empty
-			mergedAnnotations, _, _ := unstructured.NestedStringMap(mdMap, "annotations")
-			mergedLabels, _, _ := unstructured.NestedStringMap(mdMap, "labels")
-
-			obj.existingObj.SetAnnotations(mergedAnnotations)
-			obj.existingObj.SetLabels(mergedLabels)
-		} else {
-			obj.existingObj.UnstructuredContent()[key] = mergedObj
-		}
-
-		if keyUpdateNeeded {
-			// If a key didn't match but the cluster supports dry run mode, then continue merging the object
-			// and then run a dry run update request to see if the Kubernetes API agrees with the assesment.
-			if isInform && !r.DryRunSupported {
-				r.setEvaluatedObject(obj.policy, obj.existingObj, false)
-
-				return true, "", false, false
-			}
-
-			if isStatus {
-				throwSpecViolation = true
-				statusMismatch = true
-
-				log.Info("Ignoring an update to the object status", "key", key)
-			} else {
-				updateNeeded = true
-
-				if !isInform {
-					log.Info("Queuing an update for the object due to a value mismatch", "key", key)
-				}
-			}
-		}
-	}
-
-	// If the complianceType is "mustonlyhave", then compare the existing object's keys,
-	// skipping over: previously compared keys, metadata, and status.
-	if complianceType == "mustonlyhave" {
-		for key := range obj.existingObj.Object {
-			if handledKeys[key] || key == "status" || key == "metadata" {
-				continue
-			}
-
-			delete(obj.existingObj.Object, key)
-
-			updateNeeded = true
-
-			if !isInform {
-				log.Info("Queuing an update for the object due to a value mismatch", "key", key)
-			}
-		}
+	throwSpecViolation, message, updateNeeded, statusMismatch := handleKeys(
+		obj.desiredObj, obj.existingObj, existingObjectCopy, complianceType, mdComplianceType, !r.DryRunSupported,
+	)
+	if message != "" {
+		return true, message, true, false
 	}
 
 	if updateNeeded {
@@ -2772,6 +2692,91 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 	}
 
 	return throwSpecViolation, "", updateNeeded, updateSucceeded
+}
+
+// handleKeys goes through all of the fields in the desired object and checks if the existing object
+// matches. When a field is a map or slice, the value in the existing object will be updated with
+// the result of merging its current value with the desired value.
+func handleKeys(
+	desiredObj unstructured.Unstructured,
+	existingObj *unstructured.Unstructured,
+	existingObjectCopy *unstructured.Unstructured,
+	compType string,
+	mdCompType string,
+	zeroValueEqualsNil bool,
+) (throwSpecViolation bool, message string, updateNeeded bool, statusMismatch bool) {
+	handledKeys := map[string]bool{}
+
+	for key := range desiredObj.Object {
+		handledKeys[key] = true
+		isStatus := key == "status"
+
+		// use metadatacompliancetype to evaluate metadata if it is set
+		keyComplianceType := compType
+		if key == "metadata" && mdCompType != "" {
+			keyComplianceType = mdCompType
+		}
+
+		// check key for mismatch
+		errorMsg, keyUpdateNeeded, mergedObj, skipped := handleSingleKey(
+			key, desiredObj, existingObjectCopy, keyComplianceType, zeroValueEqualsNil,
+		)
+		if errorMsg != "" {
+			log.Info(errorMsg)
+
+			return true, errorMsg, true, statusMismatch
+		}
+
+		if mergedObj == nil && skipped {
+			continue
+		}
+
+		// only look at labels and annotations for metadata - configurationPolicies do not update other metadata fields
+		if key == "metadata" {
+			// if it's not the right type, the map will be empty
+			mdMap, _ := mergedObj.(map[string]interface{})
+
+			// if either isn't found, they'll just be empty
+			mergedAnnotations, _, _ := unstructured.NestedStringMap(mdMap, "annotations")
+			mergedLabels, _, _ := unstructured.NestedStringMap(mdMap, "labels")
+
+			existingObj.SetAnnotations(mergedAnnotations)
+			existingObj.SetLabels(mergedLabels)
+		} else {
+			existingObj.UnstructuredContent()[key] = mergedObj
+		}
+
+		if keyUpdateNeeded {
+			if isStatus {
+				throwSpecViolation = true
+				statusMismatch = true
+			} else {
+				updateNeeded = true
+			}
+		}
+	}
+
+	// If the complianceType is "mustonlyhave", then compare the existing object's keys,
+	// skipping over: previously compared keys, metadata, and status.
+	if compType == "mustonlyhave" {
+		for key := range existingObj.Object {
+			if handledKeys[key] || key == "status" || key == "metadata" {
+				continue
+			}
+
+			// for ServiceAccounts, ignore "secrets" and "imagePullSecrets" fields, as these are managed by Kubernetes
+			if (existingObj.GetKind() == "ServiceAccount" && existingObj.GetAPIVersion() == "v1") &&
+				(key == "secrets" || key == "imagePullSecrets") {
+				continue
+			}
+
+			delete(existingObj.Object, key)
+
+			updateNeeded = true
+		}
+	}
+
+	return
 }
 
 func removeFieldsForComparison(obj *unstructured.Unstructured) {
