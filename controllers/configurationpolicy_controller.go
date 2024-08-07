@@ -2716,7 +2716,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 
 				diff = handleDiff(log, recordDiff, isInform, existingObjectCopy, dryRunUpdatedObj)
 			}
-		} else if recordDiff == policyv1.RecordDiffLog || (isInform && recordDiff == policyv1.RecordDiffInStatus) {
+		} else if recordDiff != policyv1.RecordDiffNone {
 			// Generate and log the diff for when dryrun is unsupported (i.e. OCP v3.11)
 			mergedObjCopy := obj.existingObj.DeepCopy()
 			removeFieldsForComparison(mergedObjCopy)
