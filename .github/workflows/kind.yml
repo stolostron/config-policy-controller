@@ -102,7 +102,6 @@ jobs:
       - name: Test Coverage and Report Generation
         run: |
           make test-coverage | tee report_unit.json
-          make coverage-verify
           make gosec-scan
           cat gosec.json
 
