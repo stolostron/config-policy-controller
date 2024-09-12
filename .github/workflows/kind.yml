@@ -108,6 +108,11 @@ jobs:
           make kind-bootstrap-cluster-dev
           KUBECONFIG=${PWD}/kubeconfig_managed make kind-ensure-sa
 
+      - name: OCM-policy namespace Tests
+        run: |
+          export GOPATH=$(go env GOPATH)
+          KUBECONFIG=${PWD}/kubeconfig_managed make e2e-ocm-ns-test-coverage
+
       - name: E2E Tests
         run: |
           export GOPATH=$(go env GOPATH)

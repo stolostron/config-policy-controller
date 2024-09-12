@@ -241,14 +241,20 @@ install-resources:
 
 IS_HOSTED ?= false
 E2E_PROCS = 20
+TEST_NAMESAPCE = managed
 
 .PHONY: e2e-test
 e2e-test: e2e-dependencies
-	$(GINKGO) -v --procs=$(E2E_PROCS) $(E2E_TEST_ARGS) test/e2e -- -is_hosted=$(IS_HOSTED)
+	$(GINKGO) -v --procs=$(E2E_PROCS) $(E2E_TEST_ARGS) test/e2e -- -is_hosted=$(IS_HOSTED) -test_namespace=$(TEST_NAMESAPCE)
 
 .PHONY: e2e-test-coverage
 e2e-test-coverage: E2E_TEST_ARGS = --json-report=report_e2e.json --label-filter='!hosted-mode && !running-in-cluster' --output-dir=.
 e2e-test-coverage: e2e-run-instrumented e2e-test e2e-stop-instrumented
+
+.PHONY: e2e-ocm-ns-test-coverage
+e2e-ocm-ns-test-coverage: E2E_TEST_ARGS = --json-report=report_e2e.json --label-filter='ocm-ns' --output-dir=.
+e2e-ocm-ns-test-coverage: TEST_NAMESAPCE = open-cluster-management-policies
+e2e-ocm-ns-test-coverage: e2e-run-instrumented e2e-test e2e-stop-instrumented
 
 .PHONY: e2e-test-hosted-mode-coverage
 e2e-test-hosted-mode-coverage: E2E_TEST_ARGS = --json-report=report_e2e_hosted_mode.json --label-filter="hosted-mode || supports-hosted && !running-in-cluster" --output-dir=.

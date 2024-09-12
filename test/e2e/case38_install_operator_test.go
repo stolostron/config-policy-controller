@@ -26,7 +26,7 @@ import (
 	"open-cluster-management.io/config-policy-controller/test/utils"
 )
 
-var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), func() {
+var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted", "ocm-ns"), func() {
 	const (
 		opPolTestNS          = "operator-policy-testns"
 		parentPolicyYAML     = "../resources/case38_operator_install/parent-policy.yaml"

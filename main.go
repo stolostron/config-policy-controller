@@ -66,6 +66,10 @@ var (
 	log    = ctrl.Log.WithName("setup")
 )
 
+// Namespace for standalone policy users.
+// Policies applied by users are deployed here. Used only in non-hosted mode.
+const ocmPolicyNs = "open-cluster-management-policies"
+
 func printVersion() {
 	log.Info("Using", "OperatorVersion", version.Version, "GoVersion", runtime.Version(),
 		"GOOS", runtime.GOOS, "GOARCH", runtime.GOARCH)
@@ -227,25 +231,49 @@ func main() {
 
 	log.V(2).Info("Configured the watch namespace", "watchNamespace", watchNamespace)
 
+	configPolicy := &policyv1.ConfigurationPolicy{}
+	secret := &corev1.Secret{}
+	operatorPolicy := &policyv1beta1.OperatorPolicy{}
+
 	if watchNamespace != "" {
-		cacheByObject[&policyv1.ConfigurationPolicy{}] = cache.ByObject{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-			}),
+		cacheByObject[configPolicy] = cache.ByObject{
+			Namespaces: map[string]cache.Config{
+				watchNamespace: {},
+			},
 		}
 
-		cacheByObject[&corev1.Secret{}] = cache.ByObject{
-			Field: fields.SelectorFromSet(fields.Set{
-				"metadata.namespace": watchNamespace,
-				"metadata.name":      "policy-encryption-key",
-			}),
+		cacheByObject[secret] = cache.ByObject{
+			Namespaces: map[string]cache.Config{
+				watchNamespace: {
+					FieldSelector: fields.SelectorFromSet(fields.Set{
+						"metadata.name": "policy-encryption-key",
+					}),
+				},
+			},
 		}
 
 		if opts.enableOperatorPolicy {
-			cacheByObject[&policyv1beta1.OperatorPolicy{}] = cache.ByObject{
-				Field: fields.SelectorFromSet(fields.Set{
-					"metadata.namespace": watchNamespace,
+			cacheByObject[operatorPolicy] = cache.ByObject{
+				Namespaces: map[string]cache.Config{
+					watchNamespace: {},
+				},
+			}
+		}
+
+		if opts.targetKubeConfig == "" {
+			// ocmPolicyNs is cached only in non-hosted=mode
+			cacheByObject[configPolicy].
+				Namespaces[ocmPolicyNs] = cache.Config{}
+
+			cacheByObject[secret].Namespaces[ocmPolicyNs] = cache.Config{
+				FieldSelector: fields.SelectorFromSet(fields.Set{
+					"metadata.name": "policy-encryption-key",
 				}),
+			}
+
+			if opts.enableOperatorPolicy {
+				cacheByObject[operatorPolicy].
+					Namespaces[ocmPolicyNs] = cache.Config{}
 			}
 		}
 	} else {

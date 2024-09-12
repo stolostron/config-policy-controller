@@ -77,6 +77,9 @@ func init() {
 		&IsHosted, "is_hosted", false,
 		"Whether is hosted mode or not",
 	)
+
+	flag.StringVar(&testNamespace, "test_namespace", "managed",
+		"Namespace for Policy")
 }
 
 var _ = BeforeSuite(func() {
@@ -152,7 +155,6 @@ var _ = BeforeSuite(func() {
 	clientManaged = NewKubeClient("", kubeconfigManaged, "")
 	clientManagedDynamic = NewKubeClientDynamic("", kubeconfigManaged, "")
 	defaultImageRegistry = "quay.io/stolostron"
-	testNamespace = "managed"
 	defaultTimeoutSeconds = 60
 	defaultConsistentlyDuration = 25
 	By("Create watch namespace if needed")
@@ -160,12 +162,17 @@ var _ = BeforeSuite(func() {
 	if _, err := namespaces.Get(
 		context.TODO(), testNamespace, metav1.GetOptions{},
 	); err != nil && errors.IsNotFound(err) {
-		Expect(namespaces.Create(context.TODO(), &corev1.Namespace{
+		_, err := namespaces.Create(context.TODO(), &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: testNamespace,
 			},
-		}, metav1.CreateOptions{})).NotTo(BeNil())
+		}, metav1.CreateOptions{})
+
+		if !errors.IsAlreadyExists(err) {
+			Expect(err).NotTo(HaveOccurred())
+		}
 	}
+
 	Expect(namespaces.Get(context.TODO(), testNamespace, metav1.GetOptions{})).NotTo(BeNil())
 
 	if IsHosted {

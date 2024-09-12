@@ -12,7 +12,7 @@ import (
 	"open-cluster-management.io/config-policy-controller/test/utils"
 )
 
-var _ = Describe("Test pod obj template handling", Ordered, func() {
+var _ = Describe("Test pod obj template handling", Ordered, Label("ocm-ns"), func() {
 	Describe("Test pod obj handling on managed cluster in ns:"+testNamespace, Ordered, func() {
 		const (
 			configPolicyNameInform       string = "policy-pod-create-inform"

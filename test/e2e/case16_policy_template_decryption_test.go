@@ -27,7 +27,7 @@ const (
 	case16SecretDiffKey          = "../resources/case16_policy_template_decryption/secret-diff-key.yaml"
 )
 
-var _ = Describe("Test policy template decryption", Ordered, func() {
+var _ = Describe("Test policy template decryption", Ordered, Label("ocm-ns"), func() {
 	Describe("Test policy template decryption with new key", Ordered, func() {
 		It("deletes the namespace "+case16CreatedNamespace, func() {
 			utils.KubectlDelete("namespace", case16CreatedNamespace)
