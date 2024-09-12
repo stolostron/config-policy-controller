@@ -95,7 +95,7 @@ var _ reconcile.Reconciler = &ConfigurationPolicyReconciler{}
 type discoveryInfo struct {
 	apiResourceList        []*metav1.APIResourceList
 	apiGroups              []*restmapper.APIGroupResources
-	serverVersion          string
+	serverVersion          string //nolint:structcheck
 	discoveryLastRefreshed time.Time
 }
 
