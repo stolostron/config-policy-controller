@@ -87,10 +87,10 @@ type ctrlOpts struct {
 	probeAddr             string
 	operatorPolDefaultNS  string
 	clientQPS             float32
-	clientBurst           uint
+	clientBurst           uint16
 	frequency             uint
 	decryptionConcurrency uint8
-	evaluationConcurrency uint8
+	evaluationConcurrency uint16
 	enableLease           bool
 	enableLeaderElection  bool
 	enableMetrics         bool
@@ -620,7 +620,7 @@ func handleTriggerUninstall() {
 	triggerUninstallFlagSet := pflag.NewFlagSet("trigger-uninstall", pflag.ExitOnError)
 
 	var deploymentName, deploymentNamespace, policyNamespace string
-	var timeoutSeconds uint
+	var timeoutSeconds uint32
 
 	triggerUninstallFlagSet.StringVar(
 		&deploymentName, "deployment-name", "config-policy-controller", "The name of the controller Deployment object",
@@ -634,7 +634,7 @@ func handleTriggerUninstall() {
 	triggerUninstallFlagSet.StringVar(
 		&policyNamespace, "policy-namespace", "", "The namespace of where ConfigurationPolicy objects are stored",
 	)
-	triggerUninstallFlagSet.UintVar(
+	triggerUninstallFlagSet.Uint32Var(
 		&timeoutSeconds, "timeout-seconds", 300, "The number of seconds before the operation is canceled",
 	)
 	triggerUninstallFlagSet.AddGoFlagSet(flag.CommandLine)
@@ -737,7 +737,7 @@ func parseOpts(flags *pflag.FlagSet, args []string) *ctrlOpts {
 		"The max number of concurrent policy template decryptions",
 	)
 
-	flags.Uint8Var(
+	flags.Uint16Var(
 		&opts.evaluationConcurrency,
 		"evaluation-concurrency",
 		// Set a low default to not add too much load to the Kubernetes API server in resource constrained deployments.
@@ -760,7 +760,7 @@ func parseOpts(flags *pflag.FlagSet, args []string) *ctrlOpts {
 			"Will scale with concurrency, if not explicitly set.",
 	)
 
-	flags.UintVar(
+	flags.Uint16Var(
 		&opts.clientBurst,
 		"client-burst",
 		45, // the controller-runtime defaults are 20:30 (qps:burst) - this matches that ratio
@@ -791,7 +791,7 @@ func parseOpts(flags *pflag.FlagSet, args []string) *ctrlOpts {
 		}
 
 		if !flags.Changed("client-burst") {
-			opts.clientBurst = uint(opts.evaluationConcurrency)*22 + 1
+			opts.clientBurst = opts.evaluationConcurrency*22 + 1
 		}
 	}
 

@@ -110,7 +110,7 @@ type ConfigurationPolicyReconciler struct {
 	// support is dropped, this can be removed as it's always true.
 	DryRunSupported bool
 	// Determines the number of Go routines that can evaluate policies concurrently.
-	EvaluationConcurrency uint8
+	EvaluationConcurrency uint16
 	Scheme                *runtime.Scheme
 	Recorder              record.EventRecorder
 	// processedPolicyCache has the ConfigurationPolicy UID as the key and the values are a *sync.Map with the keys
