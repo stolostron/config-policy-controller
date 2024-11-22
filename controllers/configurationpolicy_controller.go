@@ -3056,7 +3056,10 @@ func (r *ConfigurationPolicyReconciler) alreadyEvaluated(
 
 	resultTyped := result.(cachedEvaluationResult)
 
-	return resultTyped.resourceVersion == currentObject.GetResourceVersion(), resultTyped.compliant, resultTyped.msg
+	alreadyEvaluated := resultTyped.resourceVersion != "" &&
+		resultTyped.resourceVersion == currentObject.GetResourceVersion()
+
+	return alreadyEvaluated, resultTyped.compliant, resultTyped.msg
 }
 
 func getUpdateErrorMsg(err error, kind string, name string) string {
