@@ -26,7 +26,14 @@ RUN  /usr/local/bin/user_setup
 
 ENTRYPOINT ["/usr/local/bin/entrypoint", "controller"]
 
-RUN microdnf update -y && \
-    microdnf clean all
-
 USER ${USER_UID}
+
+LABEL name="rhacm2/config-policy-controller-rhel9"
+LABEL summary="Audit and enforce cluster configuration"
+LABEL description="The ConfigurationPolicy kind compares the desired object defined in the policy with the objects on the cluster. \
+    The OperatorPolicy kind determines whether operators deployed on the cluster match the configuration in the policy."
+LABEL io.k8s.display-name="Configuration policy controller"
+LABEL io.k8s.description="The ConfigurationPolicy kind compares the desired object defined in the policy with the objects on the cluster. \
+    The OperatorPolicy kind determines whether operators deployed on the cluster match the configuration in the policy."
+LABEL com.redhat.component="acm-config-policy-controller-container"
+LABEL io.openshift.tags="data,images"
