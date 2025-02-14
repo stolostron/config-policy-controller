@@ -3599,7 +3599,7 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 		const (
 			opPolYAML     = "../resources/case38_operator_install/operator-policy-no-group-enforce.yaml"
 			opPolName     = "oppol-no-group-enforce"
-			latestQuay310 = "quay-operator.v3.10.7"
+			latestQuay310 = "quay-operator.v3.10.8"
 		)
 
 		BeforeEach(func() {
