@@ -95,9 +95,11 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	k8s.io/apiserver v0.27.7 // indirect
 	k8s.io/cli-runtime v0.26.10 // indirect
 	k8s.io/component-base v0.27.7 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
+	open-cluster-management.io/api v0.12.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.15.0 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.15.0 // indirect
