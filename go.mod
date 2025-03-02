@@ -18,7 +18,7 @@ require (
 	github.com/stolostron/go-log-utils v0.1.2
 	github.com/stolostron/go-template-utils/v6 v6.3.0
 	github.com/stolostron/kubernetes-dependency-watches v0.10.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/mod v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
