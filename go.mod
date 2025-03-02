@@ -1,6 +1,8 @@
 module open-cluster-management.io/config-policy-controller
 
-go 1.21.0
+go 1.22.0
+
+toolchain go1.22.9
 
 require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
@@ -12,7 +14,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.17.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stolostron/go-log-utils v0.1.2
+	github.com/stolostron/go-log-utils v0.1.3
 	github.com/stolostron/go-template-utils/v4 v4.0.0
 	github.com/stolostron/kubernetes-dependency-watches v0.5.2
 	github.com/stretchr/testify v1.8.4
@@ -79,7 +81,7 @@ require (
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.starlark.net v0.0.0-20231016134836-22325403fcb3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/net v0.33.0 // indirect
