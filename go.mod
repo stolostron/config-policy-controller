@@ -1,6 +1,8 @@
 module open-cluster-management.io/config-policy-controller
 
-go 1.22.0
+go 1.23.0
+
+toolchain go1.23.7
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
@@ -20,7 +22,7 @@ require (
 	github.com/stolostron/kubernetes-dependency-watches v0.10.0
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/mod v0.17.0
+	golang.org/x/mod v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.1
 	k8s.io/apiextensions-apiserver v0.31.0
