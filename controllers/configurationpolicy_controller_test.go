@@ -102,7 +102,7 @@ func TestCompareSpecs(t *testing.T) {
 			"name":  "nginx",
 		},
 	}
-	assert.Equal(t, reflect.DeepEqual(merged, mergedExpected), true)
+	assert.True(t, reflect.DeepEqual(merged, mergedExpected))
 
 	spec1 = map[string]interface{}{
 		"containers": map[string]interface{}{
@@ -152,7 +152,7 @@ func TestConvertPolicyStatusToString(t *testing.T) {
 	}
 	compliantDetails := []policyv1.TemplateStatus{}
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		compliantDetails = append(compliantDetails, compliantDetail)
 	}
 
@@ -285,9 +285,6 @@ func TestMergeArraysMustHave(t *testing.T) {
 	}
 
 	for testName, test := range testcases {
-		testName := testName
-		test := test
-
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 
@@ -372,9 +369,6 @@ func TestMergeArraysMustOnlyHave(t *testing.T) {
 	}
 
 	for testName, test := range testcases {
-		testName := testName
-		test := test
-
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 
@@ -596,12 +590,12 @@ func TestAddRelatedObject(t *testing.T) {
 	related := relatedList[0]
 
 	// get the related object and validate what we added is in the status
-	assert.True(t, related.Compliant == string(policyv1.Compliant))
-	assert.True(t, related.Reason == "reason")
-	assert.True(t, related.Object.APIVersion == rsrc.GroupVersion().String())
-	assert.True(t, related.Object.Kind == "ConfigurationPolicy")
-	assert.True(t, related.Object.Metadata.Name == name)
-	assert.True(t, related.Object.Metadata.Namespace == namespace)
+	assert.Equal(t, string(policyv1.Compliant), related.Compliant)
+	assert.Equal(t, "reason", related.Reason)
+	assert.Equal(t, rsrc.GroupVersion().String(), related.Object.APIVersion)
+	assert.Equal(t, "ConfigurationPolicy", related.Object.Kind)
+	assert.Equal(t, name, related.Object.Metadata.Name)
+	assert.Equal(t, namespace, related.Object.Metadata.Namespace)
 
 	// add the same object and make sure the existing one is overwritten
 	reason = "new"
@@ -610,9 +604,9 @@ func TestAddRelatedObject(t *testing.T) {
 		namespace, namespaced, []string{name}, reason, nil)
 	related = relatedList[0]
 
-	assert.True(t, len(relatedList) == 1)
-	assert.True(t, related.Compliant == string(policyv1.NonCompliant))
-	assert.True(t, related.Reason == "new")
+	assert.Len(t, relatedList, 1)
+	assert.Equal(t, string(policyv1.NonCompliant), related.Compliant)
+	assert.Equal(t, "new", related.Reason)
 
 	// add a new related object and make sure the entry is appended
 	name = "bar"
@@ -620,11 +614,11 @@ func TestAddRelatedObject(t *testing.T) {
 		addRelatedObjects(compliant, rsrc, "ConfigurationPolicy",
 			namespace, namespaced, []string{name}, reason, nil)...)
 
-	assert.True(t, len(relatedList) == 2)
+	assert.Len(t, relatedList, 2)
 
 	related = relatedList[1]
 
-	assert.True(t, related.Object.Metadata.Name == name)
+	assert.Equal(t, name, related.Object.Metadata.Name)
 }
 
 func TestSortRelatedObjectsAndUpdate(t *testing.T) {
@@ -662,14 +656,14 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 	empty := []policyv1.RelatedObject{}
 
 	r.sortRelatedObjectsAndUpdate(policy, relatedList, empty, false, true)
-	assert.True(t, relatedList[0].Object.Metadata.Name == "bar")
+	assert.Equal(t, "bar", relatedList[0].Object.Metadata.Name)
 
 	// append another object named bar but also with namespace bar
 	relatedList = append(relatedList, addRelatedObjects(true, rsrc,
 		"ConfigurationPolicy", "bar", true, []string{name}, "reason", nil)...)
 
 	r.sortRelatedObjectsAndUpdate(policy, relatedList, empty, false, true)
-	assert.True(t, relatedList[0].Object.Metadata.Namespace == "bar")
+	assert.Equal(t, "bar", relatedList[0].Object.Metadata.Namespace)
 
 	// clear related objects and test sorting with no namespace
 	name = "foo"
@@ -680,7 +674,7 @@ func TestSortRelatedObjectsAndUpdate(t *testing.T) {
 		false, []string{name}, "reason", nil)...)
 
 	r.sortRelatedObjectsAndUpdate(policy, relatedList, empty, false, true)
-	assert.True(t, relatedList[0].Object.Metadata.Name == "bar")
+	assert.Equal(t, "bar", relatedList[0].Object.Metadata.Name)
 }
 
 func TestCreateStatus(t *testing.T) {
@@ -985,8 +979,6 @@ func TestCreateStatus(t *testing.T) {
 	}
 
 	for _, test := range testcases {
-		test := test
-
 		t.Run(test.testName, func(t *testing.T) {
 			compliant, reason, msg := createStatus(test.resourceName, test.namespaceToEvent)
 
@@ -1265,22 +1257,21 @@ func TestShouldEvaluatePolicy(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
-
 		t.Run(
 			test.testDescription,
 			func(t *testing.T) {
 				t.Parallel()
-				policy := policy.DeepCopy()
 
-				policy.Status.LastEvaluated = test.lastEvaluated
-				policy.Status.LastEvaluatedGeneration = test.lastEvaluatedGeneration
-				policy.Spec.EvaluationInterval = test.evaluationInterval
-				policy.Status.ComplianceState = test.complianceState
-				policy.ObjectMeta.DeletionTimestamp = test.deletionTimestamp
-				policy.ObjectMeta.Finalizers = test.finalizers
+				policyCopy := policy.DeepCopy()
 
-				if actual := r.shouldEvaluatePolicy(policy, test.cleanupImmediately); actual != test.expected {
+				policyCopy.Status.LastEvaluated = test.lastEvaluated
+				policyCopy.Status.LastEvaluatedGeneration = test.lastEvaluatedGeneration
+				policyCopy.Spec.EvaluationInterval = test.evaluationInterval
+				policyCopy.Status.ComplianceState = test.complianceState
+				policyCopy.ObjectMeta.DeletionTimestamp = test.deletionTimestamp
+				policyCopy.ObjectMeta.Finalizers = test.finalizers
+
+				if actual := r.shouldEvaluatePolicy(policyCopy, test.cleanupImmediately); actual != test.expected {
 					t.Fatalf("expected %v but got %v", test.expected, actual)
 				}
 			},
