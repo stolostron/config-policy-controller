@@ -13,7 +13,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/prometheus/client_golang v1.19.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stolostron/go-log-utils v0.1.2
+	github.com/stolostron/go-log-utils v0.1.3
 	github.com/stolostron/go-template-utils/v4 v4.3.0
 	github.com/stolostron/kubernetes-dependency-watches v0.8.1
 	github.com/stretchr/testify v1.9.0
