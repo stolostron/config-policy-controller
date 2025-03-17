@@ -765,7 +765,7 @@ func buildSubscription(
 
 	name, ok := sub["name"].(string)
 	if !ok || name == "" {
-		return nil, fmt.Errorf("name is required in spec.subscription")
+		return nil, errors.New("name is required in spec.subscription")
 	}
 
 	if validationErrs := validation.IsDNS1123Label(name); len(validationErrs) != 0 {
@@ -807,7 +807,7 @@ func buildSubscription(
 	subscription.Spec = spec
 
 	if spec.InstallPlanApproval != "" {
-		return nil, fmt.Errorf("installPlanApproval is prohibited in spec.subscription")
+		return nil, errors.New("installPlanApproval is prohibited in spec.subscription")
 	}
 
 	// Usually set InstallPlanApproval to manual so that upgrades can be controlled
@@ -868,7 +868,7 @@ func buildOperatorGroup(
 
 	name, ok := opGroup["name"].(string)
 	if !ok {
-		return nil, fmt.Errorf("name is required in spec.operatorGroup")
+		return nil, errors.New("name is required in spec.operatorGroup")
 	}
 
 	// These fields are not actually in the operatorGroup spec

@@ -447,11 +447,12 @@ func (r *ConfigurationPolicyReconciler) shouldEvaluatePolicy(
 	var interval time.Duration
 	var getIntervalErr error
 
-	if policy.Status.ComplianceState == policyv1.Compliant && policy.Spec != nil {
+	switch policy.Status.ComplianceState {
+	case policyv1.Compliant:
 		interval, getIntervalErr = policy.Spec.EvaluationInterval.GetCompliantInterval()
-	} else if policy.Status.ComplianceState == policyv1.NonCompliant && policy.Spec != nil {
+	case policyv1.NonCompliant:
 		interval, getIntervalErr = policy.Spec.EvaluationInterval.GetNonCompliantInterval()
-	} else {
+	case policyv1.UnknownCompliancy, policyv1.Terminating:
 		log.V(1).Info("The policy has an unknown compliance. Will evaluate it now.")
 
 		return true, 0
@@ -459,11 +460,13 @@ func (r *ConfigurationPolicyReconciler) shouldEvaluatePolicy(
 
 	now := time.Now().UTC()
 
-	if errors.Is(getIntervalErr, policyv1.ErrIsNever) {
+	switch {
+	case errors.Is(getIntervalErr, policyv1.ErrIsNever):
 		log.V(1).Info("Skipping the policy evaluation due to the spec.evaluationInterval value being set to never")
 
 		return false, 0
-	} else if errors.Is(getIntervalErr, policyv1.ErrIsWatch) {
+
+	case errors.Is(getIntervalErr, policyv1.ErrIsWatch):
 		minNextEval := lastEvaluated.Add(time.Second * time.Duration(r.EvalBackoffSeconds))
 		durationLeft := minNextEval.Sub(now)
 
@@ -481,7 +484,7 @@ func (r *ConfigurationPolicyReconciler) shouldEvaluatePolicy(
 		log.V(1).Info("The policy evaluation is configured for a watch event. Will evaluate now.")
 
 		return true, 0
-	} else if getIntervalErr != nil {
+	case getIntervalErr != nil:
 		log.Error(
 			getIntervalErr,
 			"The policy has an invalid spec.evaluationInterval value; defaulting to watch",
@@ -605,7 +608,7 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(
 			// if object has already been deleted and is stuck, no need to redo delete request
 			_, deletionTimeFound, _ := unstructured.NestedString(existing.Object, "metadata", "deletionTimestamp")
 			if deletionTimeFound {
-				log.Error(fmt.Errorf("tried to delete object, but delete is hanging"), "Error")
+				log.Error(errors.New("tried to delete object, but delete is hanging"), "Error")
 
 				deletionFailures = append(deletionFailures, gvk.String()+fmt.Sprintf(` "%s" in namespace %s`,
 					object.Object.Metadata.Name, object.Object.Metadata.Namespace))
@@ -667,11 +670,12 @@ func (r *ConfigurationPolicyReconciler) cleanupImmediately() (beingUninstalled b
 
 	crdDeleting, defErr = r.definitionIsDeleting()
 
-	if beingUninstalledErr != nil && defErr != nil {
+	switch {
+	case beingUninstalledErr != nil && defErr != nil:
 		err = fmt.Errorf("%w; %w", beingUninstalledErr, defErr)
-	} else if beingUninstalledErr != nil {
+	case beingUninstalledErr != nil:
 		err = beingUninstalledErr
-	} else if defErr != nil {
+	case defErr != nil:
 		err = defErr
 	}
 
@@ -899,11 +903,12 @@ func (r *ConfigurationPolicyReconciler) validateConfigPolicy(plc *policyv1.Confi
 
 	var invalidMessage string
 
-	if plc.Spec == nil {
+	switch {
+	case plc.Spec == nil:
 		invalidMessage = "Policy does not have a Spec specified"
-	} else if plc.Spec.RemediationAction == "" {
+	case plc.Spec.RemediationAction == "":
 		invalidMessage = "Policy does not have a RemediationAction specified"
-	} else {
+	default:
 		return nil
 	}
 
@@ -1174,11 +1179,11 @@ func (r *ConfigurationPolicyReconciler) handleTemplatization(
 				))
 
 				return parentStatusUpdateNeeded, fmt.Errorf("%w: %w", ErrPolicyInvalid, tplErr)
-			} else {
-				addTemplateErrorViolation("", tplErr.Error())
-
-				return parentStatusUpdateNeeded, tplErr
 			}
+
+			addTemplateErrorViolation("", tplErr.Error())
+
+			return parentStatusUpdateNeeded, tplErr
 		}
 
 		// If raw data, only one passthrough is needed, since all the object templates are in it
@@ -1354,6 +1359,7 @@ func (r *ConfigurationPolicyReconciler) updatedRelatedObjects(
 		if related[i].Object.Kind != related[j].Object.Kind {
 			return related[i].Object.Kind < related[j].Object.Kind
 		}
+
 		if related[i].Object.Metadata.Namespace != related[j].Object.Metadata.Namespace {
 			return related[i].Object.Metadata.Namespace < related[j].Object.Metadata.Namespace
 		}
@@ -1396,13 +1402,14 @@ func addConditionToStatus(
 
 	var complianceState policyv1.ComplianceState
 
-	if reason == reasonCleanupError {
+	switch {
+	case reason == reasonCleanupError:
 		complianceState = policyv1.Terminating
 		newCond.Type = "violation"
-	} else if compliant {
+	case compliant:
 		complianceState = policyv1.Compliant
 		newCond.Type = "notification"
-	} else {
+	default:
 		complianceState = policyv1.NonCompliant
 		newCond.Type = "violation"
 	}
@@ -1567,6 +1574,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 		log.V(1).Info(
 			"The object template does not specify a name. Will search for matching objects in the namespace.",
 		)
+
 		objNames, allResourceNames = r.getNamesOfKind(
 			policy,
 			desiredObj,
@@ -1584,6 +1592,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 				"oldRemediationAction", remediation,
 			)
 		}
+
 		remediation = "inform"
 
 		if len(objNames) == 0 {
@@ -1633,6 +1642,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 		}
 	} else { // This case only occurs when the desired object is not named
 		resultEvent := objectTmplEvalEvent{}
+
 		if objShouldExist {
 			if exists {
 				resultEvent.compliant = true
@@ -1643,6 +1653,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 				// Length of objNames = 0, complianceType == musthave or mustonlyhave
 				// Find Noncompliant resources to add to the status.relatedObjects for debugging purpose
 				shouldAddCondensedRelatedObj = true
+
 				if desiredObjKind != "" && desiredObjName == "" {
 					// Change reason to Resource found but does not match
 					if len(allResourceNames) > 0 {
@@ -1979,17 +1990,18 @@ func (r *ConfigurationPolicyReconciler) getNamesOfKind(
 	var resList *unstructured.UnstructuredList
 	var err error
 
-	if useCache {
+	switch {
+	case useCache:
 		var returnedItems []unstructured.Unstructured
 
 		returnedItems, err = r.DynamicWatcher.List(plc.ObjectIdentifier(), desiredObj.GroupVersionKind(), ns, nil)
 
 		resList = &unstructured.UnstructuredList{Items: returnedItems}
-	} else if scopedGVR.Namespaced {
+	case scopedGVR.Namespaced:
 		res := dclient.Resource(scopedGVR.GroupVersionResource).Namespace(ns)
 
 		resList, err = res.List(context.TODO(), metav1.ListOptions{})
-	} else {
+	default:
 		res := dclient.Resource(scopedGVR.GroupVersionResource)
 
 		resList, err = res.List(context.TODO(), metav1.ListOptions{})
@@ -2070,6 +2082,7 @@ func (r *ConfigurationPolicyReconciler) enforceByCreatingOrDeleting(obj singleOb
 			log.V(2).Info(
 				"Created missing must have object", "resource", obj.scopedGVR.Resource, "name", obj.name,
 			)
+
 			reason = reasonWantFoundCreated
 			msg = fmt.Sprintf("%v %v was created successfully", obj.scopedGVR.Resource, idStr)
 
@@ -2376,7 +2389,7 @@ func mergeArrays(
 		// if an item in the existing object cannot be found in the template, we add it to the template array
 		// to produce the merged array
 		if count < oldItemSet[key].count {
-			for i := 0; i < (oldItemSet[key].count - count); i++ {
+			for range oldItemSet[key].count - count {
 				desiredArr = append(desiredArr, val2)
 			}
 		}
@@ -2495,7 +2508,7 @@ func handleSingleKey(
 			decoded, err := base64.StdEncoding.DecodeString(encoded)
 			if err != nil {
 				secretName := existingObj.GetName()
-				message := fmt.Sprintf("Error decoding secret: %s", secretName)
+				message := "Error decoding secret: " + secretName
 
 				return message, false, mergedValue, false
 			}
@@ -2633,7 +2646,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 			recreateOption := objectT.RecreateOption
 
 			if isInform || !(recreateOption == policyv1.Always || recreateOption == policyv1.IfRequired) {
-				log.Info(fmt.Sprintf("Dry run update failed with error: %s", err.Error()))
+				log.Info("Dry run update failed with error: " + err.Error())
 
 				// Remove noisy fields such as managedFields from the diff
 				// This is already done for existingObjectCopy.
@@ -2776,7 +2789,7 @@ func getMsgPrefix(obj *singleObject) string {
 	var namespaceMsg string
 
 	if obj.scopedGVR.Namespaced {
-		namespaceMsg = fmt.Sprintf(" in namespace %s", obj.namespace)
+		namespaceMsg = " in namespace " + obj.namespace
 	}
 
 	return fmt.Sprintf(`%s [%s]%s`, obj.scopedGVR.Resource, obj.name, namespaceMsg)
@@ -2998,13 +3011,14 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 
 	previousComplianceState := policy.Status.ComplianceState
 
-	if policy.ObjectMeta.DeletionTimestamp != nil {
+	switch {
+	case policy.ObjectMeta.DeletionTimestamp != nil:
 		policy.Status.ComplianceState = policyv1.Terminating
-	} else if len(policy.Status.CompliancyDetails) == 0 {
+	case len(policy.Status.CompliancyDetails) == 0:
 		policy.Status.ComplianceState = policyv1.UnknownCompliancy
-	} else if compliant {
+	case compliant:
 		policy.Status.ComplianceState = policyv1.Compliant
-	} else {
+	default:
 		policy.Status.ComplianceState = policyv1.NonCompliant
 	}
 
@@ -3024,9 +3038,11 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 	err := r.updatePolicyStatus(policy, sendEvent)
 	policyLog := log.WithValues("name", policy.Name, "namespace", policy.Namespace)
 
-	if k8serrors.IsConflict(err) {
+	switch {
+	case k8serrors.IsConflict(err):
 		policyLog.Error(err, "Tried to re-update status before previous update could be applied, retrying next loop")
-	} else if err != nil {
+
+	case err != nil:
 		policyLog.Error(err, "Could not update status, will retry")
 
 		parent := ""
@@ -3035,7 +3051,8 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 		}
 
 		policySystemErrorsCounter.WithLabelValues(parent, policy.GetName(), "status-update-failed").Add(1)
-	} else {
+
+	default:
 		r.lastEvaluatedCache.Store(policy.UID, policy.Status.LastEvaluated)
 	}
 }
@@ -3122,7 +3139,7 @@ func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
 			policy,
 			eventType,
 			"Policy updated",
-			fmt.Sprintf("Policy status is %s", eventMessage),
+			"Policy status is "+eventMessage,
 		)
 	}
 
