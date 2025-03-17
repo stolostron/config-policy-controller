@@ -58,14 +58,14 @@ type SelectorReconciler interface {
 	// Get returns the items matching the given Target for the given name. If no selection for that
 	// name and Target has been calculated, it will be calculated now. Otherwise, a cached value
 	// may be used.
-	Get(string, policyv1.Target) ([]string, error)
+	Get(name string, target policyv1.Target) ([]string, error)
 
 	// HasUpdate indicates when the cached selection for this name has been changed since the last
 	// time that Get was called for that name.
-	HasUpdate(string) bool
+	HasUpdate(name string) bool
 
 	// Stop tells the SelectorReconciler to stop updating the cached selection for the name.
-	Stop(string)
+	Stop(name string)
 }
 
 type NamespaceSelectorReconciler struct {
@@ -85,7 +85,7 @@ type namespaceSelection struct {
 func (r *NamespaceSelectorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.selections = make(map[string]namespaceSelection)
 
-	neverEnqueue := predicate.NewPredicateFuncs(func(o client.Object) bool { return false })
+	neverEnqueue := predicate.NewPredicateFuncs(func(_ client.Object) bool { return false })
 
 	// Instead of reconciling for each Namespace, just reconcile once
 	// - that reconcile will do a list on all the Namespaces anyway.

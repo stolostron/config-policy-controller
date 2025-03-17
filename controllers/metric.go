@@ -70,7 +70,8 @@ var (
 	// The policyRelatedObjectMap collects a map of related objects to policies
 	// in order to populate the gauge:
 	//   <kind.version/namespace/name>: []<policy-namespace/policy-name>
-	policyRelatedObjectMap   sync.Map
+	policyRelatedObjectMap sync.Map
+	//nolint:promlinter
 	policyRelatedObjectGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "common_related_objects",
