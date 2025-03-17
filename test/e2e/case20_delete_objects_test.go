@@ -62,8 +62,8 @@ var _ = Describe("Test Object deletion", Ordered, func() {
 				properties := relatedObj.(map[string]interface{})["properties"].(map[string]interface{})
 
 				return properties["createdByPolicy"].(bool)
-			}, defaultTimeoutSeconds, 1).Should(Equal(true))
-			Eventually(func() interface{} {
+			}, defaultTimeoutSeconds, 1).Should(BeTrue())
+			Eventually(func() string {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					case20ConfigPolicyNameCreate, testNamespace, true, defaultTimeoutSeconds)
 				relatedObj := managedPlc.Object["status"].(map[string]interface{})["relatedObjects"].([]interface{})[0]
@@ -91,7 +91,7 @@ var _ = Describe("Test Object deletion", Ordered, func() {
 				properties := relatedObj.(map[string]interface{})["properties"].(map[string]interface{})
 
 				return properties["createdByPolicy"].(bool)
-			}, defaultTimeoutSeconds, 1).Should(Equal(false))
+			}, defaultTimeoutSeconds, 1).Should(BeFalse())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					case20ConfigPolicyNameExisting, testNamespace, true, defaultTimeoutSeconds)
@@ -120,7 +120,7 @@ var _ = Describe("Test Object deletion", Ordered, func() {
 				properties := relatedObj.(map[string]interface{})["properties"].(map[string]interface{})
 
 				return properties["createdByPolicy"].(bool)
-			}, defaultTimeoutSeconds, 1).Should(Equal(false))
+			}, defaultTimeoutSeconds, 1).Should(BeFalse())
 			Eventually(func() interface{} {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					case20ConfigPolicyNameEdit, testNamespace, true, defaultTimeoutSeconds)
