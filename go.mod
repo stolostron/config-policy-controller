@@ -132,6 +132,6 @@ require (
 )
 
 replace (
-	open-cluster-management.io/governance-policy-propagator => github.com/stolostron/governance-policy-propagator v0.0.0-20250302022751-a187cbbfa166
+	open-cluster-management.io/governance-policy-propagator => github.com/stolostron/governance-policy-propagator v0.0.0-20250310201527-9680957d2903
 	open-cluster-management.io/multicloud-operators-subscription => github.com/stolostron/multicloud-operators-subscription v0.0.0-20250302022751
 )
