@@ -1,6 +1,8 @@
 module open-cluster-management.io/config-policy-controller
 
-go 1.22.0
+go 1.23.0
+
+toolchain go1.23.7
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
@@ -132,6 +134,6 @@ require (
 )
 
 replace (
-	open-cluster-management.io/governance-policy-propagator => github.com/stolostron/governance-policy-propagator v0.0.0-20250302022751-a187cbbfa166
+	open-cluster-management.io/governance-policy-propagator => github.com/stolostron/governance-policy-propagator v0.0.0-20250321141426-4148304ca158
 	open-cluster-management.io/multicloud-operators-subscription => github.com/stolostron/multicloud-operators-subscription v0.0.0-20250302022751
 )
