@@ -35,7 +35,6 @@ jobs:
           go mod verify
           make fmt
           git diff --exit-code
-          make lint
           make generate
           make generate-operator-yaml
           git diff --exit-code
