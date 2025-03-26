@@ -1,6 +1,6 @@
 module open-cluster-management.io/config-policy-controller
 
-go 1.22.0
+go 1.23.0
 
 require (
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
@@ -82,7 +82,7 @@ require (
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d // indirect
 	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/oauth2 v0.20.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
