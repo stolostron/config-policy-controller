@@ -142,7 +142,7 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: generate-operator-yaml
-generate-operator-yaml: manifests
+generate-operator-yaml: kustomize # manifests
 	$(KUSTOMIZE) build deploy/manager > deploy/operator.yaml
 
 ############################################################
