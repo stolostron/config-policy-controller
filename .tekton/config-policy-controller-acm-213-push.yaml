@@ -424,6 +424,8 @@ spec:
         workspaces: []
       - name: sast-unicode-check
         params:
+          - name: image-digest
+            value: $(tasks.build-image-index.results.IMAGE_DIGEST)
           - name: image-url
             value: $(tasks.build-image-index.results.IMAGE_URL)
           - name: SOURCE_ARTIFACT
