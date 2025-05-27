@@ -23,6 +23,7 @@ var _ = Describe("Generate the diff", Ordered, func() {
 		configPolicyName string = "case39-policy-cfgmap-create"
 		createYaml       string = "../resources/case39_diff_generation/case39-create-cfgmap-policy.yaml"
 		updateYaml       string = "../resources/case39_diff_generation/case39-update-cfgmap-policy.yaml"
+		statusYaml       string = "../resources/case39_diff_generation/case39-status-cfgmap-policy.yaml"
 	)
 
 	BeforeAll(func() {
@@ -116,6 +117,37 @@ var _ = Describe("Generate the diff", Ordered, func() {
 			`{"policy": "case39-policy-cfgmap-create", "name": "case39-map", "namespace": "default", ` +
 				`"resource": "configmaps"}`,
 		))
+	})
+
+	It("configmap and status should be updated properly on the managed cluster", func() {
+		By("Updating " + configPolicyName + " on managed")
+		utils.Kubectl("apply", "-f", statusYaml, "-n", testNamespace)
+
+		Eventually(func(g Gomega) {
+			managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
+				configPolicyName, testNamespace, true, defaultTimeoutSeconds)
+
+			utils.CheckComplianceStatus(g, managedPlc, "Compliant")
+
+			relatedObjects, _, err := unstructured.NestedSlice(managedPlc.Object, "status", "relatedObjects")
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(relatedObjects).To(HaveLen(1))
+
+			uid, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]interface{}), "properties", "uid")
+			g.Expect(uid).ToNot(BeEmpty())
+
+			diff, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]interface{}), "properties", "diff")
+
+			g.Expect(diff).Should(HavePrefix(`--- default/case39-map : existing
++++ default/case39-map : updated
+@@ -1,8 +1,8 @@
+ apiVersion: v1
+ data:
+-  fieldToUpdate: "2"
++  fieldToUpdate: "3"
+ kind: ConfigMap
+ metadata:`))
+		}, defaultTimeoutSeconds, 1).Should(Succeed())
 	})
 
 	AfterAll(func() {
@@ -249,7 +281,7 @@ var _ = Describe("Diff generation with sensitive input", Ordered, func() {
 			`-p=[{"op":"replace","path":"/spec/remediationAction","value":"enforce"}]`, "-n", testNamespace,
 		)
 
-		By("Verifying the diff in the status no longer contains instructions to set recordDiff")
+		By("Verifying the diff in the status persists instructions to set recordDiff")
 		Eventually(func(g Gomega) {
 			managedPlc = utils.GetWithTimeout(
 				clientManagedDynamic,
@@ -268,7 +300,12 @@ var _ = Describe("Diff generation with sensitive input", Ordered, func() {
 		Expect(relatedObjects).To(HaveLen(1))
 
 		diff, _, _ = unstructured.NestedString(relatedObjects[0].(map[string]interface{}), "properties", "diff")
-		Expect(diff).To(BeEmpty())
+		Expect(diff).To(Equal(
+			`# The difference is redacted because it contains sensitive data. To override, the ` +
+				`spec["object-templates"][].recordDiff field must be set to "InStatus" for the difference to be ` +
+				`recorded in the policy status. Consider existing access to the ConfigurationPolicy objects and the ` +
+				`etcd encryption configuration before you proceed with an override.`,
+		))
 	})
 })
 
