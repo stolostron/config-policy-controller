@@ -3043,13 +3043,23 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 
 	recordDiff := objectT.RecordDiffWithDefault()
 	var needsRecreate bool
+	isInform := remediation.IsInform()
 
-	if updateNeeded {
-		mismatchLog := "Detected value mismatch"
+	if !updateNeeded {
+		if throwSpecViolation && recordDiff != policyv1.RecordDiffNone {
+			// The spec didn't require a change but throwSpecViolation indicates the status didn't match. Handle
+			// this diff for this case.
+			mergedObjCopy := obj.existingObj.DeepCopy()
+			removeFieldsForComparison(mergedObjCopy)
 
-		log.Info(mismatchLog)
+			diff = handleDiff(log, recordDiff, existingObjectCopy, mergedObjCopy)
+		}
 
-		isInform := remediation.IsInform()
+		r.setEvaluatedObject(obj.policy, obj.existingObj, !throwSpecViolation, "")
+
+		return throwSpecViolation, "", diff, updateNeeded, updatedObj
+	} else {
+		log.Info("Detected value mismatch")
 
 		// It's possible the dry run request shows the object does match. This can happen if the ConfigurationPolicy
 		// specifies an empty map and the API server omits it from the return value.
@@ -3093,10 +3103,9 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 			// confirms some fields don't match and can't be fixed with an update. If a recreate option is
 			// specified, then the update may proceed when enforced.
 			needsRecreate = true
-			recreateOption := objectT.RecreateOption
 
-			if isInform || !(recreateOption == policyv1.Always || recreateOption == policyv1.IfRequired) {
-				log.Info(fmt.Sprintf("Dry run update failed with error: %s", err.Error()))
+			if isInform || !(objectT.RecreateOption == policyv1.Always || objectT.RecreateOption == policyv1.IfRequired) {
+				log.Info("Dry run update failed with error: " + err.Error())
 
 				// Remove noisy fields such as managedFields from the diff
 				// This is already done for existingObjectCopy.
@@ -3107,11 +3116,8 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 				if !isInform {
 					// Don't include the error message in the compliance status because that can be very long. The
 					// user can check the diff or the logs for more information.
-					message = fmt.Sprintf(
-						`%s cannot be updated, likely due to immutable fields not matching, you may `+
-							`set spec["object-templates"][].recreateOption to recreate the object`,
-						getMsgPrefix(&obj),
-					)
+					message = getMsgPrefix(&obj) + ` cannot be updated, likely due to immutable fields not matching, ` +
+						`you may set spec["object-templates"][].recreateOption to recreate the object`
 				}
 
 				r.setEvaluatedObject(obj.policy, obj.existingObj, false, message)
@@ -3122,10 +3128,8 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 			removeFieldsForComparison(dryRunUpdatedObj)
 
 			if reflect.DeepEqual(dryRunUpdatedObj.Object, existingObjectCopy.Object) {
-				log.Info(
-					"A mismatch was detected but a dry run update didn't make any changes. Assuming the object " +
-						"is compliant.",
-				)
+				log.Info("A mismatch was detected but a dry run update didn't make any changes. " +
+					"Assuming the object is compliant.")
 
 				r.setEvaluatedObject(obj.policy, obj.existingObj, true, "")
 
@@ -3143,14 +3147,17 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		}
 
 		// If it's not inform (i.e. enforce), update the object
+		action := "update"
 
 		// At this point, if a recreate is needed, we know the user opted in, otherwise, the dry run update
 		// failed and would have returned before now.
 		if needsRecreate || objectT.RecreateOption == policyv1.Always {
-			log.Info(
-				"Deleting and recreating the object based on the template definition",
-				"recreateOption", objectT.RecreateOption,
-			)
+			action = "recreate"
+		}
+
+		if action == "recreate" {
+			log.Info("Deleting and recreating the object based on the template definition",
+				"recreateOption", objectT.RecreateOption)
 
 			err = res.Delete(context.TODO(), obj.name, metav1.DeleteOptions{})
 			if err != nil && !k8serrors.IsNotFound(err) {
@@ -3171,11 +3178,8 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 				attempts++
 
 				if attempts >= 3 {
-					message = fmt.Sprintf(
-						`%s timed out waiting for the object to delete during recreate, will retry on the next `+
-							`policy evaluation`,
-						getMsgPrefix(&obj),
-					)
+					message = getMsgPrefix(&obj) + " timed out waiting for the object to delete during recreate, " +
+						"will retry on the next policy evaluation"
 
 					return true, message, "", updateNeeded, nil
 				}
@@ -3219,20 +3223,9 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		if !statusMismatch {
 			r.setEvaluatedObject(obj.policy, updatedObj, true, message)
 		}
-	} else {
-		if throwSpecViolation && recordDiff != policyv1.RecordDiffNone {
-			// The spec didn't require a change but throwSpecViolation indicates the status didn't match. Handle
-			// this diff for this case.
-			mergedObjCopy := obj.existingObj.DeepCopy()
-			removeFieldsForComparison(mergedObjCopy)
 
-			diff = handleDiff(log, recordDiff, existingObjectCopy, mergedObjCopy)
-		}
-
-		r.setEvaluatedObject(obj.policy, obj.existingObj, !throwSpecViolation, "")
+		return throwSpecViolation, "", diff, updateNeeded, updatedObj
 	}
-
-	return throwSpecViolation, "", diff, updateNeeded, updatedObj
 }
 
 func getMsgPrefix(obj *singleObject) string {
