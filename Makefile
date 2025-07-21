@@ -78,7 +78,7 @@ gosec-scan: GOSEC_ARGS = -exclude-generated
 
 .PHONY: build
 build:
-	CGO_ENABLED=1 go build -o build/_output/bin/$(IMG) ./
+	CGO_ENABLED=1 go build -mod=readonly -o build/_output/bin/$(IMG) ./
 
 .PHONY: build-cmd
 build-cmd: manifests
