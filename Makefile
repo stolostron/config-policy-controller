@@ -78,7 +78,7 @@ gosec-scan: GOSEC_ARGS = -exclude-generated
 
 .PHONY: build
 build:
-	CGO_ENABLED=1 go build -o build/_output/bin/$(IMG) ./
+	CGO_ENABLED=1 go build -mod=readonly -o build/_output/bin/$(IMG) ./
 
 ############################################################
 # images section
@@ -210,18 +210,17 @@ OLM_INSTALLER = $(LOCAL_BIN)/install.sh
 install-crds:  $(OLM_INSTALLER)
 	chmod +x $(LOCAL_BIN)/install.sh
 	$(LOCAL_BIN)/install.sh $(OLM_VERSION)
-	@echo installing crds
-	kubectl apply -f test/crds/clusterversions.config.openshift.io.yaml
-	kubectl apply -f test/crds/securitycontextconstraints.security.openshift.io_crd.yaml
-	kubectl apply -f test/crds/apiservers.config.openshift.io_crd.yaml
-	kubectl apply -f test/crds/clusterclaims.cluster.open-cluster-management.io.yaml
-	kubectl apply -f test/crds/oauths.config.openshift.io_crd.yaml
+	# Installing crds
+	for file in test/crds/*; do \
+		kubectl apply -f $${file} || exit 1; \
+	done
 	kubectl apply -f https://raw.githubusercontent.com/stolostron/governance-policy-propagator/main/deploy/crds/policy.open-cluster-management.io_policies.yaml
 	kubectl apply -f deploy/crds/policy.open-cluster-management.io_configurationpolicies.yaml
 	kubectl apply -f deploy/crds/policy.open-cluster-management.io_operatorpolicies.yaml
 
 $(OLM_INSTALLER):
 	@echo getting OLM installer
+	mkdir -p $(LOCAL_BIN)
 	curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/$(OLM_VERSION)/install.sh -o $(LOCAL_BIN)/install.sh
 
 install-crds-hosted: export KUBECONFIG=./kubeconfig_managed$(MANAGED_CLUSTER_SUFFIX)_e2e
