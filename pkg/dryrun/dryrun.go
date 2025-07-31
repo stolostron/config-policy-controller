@@ -419,13 +419,6 @@ func (d *DryRunner) setupReconciler(
 	nsSelUpdatesChan := make(chan event.GenericEvent, 20)
 	nsSelReconciler := common.NewNamespaceSelectorReconciler(runtimeClient, nsSelUpdatesChan)
 
-	serverVersion := ""
-
-	versionInfo, err := clientset.Discovery().ServerVersion()
-	if err == nil {
-		serverVersion = versionInfo.String()
-	}
-
 	rec := ctrl.ConfigurationPolicyReconciler{
 		Client:                 runtimeClient,
 		DecryptionConcurrency:  1,
@@ -438,7 +431,6 @@ func (d *DryRunner) setupReconciler(
 		SelectorReconciler:     &nsSelReconciler,
 		EnableMetrics:          false,
 		UninstallMode:          false,
-		ServerVersion:          serverVersion,
 		EvalBackoffSeconds:     5,
 	}
 
@@ -455,6 +447,8 @@ func (d *DryRunner) setupReconciler(
 
 		clientset.Resources = mappings.ResourceLists(apiMappings)
 	} else {
+		var err error
+
 		clientset.Resources, err = mappings.DefaultResourceLists()
 		if err != nil {
 			return nil, err
