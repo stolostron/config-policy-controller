@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	k8sversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -436,7 +435,6 @@ func main() {
 	var nsSelUpdatesSource source.TypedSource[reconcile.Request]
 	var objectTemplatesChannel source.TypedSource[reconcile.Request]
 	var dynamicWatcher depclient.DynamicWatcher
-	var serverVersion *k8sversion.Info
 
 	managerCtx, managerCancel := context.WithCancel(terminatingCtx)
 
@@ -451,14 +449,6 @@ func main() {
 		nsSelReconciler = common.NewNamespaceSelectorReconciler(nsSelMgr.GetClient(), nsSelUpdatesChan)
 		if err = nsSelReconciler.SetupWithManager(nsSelMgr); err != nil {
 			log.Error(err, "Unable to create controller", "controller", "NamespaceSelector")
-			os.Exit(1)
-		}
-
-		var serverVersionErr error
-
-		serverVersion, serverVersionErr = targetK8sClient.Discovery().ServerVersion()
-		if serverVersionErr != nil {
-			log.Error(serverVersionErr, "unable to detect the managed cluster's Kubernetes version")
 			os.Exit(1)
 		}
 
@@ -496,7 +486,6 @@ func main() {
 		SelectorReconciler:     &nsSelReconciler,
 		EnableMetrics:          opts.enableMetrics,
 		UninstallMode:          beingUninstalled,
-		ServerVersion:          serverVersion.String(),
 		EvalBackoffSeconds:     opts.evalBackoffSeconds,
 	}
 
