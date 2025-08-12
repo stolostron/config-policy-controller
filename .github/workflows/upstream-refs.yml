@@ -15,11 +15,11 @@ jobs:
     name: Upstream reference checks
     steps:
       - name: Checkout Config Policy Controller
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: config-policy-controller
       - name: Checkout Policy Framework
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: governance-policy-framework
           repository: stolostron/governance-policy-framework
