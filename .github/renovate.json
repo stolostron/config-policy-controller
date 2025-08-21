@@ -3,5 +3,16 @@
   "timezone": "America/New_York",
   "gomod": {
     "enabled": false
-  }
+  },
+  "dockerfile": {
+    "managerFilePatterns": ["build/Dockerfile.rhtap"],
+    "ignorePaths": ["**/Dockerfile"],
+    "pinDigests": true
+  },
+  "packageRules": [
+    {
+      "groupName": "containerfile images ({{baseBranch}})",
+      "matchManagers": ["dockerfile"]
+    }
+  ]
 }
