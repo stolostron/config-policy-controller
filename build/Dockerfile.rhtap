@@ -1,7 +1,7 @@
 # Copyright Contributors to the Open Cluster Management project
 
 # Stage 1: Use image builder to build the target binaries
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.23 AS builder
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.23@sha256:96cfceb50f5323efa1aa8569d4420cdbf1bb391225d5171ef72a0d0ecf028467 AS builder
 
 ENV COMPONENT=config-policy-controller
 ENV REPO_PATH=/go/src/github.com/stolostron/${COMPONENT}
@@ -10,7 +10,7 @@ COPY . .
 RUN make build
 
 # Stage 2: Copy the binaries from the image builder to the base image
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:2f06ae0e6d3d9c4f610d32c480338eef474867f435d8d28625f2985e8acde6e8
 
 ENV COMPONENT=config-policy-controller
 ENV REPO_PATH=/go/src/github.com/stolostron/${COMPONENT}
