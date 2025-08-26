@@ -20,7 +20,7 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "groupName": "containerfile images ({{baseBranch}})",
+      "groupName": "containerfile images [{{{baseBranch}}}]",
       "matchManagers": ["dockerfile"]
     },
     {
