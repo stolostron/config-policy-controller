@@ -4,7 +4,6 @@
 package common
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -35,7 +34,7 @@ func TestGetSelectedNamespaces(t *testing.T) {
 			},
 		}
 
-		_, err := simpleClient.CoreV1().Namespaces().Create(context.TODO(), namespace, metav1.CreateOptions{})
+		_, err := simpleClient.CoreV1().Namespaces().Create(t.Context(), namespace, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Encountered unexpected error: %v", err)
 		}
@@ -211,7 +210,7 @@ func TestGetAllNamespaces(t *testing.T) {
 			},
 		}
 
-		_, err := simpleClient.CoreV1().Namespaces().Create(context.TODO(), namespace, metav1.CreateOptions{})
+		_, err := simpleClient.CoreV1().Namespaces().Create(t.Context(), namespace, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Encountered unexpected error: %v", err)
 		}
