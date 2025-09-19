@@ -480,12 +480,12 @@ func (r *ConfigurationPolicyReconciler) shouldEvaluatePolicy(
 	var interval time.Duration
 	var getIntervalErr error
 
-	switch policy.Status.ComplianceState {
-	case policyv1.Compliant:
+	switch {
+	case policy.Status.ComplianceState == policyv1.Compliant && policy.Spec != nil:
 		interval, getIntervalErr = policy.Spec.EvaluationInterval.GetCompliantInterval()
-	case policyv1.NonCompliant:
+	case policy.Status.ComplianceState == policyv1.NonCompliant && policy.Spec != nil:
 		interval, getIntervalErr = policy.Spec.EvaluationInterval.GetNonCompliantInterval()
-	case policyv1.UnknownCompliancy, policyv1.Terminating:
+	default:
 		log.V(1).Info("The policy has an unknown compliance. Will evaluate it now.")
 
 		return true, 0
@@ -1111,7 +1111,7 @@ func (r *ConfigurationPolicyReconciler) validateConfigPolicy(plc *policyv1.Confi
 
 	var invalidMessage string
 
-	if plc.Spec == nil {
+	if plc.Spec == nil { //nolint:gocritic
 		invalidMessage = "Policy does not have a Spec specified"
 	} else if plc.Spec.RemediationAction == "" {
 		invalidMessage = "Policy does not have a RemediationAction specified"
