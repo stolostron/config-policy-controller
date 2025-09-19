@@ -1111,7 +1111,7 @@ func (r *ConfigurationPolicyReconciler) validateConfigPolicy(plc *policyv1.Confi
 
 	var invalidMessage string
 
-	if plc.Spec == nil {
+	if plc.Spec == nil { //nolint:gocritic
 		invalidMessage = "Policy does not have a Spec specified"
 	} else if plc.Spec.RemediationAction == "" {
 		invalidMessage = "Policy does not have a RemediationAction specified"
