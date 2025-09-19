@@ -447,12 +447,12 @@ func (r *ConfigurationPolicyReconciler) shouldEvaluatePolicy(
 	var interval time.Duration
 	var getIntervalErr error
 
-	switch policy.Status.ComplianceState {
-	case policyv1.Compliant:
+	switch {
+	case policy.Status.ComplianceState == policyv1.Compliant && policy.Spec != nil:
 		interval, getIntervalErr = policy.Spec.EvaluationInterval.GetCompliantInterval()
-	case policyv1.NonCompliant:
+	case policy.Status.ComplianceState == policyv1.NonCompliant && policy.Spec != nil:
 		interval, getIntervalErr = policy.Spec.EvaluationInterval.GetNonCompliantInterval()
-	case policyv1.UnknownCompliancy, policyv1.Terminating:
+	default:
 		log.V(1).Info("The policy has an unknown compliance. Will evaluate it now.")
 
 		return true, 0
