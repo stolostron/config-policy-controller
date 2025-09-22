@@ -238,7 +238,7 @@ func checkFieldsWithSort(
 				}
 
 				// An error indicates the value is a regular string, so check equality normally
-				if fmt.Sprint(oVal) != fmt.Sprint(mVal) {
+				if fmt.Sprint(oVal) != mVal {
 					return false
 				}
 			} else {
@@ -648,11 +648,10 @@ func createStatus(
 			// above is changed.
 			if len(objectNameStrsToNamespaces[namesStr]) > 0 && objectNameStrsToNamespaces[namesStr][0] != "" {
 				if len(objectNameStrsToNamespaces[namesStr]) > 1 {
-					compliancyDetailsMsg += fmt.Sprintf(
-						" in namespaces: %s", strings.Join(objectNameStrsToNamespaces[namesStr], ", "),
-					)
+					compliancyDetailsMsg += " in namespaces: " +
+						strings.Join(objectNameStrsToNamespaces[namesStr], ", ")
 				} else {
-					compliancyDetailsMsg += fmt.Sprintf(" in namespace %s", objectNameStrsToNamespaces[namesStr][0])
+					compliancyDetailsMsg += " in namespace " + objectNameStrsToNamespaces[namesStr][0]
 				}
 			}
 		}

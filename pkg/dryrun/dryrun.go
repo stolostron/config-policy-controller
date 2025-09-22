@@ -76,7 +76,7 @@ func (d *DryRunner) dryRun(cmd *cobra.Command, args []string) error {
 
 		scopedGVR, err := rec.DynamicWatcher.GVKToGVR(gvk)
 		if err != nil {
-			if errors.Is(depclient.ErrNoVersionedResource, err) {
+			if errors.Is(err, depclient.ErrNoVersionedResource) {
 				return fmt.Errorf("%w for kind %v: if this is a custom resource, it may need an "+
 					"entry in the mappings file", err, gvk.Kind)
 			}
@@ -172,7 +172,7 @@ func (d *DryRunner) readPolicy(cmd *cobra.Command) (*policyv1.ConfigurationPolic
 		}
 
 		if !found {
-			return nil, fmt.Errorf("invalid input Policy: no policy-templates found")
+			return nil, errors.New("invalid input Policy: no policy-templates found")
 		}
 
 		cfgPolFound := false
@@ -207,7 +207,7 @@ func (d *DryRunner) readPolicy(cmd *cobra.Command) (*policyv1.ConfigurationPolic
 
 			cfgpolBytes, err := json.Marshal(objDef)
 			if err != nil {
-				return nil, fmt.Errorf("unable to marshal policy template back to JSON")
+				return nil, errors.New("unable to marshal policy template back to JSON")
 			}
 
 			if err := k8syaml.UnmarshalStrict(cfgpolBytes, &cfgpol); err != nil {
@@ -217,7 +217,7 @@ func (d *DryRunner) readPolicy(cmd *cobra.Command) (*policyv1.ConfigurationPolic
 		}
 
 		if !cfgPolFound {
-			return nil, fmt.Errorf("invalid input Policy: it must contain a ConfigurationPolicy")
+			return nil, errors.New("invalid input Policy: it must contain a ConfigurationPolicy")
 		}
 	default:
 		return nil, fmt.Errorf("unsupported input kind: %v, must be 'Policy' or 'ConfigurationPolicy'",
@@ -441,7 +441,7 @@ func (d *DryRunner) setupReconciler(
 		}
 
 		apiMappings := []mappings.APIMapping{}
-		if err := yaml.NewDecoder(reader).Decode(&apiMappings); err != nil {
+		if err := yaml.NewDecoder(reader).Decode(&apiMappings); err != nil { //nolint:musttag
 			return nil, err
 		}
 
@@ -505,6 +505,7 @@ func (d *DryRunner) saveOrPrintComplianceMessages(
 		}
 	} else {
 		cmd.Println("# Compliance messages:")
+
 		for _, msg := range messages {
 			cmd.Println(msg)
 		}

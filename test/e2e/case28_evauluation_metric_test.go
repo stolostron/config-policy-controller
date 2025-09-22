@@ -44,7 +44,7 @@ var _ = Describe("Test config policy evaluation metrics", Ordered, func() {
 			}
 
 			return numEvals > 0
-		}, defaultTimeoutSeconds, 1).Should(Equal(true))
+		}, defaultTimeoutSeconds, 1).Should(BeTrue())
 	})
 
 	It("should report total evaluation duration for the configurationpolicy", func() {
@@ -61,7 +61,7 @@ var _ = Describe("Test config policy evaluation metrics", Ordered, func() {
 			}
 
 			return numEvals > 0
-		}, defaultTimeoutSeconds, 1).Should(Equal(true))
+		}, defaultTimeoutSeconds, 1).Should(BeTrue())
 	})
 
 	cleanup := func() {
