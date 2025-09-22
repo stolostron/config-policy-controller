@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -248,7 +249,7 @@ func (r *ConfigurationPolicyReconciler) PeriodicallyExecConfigPolicies(
 				// Initialize the related object map
 				policyRelatedObjectMap = sync.Map{}
 
-				for i := 0; i < int(r.EvaluationConcurrency); i++ {
+				for range int(r.EvaluationConcurrency) {
 					wg.Add(1)
 
 					go r.handlePolicyWorker(policyQueue, &wg)
@@ -424,7 +425,7 @@ func (r *ConfigurationPolicyReconciler) shouldEvaluatePolicy(
 
 	var interval time.Duration
 
-	if policy.Status.ComplianceState == policyv1.Compliant && policy.Spec != nil {
+	if policy.Status.ComplianceState == policyv1.Compliant && policy.Spec != nil { //nolint:gocritic
 		interval, err = policy.Spec.EvaluationInterval.GetCompliantInterval()
 	} else if policy.Status.ComplianceState == policyv1.NonCompliant && policy.Spec != nil {
 		interval, err = policy.Spec.EvaluationInterval.GetNonCompliantInterval()
@@ -517,6 +518,7 @@ func (r *ConfigurationPolicyReconciler) getObjectTemplateDetails(
 		} else {
 			// If an error occurred in the NamespaceSelector, update the policy status and abort
 			var err error
+
 			selectedNamespaces, err = r.SelectorReconciler.Get(plc.Name, plc.Spec.NamespaceSelector)
 			if err != nil {
 				errMsg := "Error filtering namespaces with provided namespaceSelector"
@@ -527,6 +529,7 @@ func (r *ConfigurationPolicyReconciler) getObjectTemplateDetails(
 				reason := "namespaceSelector error"
 				msg := fmt.Sprintf(
 					"%s: %s", errMsg, err.Error())
+
 				statusChanged := addConditionToStatus(&plc, -1, false, reason, msg)
 				if statusChanged {
 					r.Recorder.Event(
@@ -644,7 +647,7 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(plc policyv1.Configu
 			// if object has already been deleted and is stuck, no need to redo delete request
 			_, deletionTimeFound, _ := unstructured.NestedString(existing.Object, "metadata", "deletionTimestamp")
 			if deletionTimeFound {
-				log.Error(fmt.Errorf("tried to delete object, but delete is hanging"), "Error")
+				log.Error(errors.New("tried to delete object, but delete is hanging"), "Error")
 
 				deletionFailures = append(deletionFailures, gvk.String()+fmt.Sprintf(` "%s" in namespace %s`,
 					object.Object.Metadata.Name, object.Object.Metadata.Namespace))
@@ -703,11 +706,12 @@ func (r *ConfigurationPolicyReconciler) cleanupImmediately() (beingUninstalled b
 
 	crdDeleting, defErr = r.definitionIsDeleting()
 
-	if beingUninstalledErr != nil && defErr != nil {
+	switch {
+	case beingUninstalledErr != nil && defErr != nil:
 		err = fmt.Errorf("%w; %w", beingUninstalledErr, defErr)
-	} else if beingUninstalledErr != nil {
+	case beingUninstalledErr != nil:
 		err = beingUninstalledErr
-	} else if defErr != nil {
+	case defErr != nil:
 		err = defErr
 	}
 
@@ -955,6 +959,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 		for _, objectT := range plc.Spec.ObjectTemplates {
 			rawDataList = append(rawDataList, objectT.ObjectDefinition.Raw)
 		}
+
 		isRawObjTemplate = false
 	}
 
@@ -987,6 +992,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 				if tplErr != nil {
 					var msg string
 
+					//nolint:gocritic
 					if errors.Is(tplErr, templates.ErrInvalidAESKey) || errors.Is(tplErr, templates.ErrAESKeyNotSet) {
 						msg = `The "policy-encryption-key" Secret contains an invalid AES key`
 					} else if errors.Is(tplErr, templates.ErrInvalidIV) {
@@ -1268,6 +1274,7 @@ func (r *ConfigurationPolicyReconciler) sortRelatedObjectsAndUpdate(
 		if related[i].Object.Kind != related[j].Object.Kind {
 			return related[i].Object.Kind < related[j].Object.Kind
 		}
+
 		if related[i].Object.Metadata.Namespace != related[j].Object.Metadata.Namespace {
 			return related[i].Object.Metadata.Namespace < related[j].Object.Metadata.Namespace
 		}
@@ -1356,13 +1363,14 @@ func addConditionToStatus(
 
 	var complianceState policyv1.ComplianceState
 
-	if reason == reasonCleanupError {
+	switch {
+	case reason == reasonCleanupError:
 		complianceState = policyv1.Terminating
 		cond.Type = "violation"
-	} else if compliant {
+	case compliant:
 		complianceState = policyv1.Compliant
 		cond.Type = "notification"
-	} else {
+	default:
 		complianceState = policyv1.NonCompliant
 		cond.Type = "violation"
 	}
@@ -1504,6 +1512,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 		log.V(1).Info(
 			"The object template does not specify a name. Will search for matching objects in the namespace.",
 		)
+
 		objNames, allResourceNames = getNamesOfKind(
 			desiredObj,
 			mapping.Resource,
@@ -1523,6 +1532,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 				"oldRemediationAction", remediation,
 			)
 		}
+
 		remediation = "inform"
 
 		if len(objNames) == 0 {
@@ -1576,6 +1586,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 		}
 	} else { // This case only occurs when the desired object is not named
 		resultEvent := objectTmplEvalEvent{}
+
 		if objShouldExist {
 			if exists {
 				resultEvent.compliant = true
@@ -1586,6 +1597,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 				// Length of objNames = 0, complianceType == musthave or mustonlyhave
 				// Find Noncompliant resources to add to the status.relatedObjects for debugging purpose
 				shouldAddCondensedRelatedObj = true
+
 				if objDetails.kind != "" && objDetails.name == "" {
 					// Change reason to Resource found but does not match
 					if len(allResourceNames) > 0 {
@@ -2064,6 +2076,7 @@ func (r *ConfigurationPolicyReconciler) enforceByCreatingOrDeleting(obj singleOb
 			msg = fmt.Sprintf("%v %v is missing, and cannot be created, reason: `%v`", obj.gvr.Resource, idStr, err)
 		} else {
 			log.V(2).Info("Created missing must have object", "resource", obj.gvr.Resource, "name", obj.name)
+
 			reason = reasonWantFoundCreated
 			msg = fmt.Sprintf("%v %v was created successfully", obj.gvr.Resource, idStr)
 
@@ -2362,7 +2375,7 @@ func mergeArrays(
 		// if an item in the existing object cannot be found in the template, we add it to the template array
 		// to produce the merged array
 		if count < oldItemSet[key].count {
-			for i := 0; i < (oldItemSet[key].count - count); i++ {
+			for range oldItemSet[key].count - count {
 				desiredArr = append(desiredArr, val2)
 			}
 		}
@@ -2476,7 +2489,7 @@ func handleSingleKey(
 			decoded, err := base64.StdEncoding.DecodeString(encoded)
 			if err != nil {
 				secretName := existingObj.GetName()
-				message := fmt.Sprintf("Error decoding secret: %s", secretName)
+				message := "Error decoding secret: " + secretName
 
 				return message, false, mergedValue, false
 			}
@@ -2678,7 +2691,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 				recreateOption := objectT.RecreateOption
 
 				if isInform || !(recreateOption == policyv1.Always || recreateOption == policyv1.IfRequired) {
-					log.Info(fmt.Sprintf("Dry run update failed with error: %s", err.Error()))
+					log.Info("Dry run update failed with error: " + err.Error())
 
 					// Remove noisy fields such as managedFields from the diff
 					removeFieldsForComparison(existingObjectCopy)
@@ -2830,7 +2843,7 @@ func getMsgPrefix(obj *singleObject) string {
 	var namespaceMsg string
 
 	if obj.namespaced {
-		namespaceMsg = fmt.Sprintf(" in namespace %s", obj.namespace)
+		namespaceMsg = " in namespace " + obj.namespace
 	}
 
 	return fmt.Sprintf(`%s [%s]%s`, obj.gvr.Resource, obj.name, namespaceMsg)
@@ -3088,13 +3101,14 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 
 	previousComplianceState := policy.Status.ComplianceState
 
-	if policy.ObjectMeta.DeletionTimestamp != nil {
+	switch {
+	case policy.ObjectMeta.DeletionTimestamp != nil:
 		policy.Status.ComplianceState = policyv1.Terminating
-	} else if len(policy.Status.CompliancyDetails) == 0 {
+	case len(policy.Status.CompliancyDetails) == 0:
 		policy.Status.ComplianceState = policyv1.UnknownCompliancy
-	} else if compliant {
+	case compliant:
 		policy.Status.ComplianceState = policyv1.Compliant
-	} else {
+	default:
 		policy.Status.ComplianceState = policyv1.NonCompliant
 	}
 
@@ -3114,10 +3128,12 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 	err := r.updatePolicyStatus(policy, sendEvent)
 	policyLog := log.WithValues("name", policy.Name, "namespace", policy.Namespace)
 
-	if k8serrors.IsConflict(err) {
+	switch {
+	case k8serrors.IsConflict(err):
 		policyLog.Error(err, "Tried to re-update status before previous update could be applied, retrying next loop")
-	} else if err != nil {
-		policyLog.Error(err, "Could not update status, retrying next loop")
+
+	case err != nil:
+		policyLog.Error(err, "Could not update status, will retry")
 
 		parent := ""
 		if len(policy.OwnerReferences) > 0 {
@@ -3220,7 +3236,7 @@ func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
 			policy,
 			eventType,
 			"Policy updated",
-			fmt.Sprintf("Policy status is %s", eventMessage),
+			"Policy status is "+eventMessage,
 		)
 	}
 
@@ -3300,7 +3316,7 @@ func convertPolicyStatusToString(plc *policyv1.ConfigurationPolicy) string {
 
 	result := string(plc.Status.ComplianceState)
 
-	if plc.Status.CompliancyDetails == nil || len(plc.Status.CompliancyDetails) == 0 {
+	if len(plc.Status.CompliancyDetails) == 0 {
 		return result
 	}
 
@@ -3357,7 +3373,7 @@ func (r *ConfigurationPolicyReconciler) removeLegacyDeploymentFinalizer() error 
 
 	for i, finalizer := range deployment.Finalizers {
 		if finalizer == pruneObjectFinalizer {
-			newFinalizers := append(deployment.Finalizers[:i], deployment.Finalizers[i+1:]...)
+			newFinalizers := slices.Delete(deployment.Finalizers, i, i+1)
 			deployment.SetFinalizers(newFinalizers)
 
 			log.Info("Removing the legacy finalizer on the controller Deployment")
