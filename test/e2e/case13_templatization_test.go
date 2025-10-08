@@ -540,7 +540,7 @@ var _ = Describe("Test templatization", Ordered, func() {
 			Expect(configMap2.ObjectMeta.Labels).To(HaveKeyWithValue("namespace", "default"))
 		})
 
-		It("Should fail when the namespace doesn't match after template resolution", func(ctx SpecContext) {
+		It("Should fail when the namespace doesn't match after template resolution", func() {
 			By("Applying the " + policyName + " ConfigurationPolicy")
 			utils.Kubectl("apply", "-n", testNamespace, "-f", invalidPolicyYAML)
 
@@ -690,7 +690,7 @@ var _ = Describe("Test templatization", Ordered, func() {
 			Entry("with a boolean argument", outsideArgPolicyName, outsideArgPolicyYAML),
 		)
 
-		It("Should fail when the name doesn't match after template resolution", func(ctx SpecContext) {
+		It("Should fail when the name doesn't match after template resolution", func() {
 			By("Applying the " + invalidPolicyName + " ConfigurationPolicy")
 			utils.Kubectl("apply", "-n", testNamespace, "-f", invalidPolicyYAML)
 
@@ -770,7 +770,7 @@ var _ = Describe("Test templatization", Ordered, func() {
 			}
 		})
 
-		It("Should be compliant when all objects are skipped with skipObject", func(ctx SpecContext) {
+		It("Should be compliant when all objects are skipped with skipObject", func() {
 			By("Applying the " + allSkippedPolicyName + " ConfigurationPolicy")
 			utils.Kubectl("apply", "-n", testNamespace, "-f", allSkippedPolicyYAML)
 
