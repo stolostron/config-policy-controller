@@ -180,4 +180,4 @@ e2e-dependencies:
 GOCOVMERGE = $(LOCAL_BIN)/gocovmerge
 .PHONY: coverage-dependencies
 coverage-dependencies:
-	$(call go-get-tool,github.com/wadey/gocovmerge@v0.0.0-20160331181800-b5bfa59ec0ad)
+	$(call go-get-tool,github.com/alexfalkowski/gocovmerge/v2@v2.15.0)

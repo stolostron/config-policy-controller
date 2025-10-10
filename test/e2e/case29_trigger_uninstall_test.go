@@ -31,8 +31,8 @@ var _ = Describe("Clean up during uninstalls", Label("running-in-cluster"), Orde
 
 	It("verifies that finalizers are removed when being uninstalled", func() {
 		By("Creating two configuration policies with pruneObjectBehavior")
-		utils.Kubectl("apply", "-f", policyYAMLPath, "-n", testNamespace)
-		utils.Kubectl("apply", "-f", policy2YAMLPath, "-n", testNamespace)
+		utils.Kubectl("create", "-f", policyYAMLPath, "-n", testNamespace)
+		utils.Kubectl("create", "-f", policy2YAMLPath, "-n", testNamespace)
 
 		By("Verifying that the configuration policies are compliant and have finalizers")
 		Eventually(func(g Gomega) {
