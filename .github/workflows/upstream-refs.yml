@@ -25,7 +25,7 @@ jobs:
           repository: stolostron/governance-policy-framework
           ref: ${{ github.event.pull_request.base.ref }}
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: governance-policy-framework/go.mod
           cache-dependency-path: governance-policy-framework/go.sum
