@@ -3313,9 +3313,10 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 				diff = handleDiff(log, recordDiff, existingObjectCopy, mergedObjCopy, r.FullDiffs)
 			}
 
-			r.setEvaluatedObject(obj.policy, obj.existingObj, !throwSpecViolation, "")
+			// treat the object as compliant, with no updates needed
+			r.setEvaluatedObject(obj.policy, obj.existingObj, true, "")
 
-			return throwSpecViolation, "", diff, updateNeeded, updatedObj
+			return false, "", diff, false, updatedObj
 		}
 
 		diff = handleDiff(log, recordDiff, existingObjectCopy, dryRunUpdatedObj, r.FullDiffs)
@@ -3561,6 +3562,10 @@ func removeFieldsForComparison(obj *unstructured.Unstructured) {
 	)
 	// The generation might actually bump but the API output might be the same.
 	unstructured.RemoveNestedField(obj.Object, "metadata", "generation")
+
+	if len(obj.GetAnnotations()) == 0 {
+		unstructured.RemoveNestedField(obj.Object, "metadata", "annotations")
+	}
 }
 
 // setEvaluatedObject updates the cache to indicate that the ConfigurationPolicy has evaluated this
