@@ -4,16 +4,17 @@ metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/stolostron/config-policy-controller?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "release-2.15"
-  creationTimestamp:
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch in ["main", "release-2.16"]
+  creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: release-acm-215
-    appstudio.openshift.io/component: config-policy-controller-acm-215
+    appstudio.openshift.io/application: release-acm-216
+    appstudio.openshift.io/component: config-policy-controller-acm-216
     pipelines.appstudio.openshift.io/type: build
-  name: config-policy-controller-acm-215-on-push
+  name: config-policy-controller-acm-216-on-pull-request
   namespace: crt-redhat-acm-tenant
 spec:
   params:
@@ -22,7 +23,7 @@ spec:
     - name: revision
       value: '{{revision}}'
     - name: output-image
-      value: quay.io/redhat-user-workloads/crt-redhat-acm-tenant/config-policy-controller-acm-215:{{revision}}
+      value: quay.io/redhat-user-workloads/crt-redhat-acm-tenant/config-policy-controller-acm-216:on-pr-{{revision}}
     - name: path-context
       value: .
     - name: dockerfile
@@ -31,14 +32,13 @@ spec:
       value: 'true'
     - name: prefetch-input
       value: '[{"type": "gomod", "path": "."}]'
+    - name: image-expires-after
+      value: 5d
     - name: build-source-image
       value: 'true'
     - name: build-platforms
       value:
         - linux/x86_64
-        - linux/arm64
-        - linux/ppc64le
-        - linux/s390x
   pipelineRef:
     resolver: git
     params:
@@ -49,7 +49,7 @@ spec:
       - name: pathInRepo
         value: pipelines/common.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-config-policy-controller-acm-215
+    serviceAccountName: build-pipeline-config-policy-controller-acm-216
   workspaces:
     - name: git-auth
       secret:
