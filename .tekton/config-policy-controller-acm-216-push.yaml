@@ -39,6 +39,12 @@ spec:
         - linux/arm64
         - linux/ppc64le
         - linux/s390x
+    - name: additional-tags
+      value:
+        - latest
+    - name: build-args
+      value:
+        - ACM_VERSION=2.16
   pipelineRef:
     resolver: git
     params:
