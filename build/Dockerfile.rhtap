@@ -1,3 +1,5 @@
+ARG ACM_VERSION=${ACM_VERSION}
+
 # Copyright Contributors to the Open Cluster Management project
 
 # Stage 1: Use image builder to build the target binaries
@@ -38,3 +40,4 @@ LABEL io.k8s.description="The ConfigurationPolicy kind compares the desired obje
 LABEL com.redhat.component="acm-config-policy-controller-container"
 LABEL io.openshift.tags="data,images"
 LABEL url="https://github.com/stolostron/config-policy-controller"
+LABEL cpe="cpe:/a:redhat:acm:${ACM_VERSION}::el9"
