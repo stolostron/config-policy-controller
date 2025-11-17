@@ -6,26 +6,27 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"open-cluster-management.io/config-policy-controller/test/utils"
 )
 
-const (
-	case8ConfigPolicyNamePod         string = "policy-pod-to-check"
-	case8ConfigPolicyNameCheck       string = "policy-status-checker"
-	case8ConfigPolicyNameCheckFail   string = "policy-status-checker-fail"
-	case8ConfigPolicyNameEnforceFail string = "policy-status-enforce-fail"
-	case8PolicyYamlPod               string = "../resources/case8_status_check/case8_pod.yaml"
-	case8PolicyYamlCheck             string = "../resources/case8_status_check/case8_status_check.yaml"
-	case8PolicyYamlCheckFail         string = "../resources/case8_status_check/case8_status_check_fail.yaml"
-	case8PolicyYamlEnforceFail       string = "../resources/case8_status_check/case8_status_enforce_fail.yaml"
-	case8ConfigPolicyStatusPod       string = "policy-pod-invalid"
-	case8PolicyYamlBadPod            string = "../resources/case8_status_check/case8_pod_fail.yaml"
-	case8PolicyYamlSpecChange        string = "../resources/case8_status_check/case8_pod_change.yaml"
-)
-
 var _ = Describe("Test pod obj template handling", func() {
+	const (
+		case8ConfigPolicyNamePod         string = "policy-pod-to-check"
+		case8ConfigPolicyNameCheck       string = "policy-status-checker"
+		case8ConfigPolicyNameCheckFail   string = "policy-status-checker-fail"
+		case8ConfigPolicyNameEnforceFail string = "policy-status-enforce-fail"
+		case8PolicyYamlPod               string = "../resources/case8_status_check/case8_pod.yaml"
+		case8PolicyYamlCheck             string = "../resources/case8_status_check/case8_status_check.yaml"
+		case8PolicyYamlCheckFail         string = "../resources/case8_status_check/case8_status_check_fail.yaml"
+		case8PolicyYamlEnforceFail       string = "../resources/case8_status_check/case8_status_enforce_fail.yaml"
+		case8ConfigPolicyStatusPod       string = "policy-pod-invalid"
+		case8PolicyYamlBadPod            string = "../resources/case8_status_check/case8_pod_fail.yaml"
+		case8PolicyYamlSpecChange        string = "../resources/case8_status_check/case8_pod_change.yaml"
+	)
+
 	Describe("Create a policy on managed cluster in ns:"+testNamespace, Ordered, func() {
 		It("should create a policy properly on the managed cluster", func() {
 			By("Creating " + case8ConfigPolicyNamePod + " on managed")
@@ -168,6 +169,127 @@ var _ = Describe("Test pod obj template handling", func() {
 			deleteConfigPolicies(policies)
 
 			utils.KubectlDelete("pod", "nginx-badpod-e2e-8", "-n", "default")
+		})
+	})
+})
+
+var _ = Describe("Test related object property status", Ordered, func() {
+	Describe("Create a policy missing a field added by kubernetes", Ordered, func() {
+		const (
+			policyName  = "policy-service"
+			serviceName = "grc-policy-propagator-metrics"
+			policyYAML  = "../resources/case8_status_check/case8_service_inform.yaml"
+			serviceYAML = "../resources/case8_status_check/case8_service.yaml"
+			parentYAML  = "../resources/case8_status_check/case8_parent.yaml"
+			parentName  = "case8-parent"
+		)
+
+		It("Should be compliant when the inform policy omits a field added by the apiserver", func() {
+			By("Creating a Service with explicit type: ClusterIP")
+			utils.Kubectl("apply", "-f", serviceYAML)
+
+			By("Creating the " + policyName + " policy that omits the type field)")
+			createObjWithParent(parentYAML, parentName, policyYAML, testNamespace, gvrPolicy, gvrConfigPolicy)
+
+			By("Verifying that the " + policyName + " policy is compliant")
+			Eventually(func(g Gomega) {
+				managedPlc := utils.GetWithTimeout(
+					clientManagedDynamic, gvrConfigPolicy, policyName, testNamespace, true, defaultTimeoutSeconds,
+				)
+
+				utils.CheckComplianceStatus(g, managedPlc, "Compliant")
+
+				relatedObjects, _, err := unstructured.NestedSlice(managedPlc.Object, "status", "relatedObjects")
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(relatedObjects).To(HaveLen(1))
+			}, defaultTimeoutSeconds, 1).Should(Succeed())
+
+			By("Verifying that only one compliance event was emitted")
+			Consistently(func() []v1.Event {
+				return utils.GetMatchingEvents(clientManaged, testNamespace, parentName, "policy:", ".*", 5)
+			}, 10, 1).Should(HaveLen(1))
+		})
+
+		It("Should be compliant when the enforce policy omits a field added by the apiserver", func() {
+			By("Changing the policy to enforce mode")
+			utils.EnforceConfigurationPolicy(policyName, testNamespace)
+
+			By("Verifying that the " + policyName + " policy is compliant")
+			Eventually(func(g Gomega) {
+				managedPlc := utils.GetWithTimeout(
+					clientManagedDynamic, gvrConfigPolicy, policyName, testNamespace, true, defaultTimeoutSeconds,
+				)
+
+				utils.CheckComplianceStatus(g, managedPlc, "Compliant")
+
+				gen, found, err := unstructured.NestedInt64(managedPlc.Object, "status", "lastEvaluatedGeneration")
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(found).To(BeTrue())
+				g.Expect(gen).To(BeEquivalentTo(2))
+			}, defaultTimeoutSeconds, 1).Should(Succeed())
+
+			By("Verifying that only two compliance events have been emitted")
+			Consistently(func() []v1.Event {
+				return utils.GetMatchingEvents(clientManaged, testNamespace, parentName, "policy:", ".*", 5)
+			}, 10, 1).Should(HaveLen(2))
+		})
+
+		It("Should be compliant when the enforce policy includes all fields", func() {
+			By("Patching the " + policyName + " policy with the Service type field)")
+			utils.Kubectl("patch", "configurationpolicy", policyName, "-n", testNamespace, "--type=json", "-p",
+				`[{"op": "add", "path": "/spec/object-templates/0/objectDefinition/spec/type", "value": "ClusterIP"}]`)
+
+			By("Verifying that the " + policyName + " policy is compliant")
+			Eventually(func(g Gomega) {
+				managedPlc := utils.GetWithTimeout(
+					clientManagedDynamic, gvrConfigPolicy, policyName, testNamespace, true, defaultTimeoutSeconds,
+				)
+
+				utils.CheckComplianceStatus(g, managedPlc, "Compliant")
+
+				gen, found, err := unstructured.NestedInt64(managedPlc.Object, "status", "lastEvaluatedGeneration")
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(found).To(BeTrue())
+				g.Expect(gen).To(BeEquivalentTo(3))
+			}, defaultTimeoutSeconds, 1).Should(Succeed())
+
+			By("Verifying that only three compliance events have been emitted")
+			Consistently(func() []v1.Event {
+				return utils.GetMatchingEvents(clientManaged, testNamespace, parentName, "policy:", ".*", 5)
+			}, 10, 1).Should(HaveLen(3))
+		})
+
+		It("Should be compliant when the inform policy includes all fields", func() {
+			By("Changing the policy to inform mode")
+			utils.Kubectl("patch", "configurationpolicy", policyName, `--type=json`,
+				`-p=[{"op":"replace","path":"/spec/remediationAction","value":"inform"}]`, "-n", testNamespace)
+
+			By("Verifying that the " + policyName + " policy is compliant")
+			Eventually(func(g Gomega) {
+				managedPlc := utils.GetWithTimeout(
+					clientManagedDynamic, gvrConfigPolicy, policyName, testNamespace, true, defaultTimeoutSeconds,
+				)
+
+				utils.CheckComplianceStatus(g, managedPlc, "Compliant")
+
+				gen, found, err := unstructured.NestedInt64(managedPlc.Object, "status", "lastEvaluatedGeneration")
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(found).To(BeTrue())
+				g.Expect(gen).To(BeEquivalentTo(4))
+			}, defaultTimeoutSeconds, 1).Should(Succeed())
+
+			By("Verifying that only four compliance events have been emitted")
+			Consistently(func() []v1.Event {
+				return utils.GetMatchingEvents(clientManaged, testNamespace, parentName, "policy:", ".*", 5)
+			}, 10, 1).Should(HaveLen(4))
+		})
+
+		AfterAll(func() {
+			deleteConfigPolicies([]string{policyName, policyName})
+
+			utils.KubectlDelete("service", serviceName, "-n", "managed")
+			utils.KubectlDelete("policy", parentName, "-n", testNamespace)
+			utils.KubectlDelete("events", "-n", testNamespace, "--field-selector=involvedObject.name="+parentName)
 		})
 	})
 })
