@@ -37,3 +37,4 @@ LABEL io.k8s.description="The ConfigurationPolicy kind compares the desired obje
     The OperatorPolicy kind determines whether operators deployed on the cluster match the configuration in the policy."
 LABEL com.redhat.component="acm-config-policy-controller-container"
 LABEL io.openshift.tags="data,images"
+LABEL cpe="cpe:/a:redhat:acm:2.12::el9"
