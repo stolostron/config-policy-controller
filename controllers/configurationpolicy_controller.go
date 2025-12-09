@@ -1079,7 +1079,9 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc policyv1.Confi
 
 	// Set the CompliancyDetails array length accordingly in case the number of
 	// object-templates was reduced (the status update will handle if it's longer)
-	if len(templateObjs) < len(plc.Status.CompliancyDetails) {
+	if len(templateObjs) == 0 && len(plc.Status.CompliancyDetails) != 0 {
+		plc.Status.CompliancyDetails = plc.Status.CompliancyDetails[:1]
+	} else if len(templateObjs) < len(plc.Status.CompliancyDetails) {
 		plc.Status.CompliancyDetails = plc.Status.CompliancyDetails[:len(templateObjs)]
 	}
 
