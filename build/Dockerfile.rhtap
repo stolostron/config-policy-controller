@@ -36,5 +36,6 @@ LABEL io.k8s.display-name="Configuration policy controller"
 LABEL io.k8s.description="The ConfigurationPolicy kind compares the desired object defined in the policy with the objects on the cluster. \
     The OperatorPolicy kind determines whether operators deployed on the cluster match the configuration in the policy."
 LABEL com.redhat.component="acm-config-policy-controller-container"
+LABEL url="https://github.com/stolostron/config-policy-controller"
 LABEL cpe="cpe:/a:redhat:acm:2.14::el9"
 LABEL io.openshift.tags="data,images"
