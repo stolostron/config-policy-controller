@@ -3,7 +3,7 @@
 
 ## CLI versions (with links to the latest releases)
 # https://github.com/kubernetes-sigs/controller-tools/releases/latest
-CONTROLLER_GEN_VERSION := v0.16.3
+CONTROLLER_GEN_VERSION := v0.16.5
 # https://github.com/kubernetes-sigs/kustomize/releases/latest
 KUSTOMIZE_VERSION := v5.6.0
 # https://github.com/golangci/golangci-lint/releases/latest
