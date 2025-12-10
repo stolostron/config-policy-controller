@@ -57,6 +57,21 @@ jobs:
       - name: Unit and Integration Tests
         run: |
           make test
+      
+      - name: Build container
+        run: |
+          echo "::group::cleanup docker system"
+          docker system df
+          docker system prune -a -f
+          echo "::endgroup::"
+
+          make build-images
+
+          echo "::group::cleanup docker build cache"
+          docker system df
+          docker builder prune -f
+          docker system df
+          echo "::endgroup::"
 
       - name: Create K8s KinD Cluster - ${{ matrix.kind }}
         env:
@@ -86,11 +101,15 @@ jobs:
 
       - name: Verify Deployment Configuration
         run: |
-          make build-images
+          echo "::group::check docker images and usage"
+          docker system df
+          docker images
+          echo "::endgroup::"
+
           KUBECONFIG=${PWD}/kubeconfig_managed_e2e make kind-deploy-controller-dev
 
       - name: E2E tests that require the controller running in a cluster
-        run: |
+        run: |        
           export GOPATH=$(go env GOPATH)
           KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-running-in-cluster
 
