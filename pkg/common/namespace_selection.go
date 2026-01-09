@@ -6,6 +6,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -48,16 +49,28 @@ type NamespaceSelectorReconciler struct {
 	updateChannel chan<- event.GenericEvent
 	selections    map[string]namespaceSelection
 	lock          sync.RWMutex
+
+	defaultIncludeTerminating string
 }
 
 func NewNamespaceSelectorReconciler(
-	k8sClient client.Client, updateChannel chan<- event.GenericEvent,
-) NamespaceSelectorReconciler {
-	return NamespaceSelectorReconciler{
-		client:        k8sClient,
-		updateChannel: updateChannel,
-		selections:    make(map[string]namespaceSelection),
+	k8sClient client.Client, updateChannel chan<- event.GenericEvent, includeTerminating string,
+) (NamespaceSelectorReconciler, error) {
+	switch includeTerminating {
+	case "Drop":
+	case "IfMatch":
+	default:
+		err := fmt.Errorf("unknown option for default terminating namespace inclusion: %q", includeTerminating)
+
+		return NamespaceSelectorReconciler{}, err
 	}
+
+	return NamespaceSelectorReconciler{
+		client:                    k8sClient,
+		updateChannel:             updateChannel,
+		selections:                make(map[string]namespaceSelection),
+		defaultIncludeTerminating: includeTerminating,
+	}, nil
 }
 
 type namespaceSelection struct {
@@ -98,11 +111,7 @@ func (r *NamespaceSelectorReconciler) Reconcile(ctx context.Context, _ ctrl.Requ
 	oldSelections := make(map[string]namespaceSelection)
 
 	r.lock.RLock()
-
-	for name, selection := range r.selections {
-		oldSelections[name] = selection
-	}
-
+	maps.Copy(oldSelections, r.selections)
 	r.lock.RUnlock()
 
 	// No selections to populate, just skip.
@@ -122,7 +131,7 @@ func (r *NamespaceSelectorReconciler) Reconcile(ctx context.Context, _ ctrl.Requ
 	for nsName, oldSelection := range oldSelections {
 		policyNs, policyName := splitKey(nsName)
 
-		newNamespaces, err := filter(namespaces, oldSelection.target)
+		newNamespaces, err := filter(namespaces, oldSelection.target, r.defaultIncludeTerminating)
 		if err != nil {
 			log.Error(err, "Unable to filter namespaces for policy", "namespace", policyNs, "name", policyName)
 
@@ -157,7 +166,7 @@ func (r *NamespaceSelectorReconciler) Reconcile(ctx context.Context, _ ctrl.Requ
 }
 
 // Get returns the items matching the given Target for the given object. If there's no selection for that object,
-// and Target has been calculated, it will be calculated now. Otherwise, a cached value may be used.
+// and Target has not been calculated, it will be calculated now. Otherwise, a cached value may be used.
 func (r *NamespaceSelectorReconciler) Get(objNS string, objName string, t policyv1.Target) ([]string, error) {
 	log := logf.Log.WithValues("Reconciler", "NamespaceSelector")
 
@@ -193,49 +202,19 @@ func (r *NamespaceSelectorReconciler) Get(objNS string, objName string, t policy
 		return []string{}, nil
 	}
 
-	// New, or the target has changed.
 	nsList := corev1.NamespaceList{}
-	// Default to fetching all Namespaces
-	listOpts := client.ListOptions{
-		LabelSelector: labels.Everything(),
-	}
-
-	// Parse the label selector if it's provided
-	if t.LabelSelector != nil {
-		selector, err := metav1.LabelSelectorAsSelector(t.LabelSelector)
-		if err != nil {
-			err = fmt.Errorf("error parsing namespace LabelSelector: %w", err)
-
-			log.V(2).Info("Updating selection from Reconcile with parsing error",
-				"namespace", objNS, "policy", objName, "error", err)
-
-			r.update(objNS, objName, namespaceSelection{
-				target:     t,
-				namespaces: []string{},
-				hasUpdate:  false,
-				err:        err,
-			})
-
-			return []string{}, fmt.Errorf("error parsing namespace LabelSelector: %w", err)
-		}
-
-		listOpts.LabelSelector = selector
-	}
 
 	// Fetch namespaces -- this List will be from the controller-runtime cache
-	if err := r.client.List(context.TODO(), &nsList, &listOpts); err != nil {
+	if err := r.client.List(context.TODO(), &nsList); err != nil {
 		log.Error(err, "Unable to list namespaces from the cache")
 
 		return nil, err
 	}
 
-	nsToMatch := make([]string, len(nsList.Items))
-	for i, ns := range nsList.Items {
-		nsToMatch[i] = ns.Name
+	selected, err := filter(nsList, t, r.defaultIncludeTerminating)
+	if err != nil {
+		log.Error(err, "Unable to filter namespaces for policy", "namespace", objNS, "policy", objName)
 	}
-
-	selected, err := Matches(nsToMatch, t.Include, t.Exclude)
-	slices.Sort(selected)
 
 	log.V(2).Info("Updating selection from Reconcile with matches",
 		"namespace", objNS, "policy", objName, "selection", selected, "error", err)
@@ -308,7 +287,7 @@ func (r *NamespaceSelectorReconciler) update(namespace string, name string, sel 
 	}
 }
 
-func filter(allNSList corev1.NamespaceList, t policyv1.Target) ([]string, error) {
+func filter(allNSList corev1.NamespaceList, t policyv1.Target, defaultIncludeTerminating string) ([]string, error) {
 	// If MatchLabels and MatchExpressions are nil, the resulting label selector
 	// matches all namespaces. This is to guard against that.
 	if t.IsEmpty() {
@@ -329,7 +308,16 @@ func filter(allNSList corev1.NamespaceList, t policyv1.Target) ([]string, error)
 
 	nsToFilter := make([]string, 0)
 
+	includeTerminating := t.TerminatingInclusion == "IfMatch"
+	if t.TerminatingInclusion == "Default" && defaultIncludeTerminating == "IfMatch" {
+		includeTerminating = true
+	}
+
 	for _, ns := range allNSList.Items {
+		if !includeTerminating && !ns.DeletionTimestamp.IsZero() {
+			continue
+		}
+
 		if selector.Matches(labels.Set(ns.GetLabels())) {
 			nsToFilter = append(nsToFilter, ns.Name)
 		}
