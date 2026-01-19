@@ -14,6 +14,8 @@ RUN make build
 # Stage 2: Copy the binaries from the image builder to the base image
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
+ARG ACM_VERSION
+
 ENV COMPONENT=config-policy-controller
 ENV REPO_PATH=/go/src/github.com/stolostron/${COMPONENT}
 ENV OPERATOR=/usr/local/bin/${COMPONENT} \
