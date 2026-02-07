@@ -185,12 +185,12 @@ github.com/stolostron/go-log-utils v0.1.4 h1:5O85eXobMc042u52/YI8o9pyV3MHnIzFrSm
 github.com/stolostron/go-log-utils v0.1.4/go.mod h1:T94Cw9060cvYMX+l1X1gcvC0MkEr6bippChcgqyEQV0=
 github.com/stolostron/go-template-utils/v7 v7.2.0 h1:2D2ePu8ZvPBRrKtK9XsMnddMwIMlgVSnVpHuFkC7O5o=
 github.com/stolostron/go-template-utils/v7 v7.2.0/go.mod h1:SZ0mElU3kTb2mXcy4Ll7Z+aoCpYNuOWCwDb1E6q5e3Q=
-github.com/stolostron/governance-policy-propagator v0.0.0-20251022223339-f61db80c5e45 h1:ToxfUxXewo4Mc24USrbLBwkSxjPUR4w7nZCn08x5MM8=
-github.com/stolostron/governance-policy-propagator v0.0.0-20251022223339-f61db80c5e45/go.mod h1:6Lvo/wP6FfDEZX0FPURa5cIb8sfwDJEoUnXFV5WOVFM=
+github.com/stolostron/governance-policy-propagator v0.0.0-20260202152840-b1795c5a5de7 h1:mXDXAeh33I7wj2uds5XJPv5eVoB87ZGRiZ3FTA8D/ZM=
+github.com/stolostron/governance-policy-propagator v0.0.0-20260202152840-b1795c5a5de7/go.mod h1:wa+xjuRwQHIGVVGEdHE7V4q1KD7yeClcVbMGKXIsHrU=
 github.com/stolostron/kubernetes-dependency-watches v0.10.2 h1:b8g3Wye6igeRrrSQwXGr4Ch4zTY4uouzHlDARw8/m7w=
 github.com/stolostron/kubernetes-dependency-watches v0.10.2/go.mod h1:pV1b/PwVNG4a5tzBcqxhUpMjjo5nY0gUb6ieu6sGH6o=
-github.com/stolostron/multicloud-operators-subscription v1.2.4-0-20211122-7277a37.0.20251020053110-ef7f22da1c0f h1:GFVN7mHA2EfLdziSfhyjv0Tb41NTmj+Xp4V192KZoFk=
-github.com/stolostron/multicloud-operators-subscription v1.2.4-0-20211122-7277a37.0.20251020053110-ef7f22da1c0f/go.mod h1:DyXDWeNlZvVTEFjgyyw387CFrivie2ad5ePxYz4T4e8=
+github.com/stolostron/multicloud-operators-subscription v1.2.4-0-20211122-7277a37.0.20260205233344-4101247af412 h1:vRnFxD9AOmVCxDHW5X5n7zt2fZQ9ZQoYE4PfglCuMsU=
+github.com/stolostron/multicloud-operators-subscription v1.2.4-0-20211122-7277a37.0.20260205233344-4101247af412/go.mod h1:Ug3OTpfRO+0hxLmOAOwx5MY94qqm5g0JBxSu5fW4CME=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
@@ -346,7 +346,7 @@ sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 h1:IpInykpT6ceI+QxKBbEflcR5E
 sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730/go.mod h1:mdzfpAEoE6DHQEN0uh9ZbOCuHbLK5wOm7dK4ctXE9Tg=
 sigs.k8s.io/randfill v1.0.0 h1:JfjMILfT8A6RbawdsK2JXGBR5AQVfd+9TbzrlneTyrU=
 sigs.k8s.io/randfill v1.0.0/go.mod h1:XeLlZ/jmk4i1HRopwe7/aU3H5n1zNUcX6TM94b3QxOY=
-sigs.k8s.io/structured-merge-diff/v6 v6.3.0 h1:jTijUJbW353oVOd9oTlifJqOGEkUw2jB/fXCbTiQEco=
-sigs.k8s.io/structured-merge-diff/v6 v6.3.0/go.mod h1:M3W8sfWvn2HhQDIbGWj3S099YozAsymCo/wrT5ohRUE=
+sigs.k8s.io/structured-merge-diff/v6 v6.3.2 h1:kwVWMx5yS1CrnFWA/2QHyRVJ8jM6dBA80uLmm0wJkk8=
+sigs.k8s.io/structured-merge-diff/v6 v6.3.2/go.mod h1:M3W8sfWvn2HhQDIbGWj3S099YozAsymCo/wrT5ohRUE=
 sigs.k8s.io/yaml v1.6.0 h1:G8fkbMSAFqgEFgh4b1wmtzDnioxFCUgTZhlbj5P9QYs=
 sigs.k8s.io/yaml v1.6.0/go.mod h1:796bPqUfzR/0jLAl6XjHl3Ck7MiyVv8dbTdyT3/pMf4=

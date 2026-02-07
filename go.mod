@@ -127,11 +127,11 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.33.1 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
 )
 
 replace (
-	open-cluster-management.io/governance-policy-propagator => github.com/stolostron/governance-policy-propagator v0.0.0-20251022223339-f61db80c5e45
-	open-cluster-management.io/managed-serviceaccount => github.com/stolostron/managed-serviceaccount v0.1.1-0.20251022030334-5bd729f13dab
-	open-cluster-management.io/multicloud-operators-subscription => github.com/stolostron/multicloud-operators-subscription v1.2.4-0-20211122-7277a37.0.20251020053110-ef7f22da1c0f
+	open-cluster-management.io/governance-policy-propagator => github.com/stolostron/governance-policy-propagator v0.0.0-20260202152840-b1795c5a5de7
+	open-cluster-management.io/managed-serviceaccount => github.com/stolostron/managed-serviceaccount v0.1.1-0.20260206033608-b1572f14e8f7
+	open-cluster-management.io/multicloud-operators-subscription => github.com/stolostron/multicloud-operators-subscription v1.2.4-0-20211122-7277a37.0.20260205233344-4101247af412
 )
