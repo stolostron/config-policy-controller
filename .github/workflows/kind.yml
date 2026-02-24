@@ -284,7 +284,6 @@ jobs:
           files: ./coverage_unit.out
           flags: unit-tests
           name: unit-tests
-          verbose: true
           fail_ci_if_error: false
           disable_search: true
 
@@ -295,6 +294,11 @@ jobs:
           files: ./coverage_e2e.out
           flags: e2e-tests
           name: e2e-tests
-          verbose: true
           fail_ci_if_error: false
           disable_search: true
+
+      - name: Report overall coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_UPLOAD_TOKEN }}
+          fail_ci_if_error: false
