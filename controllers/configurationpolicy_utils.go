@@ -657,7 +657,7 @@ func createStatus(
 		}
 	}
 
-	return
+	return compliant, compliancyDetailsReason, compliancyDetailsMsg
 }
 
 func objHasFinalizer(obj metav1.Object, finalizer string) bool {
