@@ -15,17 +15,17 @@ jobs:
     name: Upstream reference checks
     steps:
       - name: Checkout Config Policy Controller
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: config-policy-controller
       - name: Checkout Policy Framework
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: governance-policy-framework
           repository: stolostron/governance-policy-framework
           ref: ${{ github.event.pull_request.base.ref }}
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: governance-policy-framework/go.mod
           cache-dependency-path: governance-policy-framework/go.sum
