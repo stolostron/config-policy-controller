@@ -331,7 +331,6 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 		const (
 			opPolYAML = "../resources/case38_operator_install/operator-policy-defaults-invalid-source.yaml"
 			opPolName = "oppol-defaults-invalid-source"
-			subName   = "project-quay"
 		)
 		BeforeAll(func() {
 			preFunc()
@@ -687,7 +686,7 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 		const (
 			opPolYAML        = "../resources/case38_operator_install/operator-policy-with-group.yaml"
 			opPolName        = "oppol-with-group"
-			subName          = "project-quay"
+			subName          = "example-operator"
 			extraOpGroupYAML = "../resources/case38_operator_install/extra-operator-group.yaml"
 			extraOpGroupName = "extra-operator-group"
 		)
@@ -846,7 +845,7 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 		const (
 			opPolYAML = "../resources/case38_operator_install/operator-policy-no-group.yaml"
 			opPolName = "oppol-no-group"
-			subName   = "project-quay"
+			subName   = "example-operator"
 			subYAML   = "../resources/case38_operator_install/subscription.yaml"
 		)
 
@@ -1113,8 +1112,8 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 		const (
 			OpPlcYAML  = "../resources/case38_operator_install/operator-policy-with-group.yaml"
 			OpPlcName  = "oppol-with-group"
-			subName    = "project-quay"
-			catSrcName = "operatorhubio-catalog"
+			subName    = "example-operator"
+			catSrcName = "grc-mock-source"
 		)
 
 		BeforeAll(func() {
@@ -1122,7 +1121,8 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 			preFunc()
 			DeferCleanup(func() {
 				KubectlTarget("patch", "catalogsource", catSrcName, "-n", "olm", "--type=json", "-p",
-					`[{"op": "replace", "path": "/spec/image", "value": "quay.io/operatorhubio/catalog:latest"}]`)
+					`[{"op": "replace", "path": "/spec/image", "value":`+
+						`"quay.io/stolostron-grc/grc-mock-operators-catalog:latest"}]`)
 			})
 
 			createObjWithParent(parentPolicyYAML, parentPolicyName,
@@ -1218,11 +1218,11 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 		It("Should report unhealthy status when CatalogSource fails", func() {
 			By("Patching the policy to point to an existing CatalogSource")
 			utils.Kubectl("patch", "operatorpolicy", OpPlcName, "-n", testNamespace, "--type=json", "-p",
-				`[{"op": "replace", "path": "/spec/subscription/source", "value": "operatorhubio-catalog"}]`)
+				`[{"op": "replace", "path": "/spec/subscription/source", "value": "grc-mock-source"}]`)
 
 			By("Patching the CatalogSource to reference a broken image link")
 			KubectlTarget("patch", "catalogsource", catSrcName, "-n", "olm", "--type=json", "-p",
-				`[{"op": "replace", "path": "/spec/image", "value": "quay.io/operatorhubio/fakecatalog:latest"}]`)
+				`[{"op": "replace", "path": "/spec/image", "value": "quay.io/stolostron-grc/fakecatalog:latest"}]`)
 
 			By("Checking the conditions and relatedObj in the policy")
 			check(
@@ -1678,7 +1678,7 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 		const (
 			opPolYAML = "../resources/case38_operator_install/operator-policy-validity-test.yaml"
 			opPolName = "oppol-validity-test"
-			subName   = "project-quay"
+			subName   = "example-operator"
 		)
 
 		BeforeAll(func() {
@@ -2887,7 +2887,6 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 		const (
 			opPolYAML = "../resources/case38_operator_install/operator-policy-no-group.yaml"
 			opPolName = "oppol-no-group"
-			subName   = "project-quay"
 		)
 
 		BeforeEach(func() {
@@ -3363,7 +3362,7 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 			opPolName     = "oppol-with-templates"
 			configmapYAML = "../resources/case38_operator_install/template-configmap.yaml"
 			opGroupName   = "scoped-operator-group"
-			subName       = "project-quay"
+			subName       = "example-operator"
 		)
 
 		BeforeAll(func() {
@@ -3429,7 +3428,7 @@ var _ = Describe("Testing OperatorPolicy", Ordered, Label("supports-hosted"), fu
 
 		It("Should update the subscription after the configmap is updated", func() {
 			KubectlTarget("patch", "configmap", "op-config", "-n", opPolTestNS, "--type=json", "-p",
-				`[{"op": "replace", "path": "/data/channel", "value": "stable-3.10"}]`)
+				`[{"op": "replace", "path": "/data/channel", "value": "stable"}]`)
 
 			check(
 				opPolName,
