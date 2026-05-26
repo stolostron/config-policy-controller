@@ -679,7 +679,7 @@ func (r *ConfigurationPolicyReconciler) cleanupImmediately() (beingUninstalled b
 		err = defErr
 	}
 
-	return
+	return beingUninstalled, crdDeleting, err
 }
 
 func (r *ConfigurationPolicyReconciler) definitionIsDeleting() (bool, error) {
@@ -1788,7 +1788,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 			}
 		}
 
-		return
+		return result, objectProperties
 	}
 
 	if exists && !obj.shouldExist {
@@ -1805,7 +1805,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 			result.events = append(result.events, objectTmplEvalEvent{false, reasonWantNotFoundExists, ""})
 		}
 
-		return
+		return result, objectProperties
 	}
 
 	if !exists && !obj.shouldExist {
@@ -1813,7 +1813,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 		// it is a must not have and it does not exist, so it is compliant
 		result.events = append(result.events, objectTmplEvalEvent{true, reasonWantNotFoundDNE, ""})
 
-		return
+		return result, objectProperties
 	}
 
 	// object exists and the template requires it, so we need to check specific fields to see if we have a match
@@ -1894,7 +1894,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 		}
 	}
 
-	return
+	return result, objectProperties
 }
 
 // getMapping takes in a raw object, decodes it, and maps it to an existing group/kind
@@ -2916,7 +2916,7 @@ func handleKeys(
 		}
 	}
 
-	return
+	return throwSpecViolation, message, updateNeeded, statusMismatch
 }
 
 func removeFieldsForComparison(obj *unstructured.Unstructured) {
