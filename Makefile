@@ -45,6 +45,9 @@ ifeq ($(GOOS), darwin)
   SED="gsed"
 endif
 
+# Force a specific setup-envtest version; older versions of the tool don't set up the required version properly
+ENVTEST_VERSION = release-0.19
+
 include build/common/Makefile.common.mk
 
 ############################################################
