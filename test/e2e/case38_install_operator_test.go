@@ -493,7 +493,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 		})
 	})
 
-	Describe("Testing an operator policy with invalid partial defaults", func() {
+	Describe("Testing an operator policy with invalid partial defaults", Serial, func() {
 		const (
 			opPolYAML = "../resources/case38_operator_install/operator-policy-defaults-invalid-source.yaml"
 		)
@@ -1087,7 +1087,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 		})
 	})
 
-	Describe("Test health checks on OLM resources on OperatorPolicy with failed CSV", Ordered, func() {
+	Describe("Test health checks on OLM resources on OperatorPolicy with failed CSV", Ordered, Serial, func() {
 		const (
 			opPolYAML = "../resources/case38_operator_install/operator-policy-no-group-csv-fail.yaml"
 		)
@@ -1356,7 +1356,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 		})
 	})
 
-	Describe("Testing InstallPlan approval and status behavior", Ordered, func() {
+	Describe("Testing InstallPlan approval and status behavior", Ordered, Serial, func() {
 		const (
 			opPolYAML           = "../resources/case38_operator_install/operator-policy-manual-upgrades.yaml"
 			subName             = "strimzi-kafka-operator"
@@ -1897,7 +1897,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 	// These tests can run in an Ordered container as long as no other tests install the
 	// same operator at the same time. These tests will delete and recreate the operator's CRD.
 	// The relative order of the inner Describe containers does not matter.
-	Describe("Testing CRD behaviors", Ordered, func() {
+	Describe("Testing CRD behaviors", Ordered, Serial, func() {
 		Describe("Testing full installation behavior, including CRD reporting", Ordered, FlakeAttempts(2), func() {
 			const (
 				opPolYAML      = "../resources/case38_operator_install/operator-policy-no-group-one-version.yaml"
@@ -3755,7 +3755,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 	// These tests create a cluster-scoped operator.
 	// The tests can run alongside the other tests as long as no other
 	// tests fully install the same authorino operator at the same time.
-	Describe("Testing enforced operator policy with no OperatorGroup", Ordered, func() {
+	Describe("Testing enforced operator policy with no OperatorGroup", Ordered, Serial, func() {
 		Describe("Testing namespace creation", func() {
 			const (
 				opPolYAML = "../resources/case38_operator_install/operator-policy-no-group-enforce.yaml"
