@@ -23,10 +23,10 @@ jobs:
       REGISTRY: localhost:5000
     steps:
       - name: Checkout Config Policy Controller
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -44,7 +44,7 @@ jobs:
           make test-coverage
 
       - name: Upload Unit Test Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage_unit
           path: coverage_unit.out
@@ -62,7 +62,7 @@ jobs:
           KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-running-in-cluster
 
       - name: Upload Uninstall Test Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage_e2e_uninstall
           path: coverage_e2e_uninstall.out
@@ -93,10 +93,10 @@ jobs:
           - "latest"
     steps:
       - name: Checkout Config Policy Controller
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -113,7 +113,7 @@ jobs:
           KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-coverage
 
       - name: Upload E2E Test Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ matrix.kind == 'latest' }}
         with:
           name: coverage_e2e
@@ -145,10 +145,10 @@ jobs:
           - "latest"
     steps:
       - name: Checkout Config Policy Controller
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -166,7 +166,7 @@ jobs:
           KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-hosted-mode-coverage
 
       - name: Upload Hosted Mode Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ matrix.kind == 'latest' }}
         with:
           name: coverage_e2e_hosted_mode
@@ -198,10 +198,10 @@ jobs:
           - "latest"
     steps:
       - name: Checkout Config Policy Controller
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -219,7 +219,7 @@ jobs:
           KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-standalone-templates-coverage
 
       - name: Upload Hub Templates Enabled Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ matrix.kind == 'latest' }}
         with:
           name: coverage_e2e_hub_templates
@@ -244,15 +244,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Config Policy Controller
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
       - name: Download Coverage Results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           merge-multiple: true
 
@@ -268,7 +268,7 @@ jobs:
       
       - name: Upload artifacts for the sonarcloud workflow
         if: ${{ github.repository_owner == 'stolostron' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: artifacts
           path: |
