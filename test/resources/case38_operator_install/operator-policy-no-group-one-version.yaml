@@ -18,12 +18,12 @@ spec:
   severity: medium
   complianceType: musthave
   subscription:
-    channel: stable-3.10
-    name: project-quay
+    channel: stable
+    name: apicast-community-operator
     namespace: operator-policy-testns
     source: operatorhubio-catalog
     sourceNamespace: olm
-    startingCSV: quay-operator.v3.10.0
+    startingCSV: apicast-community-operator.v0.7.1
   versions:
-    - quay-operator.v3.10.0
+    - apicast-community-operator.v0.7.1
   upgradeApproval: None
