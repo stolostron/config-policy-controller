@@ -113,6 +113,13 @@ func TriggerUninstall(
 					updatedPolicy.SetAnnotations(annos)
 
 					if _, err := policyClient.Update(ctx, updatedPolicy, metav1.UpdateOptions{}); err != nil {
+						if k8serrors.IsConflict(err) || k8serrors.IsServerTimeout(err) || k8serrors.IsTimeout(err) {
+							klog.Infof("Retrying policy %v/%v uninstalling annotation due to: %s",
+								configPolicy.GetNamespace(), configPolicy.GetName(), err)
+
+							continue
+						}
+
 						klog.Errorf("Error updating policy %v/%v with an uninstalling annotation: %s",
 							configPolicy.GetNamespace(), configPolicy.GetName(), err)
 
