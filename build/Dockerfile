@@ -10,7 +10,7 @@ COPY . .
 RUN make build
 
 # Stage 2: Copy the binaries from the image builder to the base image
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.access.redhat.com/hi/core-runtime:latest-openssl-fips
 
 ENV COMPONENT=config-policy-controller
 ENV REPO_PATH=/go/src/github.com/stolostron/${COMPONENT}
