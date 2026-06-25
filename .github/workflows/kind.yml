@@ -1,0 +1,224 @@
+name: KinD tests
+
+on:
+  push:
+    branches:
+      - main
+      - release-[0-9]+.[0-9]+
+  pull_request:
+    branches:
+      - main
+      - release-[0-9]+.[0-9]+
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  preflight-tests:
+    name: Preflight Tests
+    runs-on: ubuntu-latest
+    env:
+      KIND_VERSION: latest
+      REGISTRY: localhost:5000
+    steps:
+      - name: Checkout Config Policy Controller
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Format, Lint, and Generate
+        run: |
+          go mod verify
+          make fmt
+          git diff --exit-code
+          make generate
+          make generate-operator-yaml
+          git diff --exit-code
+
+      - name: Unit Tests
+        run: |
+          make test-coverage
+
+      - name: Upload Unit Test Coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage_unit
+          path: coverage_unit.out
+
+      - name: Bootstrap K8s KinD Cluster and Deploy Controller
+        run: |
+          make kind-bootstrap-cluster-dev
+          KUBECONFIG=${PWD}/kubeconfig_managed make kind-ensure-sa
+          make build-images
+          KUBECONFIG=${PWD}/kubeconfig_managed_e2e make kind-deploy-controller-dev
+
+      - name: E2E tests that require the controller running in a cluster
+        run: |
+          export GOPATH=$(go env GOPATH)
+          KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-running-in-cluster
+
+      - name: Upload Uninstall Test Coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage_e2e_uninstall
+          path: coverage_e2e_uninstall.out
+      
+      - name: Debug
+        if: ${{ failure() }}
+        run: |
+          make e2e-debug
+
+      - name: Clean up cluster
+        if: ${{ always() }}
+        run: |
+          make kind-delete-cluster
+
+  kind-tests:
+    name: KinD tests
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: localhost:5000
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run tests on minimum and newest supported OCP Kubernetes
+        # The "minimum" tag is set in the Makefile
+        # KinD tags: https://hub.docker.com/r/kindest/node/tags
+        kind:
+          - "minimum"
+          - "latest"
+    steps:
+      - name: Checkout Config Policy Controller
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Create K8s KinD Cluster - ${{ matrix.kind }}
+        env:
+          KIND_VERSION: ${{ matrix.kind }}
+        run: |
+          make kind-bootstrap-cluster-dev
+          KUBECONFIG=${PWD}/kubeconfig_managed make kind-ensure-sa
+
+      - name: E2E Tests
+        run: |
+          export GOPATH=$(go env GOPATH)
+          KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-coverage
+
+      - name: Upload E2E Test Coverage
+        uses: actions/upload-artifact@v7
+        if: ${{ matrix.kind == 'latest' }}
+        with:
+          name: coverage_e2e
+          path: coverage_e2e.out
+
+      - name: Debug
+        if: ${{ failure() }}
+        run: |
+          make e2e-debug
+
+      - name: Clean up cluster
+        if: ${{ always() }}
+        run: |
+          make kind-delete-cluster
+
+  hosted-tests:
+    name: Hosted KinD tests
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: localhost:5000
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run tests on minimum and newest supported OCP Kubernetes
+        # The "minimum" tag is set in the Makefile
+        # KinD tags: https://hub.docker.com/r/kindest/node/tags
+        kind:
+          - "minimum"
+          - "latest"
+    steps:
+      - name: Checkout Config Policy Controller
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Create K8s KinD Clusters - ${{ matrix.kind }}
+        env:
+          KIND_VERSION: ${{ matrix.kind }}
+        run: |
+          make kind-bootstrap-cluster-dev
+          KUBECONFIG=${PWD}/kubeconfig_managed make kind-ensure-sa
+          make kind-additional-cluster
+
+      - name: E2E tests that simulate hosted mode
+        run: |
+          export GOPATH=$(go env GOPATH)
+          KUBECONFIG=${PWD}/kubeconfig_managed make e2e-test-hosted-mode-coverage
+
+      - name: Upload Hosted Mode Coverage
+        uses: actions/upload-artifact@v7
+        if: ${{ matrix.kind == 'latest' }}
+        with:
+          name: coverage_e2e_hosted_mode
+          path: coverage_e2e_hosted_mode.out
+
+      - name: Debug
+        if: ${{ failure() }}
+        run: |
+          make e2e-debug
+
+      - name: Clean up cluster
+        if: ${{ always() }}
+        run: |
+          make kind-delete-cluster
+
+  coverage-verification:
+    needs: [preflight-tests, kind-tests, hosted-tests]
+    defaults:
+      run:
+        working-directory: '.'
+    name: Test Coverage Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Config Policy Controller
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Download Coverage Results
+        uses: actions/download-artifact@v8
+        with:
+          merge-multiple: true
+
+      - name: Test Coverage Verification
+        run: |
+          make coverage-verify
+          make gosec-scan
+          
+          cat gosec.json
+          cat <<EOF > event.json
+          ${{ toJSON(github.event) }}
+          EOF
+      
+      - name: Upload artifacts for the sonarcloud workflow
+        if: ${{ github.repository_owner == 'stolostron' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: artifacts
+          path: |
+            coverage*.out
+            event.json
+            gosec.json

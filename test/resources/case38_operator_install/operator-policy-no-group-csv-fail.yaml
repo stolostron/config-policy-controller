@@ -1,0 +1,27 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: oppol-no-allnamespaces
+  annotations:
+    policy.open-cluster-management.io/parent-policy-compliance-db-id: "124"
+    policy.open-cluster-management.io/policy-compliance-db-id: "64"
+  labels:
+    policy.open-cluster-management.io/cluster-name: "managed"
+    policy.open-cluster-management.io/cluster-namespace: "managed"
+  ownerReferences:
+  - apiVersion: policy.open-cluster-management.io/v1
+    kind: Policy
+    name: parent-policy
+    uid: 12345678-90ab-cdef-1234-567890abcdef # must be replaced before creation
+spec:
+  remediationAction: enforce
+  severity: medium
+  complianceType: musthave
+  subscription:
+    channel: singlenamespace-alpha
+    name: etcd
+    namespace: operator-policy-testns
+    source: operatorhubio-catalog
+    sourceNamespace: olm
+    startingCSV: etcdoperator.v0.9.2
+  upgradeApproval: None

@@ -1,0 +1,38 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-policy-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: config-policy-controller
+  template:
+    metadata:
+      labels:
+        name: config-policy-controller
+    spec:
+      serviceAccountName: config-policy-controller
+      containers:
+        - image: quay.io/stolostron/config-policy-controller:latest
+          name: config-policy-controller
+          command:
+          - config-policy-controller
+          args:
+            - "controller"
+            - "--enable-lease=true"
+            - "--log-level=2"
+            - "--v=0"
+            - "--client-max-qps=35"
+            - "--client-burst=50"
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              value: managed
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "config-policy-controller"

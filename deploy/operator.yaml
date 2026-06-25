@@ -1,0 +1,147 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: config-policy-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: config-policy-controller
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - policy.open-cluster-management.io
+  resources:
+  - operatorpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - policy.open-cluster-management.io
+  resources:
+  - operatorpolicies/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - policy.open-cluster-management.io
+  resources:
+  - operatorpolicies/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: config-policy-controller-auth
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: config-policy-controller-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: config-policy-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: config-policy-controller
+subjects:
+- kind: ServiceAccount
+  name: config-policy-controller
+  namespace: open-cluster-management-agent-addon
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: config-policy-controller-auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: config-policy-controller-auth
+subjects:
+- kind: ServiceAccount
+  name: config-policy-controller
+  namespace: open-cluster-management-agent-addon
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: config-policy-controller-metrics-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: config-policy-controller-metrics-reader
+subjects:
+- kind: ServiceAccount
+  name: config-policy-controller
+  namespace: open-cluster-management-agent-addon
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-policy-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: config-policy-controller
+  template:
+    metadata:
+      labels:
+        name: config-policy-controller
+    spec:
+      containers:
+      - args:
+        - controller
+        - --enable-lease=true
+        - --log-level=2
+        - --v=0
+        - --client-max-qps=35
+        - --client-burst=50
+        command:
+        - config-policy-controller
+        env:
+        - name: WATCH_NAMESPACE
+          value: managed
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: config-policy-controller
+        image: quay.io/stolostron/config-policy-controller:latest
+        imagePullPolicy: Always
+        name: config-policy-controller
+      serviceAccountName: config-policy-controller

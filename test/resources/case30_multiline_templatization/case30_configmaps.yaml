@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: 30config1
+  labels:
+    testcase: "30"
+data:
+  name: testvalue1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: 30config2
+  labels:
+    testcase: "30"
+data:
+  name: testvalue2

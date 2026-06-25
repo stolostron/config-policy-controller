@@ -1,0 +1,113 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // Run `make kind-bootstrap-cluster-dev` before launching this.
+        {
+            "name": "Launch Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/main.go",
+            "args": [
+                "controller",
+                "--leader-elect=false",
+                "--log-level=3",
+                "--v=5",
+                "--enable-operator-policy=true",
+                "--evaluation-backoff=1",
+            ],
+            "env": {
+                "WATCH_NAMESPACE": "managed",
+                "KUBECONFIG": "${workspaceFolder}/kubeconfig_managed",
+            }
+        },
+        // Run `make kind-bootstrap-cluster-dev` and `make kind-additional-cluster` before launching this.
+        {
+            "name": "Launch Package (Hosted Mode)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/main.go",
+            "args": [
+                "controller",
+                "--leader-elect=false",
+                "--log-level=3",
+                "--v=5",
+                "--enable-operator-policy=true",
+                "--target-kubeconfig-path=${workspaceFolder}/kubeconfig_managed2_e2e",
+                "--evaluation-backoff=1",
+            ],
+            "env": {
+                "WATCH_NAMESPACE": "managed",
+                "KUBECONFIG": "${workspaceFolder}/kubeconfig_managed",
+            }
+        },
+        // Set FDescribe or FIt on the test to debug. Then set the desired breakpoint.
+        {
+            "name": "Launch Test Function (instructions in launch.json)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/test/e2e/e2e_suite_test.go",
+            "args": [
+                "-ginkgo.debug",
+                "-ginkgo.v",
+            ],
+            "env": {
+                "KUBECONFIG": "${workspaceFolder}/kubeconfig_managed_e2e",
+            }
+        },
+		// Set FDescribe or FIt on the test to debug. Then set the desired breakpoint.
+		{
+			"name": "Launch Hosted Test Function",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/test/e2e/e2e_suite_test.go",
+			"args": [
+				"-ginkgo.debug",
+				"-ginkgo.v",
+				"-is_hosted=true"
+			],
+			"env": {
+				"KUBECONFIG": "${workspaceFolder}/kubeconfig_managed_e2e",
+				"TARGET_KUBECONFIG_PATH": "${workspaceFolder}/kubeconfig_managed2_e2e",
+			}
+		},
+        // Set the correct path to the governance-policy-framework repo directory in the env section.
+        {
+            "name": "Launch Package (Framework E2E) (instructions in launch.json)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/main.go",
+            "args": [
+                "controller",
+                "--leader-elect=false",
+                "--log-level=3",
+                "--v=5",
+                "--enable-operator-policy=true",
+            ],
+            "env": {
+                "WATCH_NAMESPACE": "managed",
+                "HUB_CONFIG": "${userHome}/git/governance-policy-framework/kubeconfig_hub",
+                "MANAGED_CONFIG": "${userHome}/git/governance-policy-framework/kubeconfig_managed",
+                "KUBECONFIG": "${userHome}/git/governance-policy-framework/kubeconfig_managed",
+            }
+        },
+        // Set inputs in the args section.
+        {
+            "name": "Launch dryrun (instructions in launch.json)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/dryrun/main.go",
+            "console": "integratedTerminal",
+            "args": [
+                "-p",
+                "${workspaceFolder}/pkg/dryrun/testdata/test_basic_noncompliant/policy.yaml",
+                "${workspaceFolder}/pkg/dryrun/testdata/test_basic_noncompliant/input_1.yaml",
+            ]
+        }
+    ]
+}
