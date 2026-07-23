@@ -54,7 +54,7 @@ func (d *DryRunner) dryRun(cmd *cobra.Command, args []string) error {
 	// or if an unknown flag was passed.
 	cmd.SilenceUsage = true
 
-	cfgPolicy, err := d.readPolicy(cmd)
+	cfgPolicies, err := d.readPolicy(cmd)
 	if err != nil {
 		return fmt.Errorf("unable to read input policy: %w", err)
 	}
@@ -66,60 +66,77 @@ func (d *DryRunner) dryRun(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithCancel(cmd.Context())
 	defer cancel()
 
-	rec, err := d.setupReconciler(ctx, cfgPolicy)
-	if err != nil {
-		return fmt.Errorf("unable to setup the dryrun reconciler: %w", err)
-	}
+	inputObjects := make([]*unstructured.Unstructured, 0)
 
 	if !d.fromCluster {
-		inputObjects, err := d.readInputResources(cmd, args)
+		inputObjects, err = d.readInputResources(cmd, args)
 		if err != nil {
 			return fmt.Errorf("unable to read input resources: %w", err)
 		}
+	}
 
-		err = d.applyInputResources(ctx, rec, inputObjects)
+	for i, cfgPolicy := range cfgPolicies {
+		// Only print the ConfigurationPolicy Name header if there are
+		// multiple ConfigurationPolicy to print
+		if len(cfgPolicies) > 1 {
+			cmd.Println(applyColor(cfgPolicy.GetName(), Cyan, d.noColors),
+				" -----------------------------------------------")
+		}
+
+		rec, err := d.setupReconciler(ctx, cfgPolicy)
 		if err != nil {
-			return fmt.Errorf("unable to apply input resources: %w", err)
-		}
-	}
-
-	cfgPolicyNN := types.NamespacedName{
-		Name:      cfgPolicy.GetName(),
-		Namespace: cfgPolicy.GetNamespace(),
-	}
-
-	if _, err := rec.Reconcile(ctx, runtime.Request{NamespacedName: cfgPolicyNN}); err != nil {
-		return fmt.Errorf("unable to complete the dryrun reconcile: %w", err)
-	}
-
-	if err := rec.Get(ctx, cfgPolicyNN, cfgPolicy); err != nil {
-		return fmt.Errorf("unable to get the resulting policy state: %w", err)
-	}
-
-	if d.desiredStatus != "" {
-		if err := d.compareStatus(cmd, cfgPolicy.Status); err != nil {
-			return fmt.Errorf("unable to compare desired status: %w", err)
+			return fmt.Errorf("unable to setup the dryrun reconciler: %w", err)
 		}
 
-		cmd.Print("\n")
-	}
-
-	if d.statusPath != "" {
-		if err := d.saveStatus(cfgPolicy.Status); err != nil {
-			return fmt.Errorf("unable to save the resulting policy state: %w", err)
+		if !d.fromCluster {
+			err = d.applyInputResources(ctx, rec, inputObjects)
+			if err != nil {
+				return fmt.Errorf("unable to apply input resources: %w", err)
+			}
 		}
-	}
 
-	if d.printDiffs {
-		d.outputDiffs(cmd, cfgPolicy.Status)
-	}
+		cfgPolicyNN := types.NamespacedName{
+			Name:      cfgPolicy.GetName(),
+			Namespace: cfgPolicy.GetNamespace(),
+		}
 
-	if err := d.saveOrPrintComplianceMessages(ctx, cmd, rec.Client, cfgPolicy.Namespace); err != nil {
-		return fmt.Errorf("unable to save or print the compliance messages: %w", err)
-	}
+		if _, err := rec.Reconcile(ctx, runtime.Request{NamespacedName: cfgPolicyNN}); err != nil {
+			return fmt.Errorf("unable to complete the dryrun reconcile: %w", err)
+		}
 
-	if cfgPolicy.Status.ComplianceState != policyv1.Compliant {
-		return ErrNonCompliant
+		if err := rec.Get(ctx, cfgPolicyNN, cfgPolicy); err != nil {
+			return fmt.Errorf("unable to get the resulting policy state: %w", err)
+		}
+
+		if d.desiredStatus != "" {
+			if err := d.compareStatus(cmd, cfgPolicy.Status); err != nil {
+				return fmt.Errorf("unable to compare desired status: %w", err)
+			}
+
+			cmd.Print("\n")
+		}
+
+		if d.statusPath != "" {
+			if err := d.saveStatus(cfgPolicy.Status); err != nil {
+				return fmt.Errorf("unable to save the resulting policy state: %w", err)
+			}
+		}
+
+		if d.printDiffs {
+			d.outputDiffs(cmd, cfgPolicy.Status)
+		}
+
+		if err := d.saveOrPrintComplianceMessages(ctx, cmd, rec.Client, cfgPolicy.Namespace); err != nil {
+			return fmt.Errorf("unable to save or print the compliance messages: %w", err)
+		}
+
+		if cfgPolicy.Status.ComplianceState != policyv1.Compliant {
+			return ErrNonCompliant
+		}
+
+		if i < len(cfgPolicies)-1 {
+			cmd.Print("\n")
+		}
 	}
 
 	return nil
@@ -130,7 +147,7 @@ const parentName string = "cfgpol-dryrun-parent"
 // readPolicy reads the policy file specified in the command flags, ensures that it is either a
 // ConfigurationPolicy or a Policy with exactly one ConfigurationPolicy template, and returns that
 // ConfigurationPolicy object after overriding the remediationAction to `inform`.
-func (d *DryRunner) readPolicy(cmd *cobra.Command) (*policyv1.ConfigurationPolicy, error) {
+func (d *DryRunner) readPolicy(cmd *cobra.Command) ([]*policyv1.ConfigurationPolicy, error) {
 	reader, err := os.Open(d.policyPath)
 	if err != nil {
 		return nil, err
@@ -152,13 +169,27 @@ func (d *DryRunner) readPolicy(cmd *cobra.Command) (*policyv1.ConfigurationPolic
 			"'policy.open-cluster-management.io/v1'", unstruct.GetAPIVersion())
 	}
 
-	cfgpol := policyv1.ConfigurationPolicy{}
+	cfgpols := []*policyv1.ConfigurationPolicy{}
 
 	switch unstruct.GetKind() {
 	case "ConfigurationPolicy":
+		cfgpol := policyv1.ConfigurationPolicy{}
+
 		if err := k8syaml.UnmarshalStrict(policyBytes, &cfgpol); err != nil {
 			return nil, fmt.Errorf("could not unmarshal input to a ConfigurationPolicy: %w", err)
 		}
+
+		cfgpol.Spec.RemediationAction = policyv1.Inform
+		cfgpol.Spec.EvaluationInterval = policyv1.EvaluationInterval{
+			Compliant:    "10s",
+			NonCompliant: "10s",
+		}
+
+		cfgpol.OwnerReferences = []metav1.OwnerReference{{
+			Name: parentName,
+		}}
+
+		cfgpols = append(cfgpols, &cfgpol)
 	case "Policy":
 		tmpls, found, err := unstructured.NestedSlice(unstruct.Object, "spec", "policy-templates")
 		if err != nil {
@@ -168,8 +199,6 @@ func (d *DryRunner) readPolicy(cmd *cobra.Command) (*policyv1.ConfigurationPolic
 		if !found {
 			return nil, errors.New("invalid input Policy: no policy-templates found")
 		}
-
-		cfgPolFound := false
 
 		for i, tmpl := range tmpls {
 			tmplMap, ok := tmpl.(map[string]any)
@@ -191,44 +220,37 @@ func (d *DryRunner) readPolicy(cmd *cobra.Command) (*policyv1.ConfigurationPolic
 				continue
 			}
 
-			if cfgPolFound {
-				cmd.Println("Ignoring additional ConfigurationPolicy in input policy")
-
-				continue
-			}
-
-			cfgPolFound = true
-
 			cfgpolBytes, err := json.Marshal(objDef)
 			if err != nil {
 				return nil, errors.New("unable to marshal policy template back to JSON")
 			}
 
+			cfgpol := policyv1.ConfigurationPolicy{}
+
 			if err := k8syaml.UnmarshalStrict(cfgpolBytes, &cfgpol); err != nil {
 				return nil, fmt.Errorf("could not unmarshal input policy template [%v] to a "+
 					"ConfigurationPolicy: %w", i, err)
 			}
+
+			cfgpol.Spec.RemediationAction = policyv1.Inform
+			cfgpol.Spec.EvaluationInterval = policyv1.EvaluationInterval{
+				Compliant:    "10s",
+				NonCompliant: "10s",
+			}
+
+			cfgpol.OwnerReferences = []metav1.OwnerReference{{
+				Name: parentName,
+			}}
+
+			cfgpols = append(cfgpols, &cfgpol)
 		}
 
-		if !cfgPolFound {
-			return nil, errors.New("invalid input Policy: it must contain a ConfigurationPolicy")
-		}
 	default:
 		return nil, fmt.Errorf("unsupported input kind: %v, must be 'Policy' or 'ConfigurationPolicy'",
 			unstruct.GetKind())
 	}
 
-	cfgpol.Spec.RemediationAction = policyv1.Inform
-	cfgpol.Spec.EvaluationInterval = policyv1.EvaluationInterval{
-		Compliant:    "10s",
-		NonCompliant: "10s",
-	}
-
-	cfgpol.OwnerReferences = []metav1.OwnerReference{{
-		Name: parentName,
-	}}
-
-	return &cfgpol, nil
+	return cfgpols, nil
 }
 
 // readInputResources takes stdin and any paths given as "positional" arguments,
