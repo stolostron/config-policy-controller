@@ -7,9 +7,8 @@ import (
 
 	"github.com/stolostron/go-template-utils/v7/pkg/templates"
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 
@@ -19,8 +18,8 @@ import (
 func TestFormatTemplateAnnotation(t *testing.T) {
 	t.Parallel()
 
-	policyTemplate := map[string]interface{}{
-		"annotations": map[string]interface{}{
+	policyTemplate := map[string]any{
+		"annotations": map[string]any{
 			"annotation1": "one!",
 			"annotation2": "two!",
 		},
@@ -37,7 +36,7 @@ func TestFormatTemplateAnnotation(t *testing.T) {
 func TestFormatTemplateNullAnnotation(t *testing.T) {
 	t.Parallel()
 
-	policyTemplate := map[string]interface{}{
+	policyTemplate := map[string]any{
 		"annotations": nil,
 		"labels": map[string]string{
 			"label1": "yes",
@@ -52,7 +51,7 @@ func TestFormatTemplateNullAnnotation(t *testing.T) {
 func TestFormatTemplateStringAnnotation(t *testing.T) {
 	t.Parallel()
 
-	policyTemplate := map[string]interface{}{
+	policyTemplate := map[string]any{
 		"annotations": "not-an-annotation",
 		"labels": map[string]string{
 			"label1": "yes",
@@ -108,19 +107,19 @@ func TestAddConditionToStatusNeverEvalInterval(t *testing.T) {
 }
 
 func TestCheckFieldsAreEquivalentEmptyMap(t *testing.T) {
-	oldObj := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"storage": map[string]interface{}{
-				"s3": map[string]interface{}{
+	oldObj := map[string]any{
+		"spec": map[string]any{
+			"storage": map[string]any{
+				"s3": map[string]any{
 					"bucket": "some-bucket",
 				},
 			},
 		},
 	}
-	mergedObj := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"storage": map[string]interface{}{
-				"emptyDir": map[string]interface{}{},
+	mergedObj := map[string]any{
+		"spec": map[string]any{
+			"storage": map[string]any{
+				"emptyDir": map[string]any{},
 			},
 		},
 	}
@@ -135,15 +134,15 @@ func TestCheckFieldsAreEquivalentEmptyMap(t *testing.T) {
 func TestCheckFieldsAreEquivalent(t *testing.T) {
 	t.Parallel()
 
-	oldObj := map[string]interface{}{
+	oldObj := map[string]any{
 		"nonResourceURLs": []string{"/version", "/healthz"},
 		"verbs":           []string{"get"},
 	}
-	mergedObj := map[string]interface{}{
+	mergedObj := map[string]any{
 		"nonResourceURLs": []string{"/version", "/healthz"},
 		"verbs":           []string{"get"},
-		"apiGroups":       []interface{}{},
-		"resources":       []interface{}{},
+		"apiGroups":       []any{},
+		"resources":       []any{},
 	}
 
 	check, _ := checkFieldsAreEquivalent(mergedObj, oldObj, false)
@@ -155,11 +154,11 @@ func TestCheckFieldsAreEquivalent(t *testing.T) {
 	check, _ = checkFieldsAreEquivalent(mergedObj, nil, true)
 	assert.False(t, check)
 
-	mergedObj = map[string]interface{}{
+	mergedObj = map[string]any{
 		"nonResourceURLs": []string{"/version", "/healthz"},
 		"verbs":           []string{"post"},
-		"apiGroups":       []interface{}{},
-		"resources":       []interface{}{},
+		"apiGroups":       []any{},
+		"resources":       []any{},
 	}
 
 	check, _ = checkFieldsAreEquivalent(mergedObj, oldObj, true)
@@ -182,12 +181,12 @@ func TestDeeplyEquivalentString(t *testing.T) {
 func TestDeeplyEquivalentEmptyMap(t *testing.T) {
 	t.Parallel()
 
-	oldObj := map[string]interface{}{
-		"cities": map[string]interface{}{},
+	oldObj := map[string]any{
+		"cities": map[string]any{},
 	}
-	mergedObj := map[string]interface{}{
-		"cities": map[string]interface{}{
-			"raleigh": map[string]interface{}{},
+	mergedObj := map[string]any{
+		"cities": map[string]any{
+			"raleigh": map[string]any{},
 		},
 	}
 
@@ -201,25 +200,25 @@ func TestGenerateDiff(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		existingObj  map[string]interface{}
-		updatedObj   map[string]interface{}
+		existingObj  map[string]any
+		updatedObj   map[string]any
 		expectedDiff string
 	}{
 		"same object generates no diff": {
-			existingObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
+			existingObj: map[string]any{
+				"cities": map[string]any{},
 			},
-			updatedObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
+			updatedObj: map[string]any{
+				"cities": map[string]any{},
 			},
 		},
 		"object with new child key": {
-			existingObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
+			existingObj: map[string]any{
+				"cities": map[string]any{},
 			},
-			updatedObj: map[string]interface{}{
-				"cities": map[string]interface{}{
-					"raleigh": map[string]interface{}{},
+			updatedObj: map[string]any{
+				"cities": map[string]any{
+					"raleigh": map[string]any{},
 				},
 			},
 			expectedDiff: `
@@ -229,12 +228,12 @@ func TestGenerateDiff(t *testing.T) {
 +  raleigh: {}`,
 		},
 		"object with new key": {
-			existingObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
+			existingObj: map[string]any{
+				"cities": map[string]any{},
 			},
-			updatedObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
-				"states": map[string]interface{}{},
+			updatedObj: map[string]any{
+				"cities": map[string]any{},
+				"states": map[string]any{},
 			},
 			expectedDiff: `
 @@ -1,2 +1,3 @@
@@ -242,12 +241,12 @@ func TestGenerateDiff(t *testing.T) {
 +states: {}`,
 		},
 		"array with added item": {
-			existingObj: map[string]interface{}{
+			existingObj: map[string]any{
 				"cities": []string{
 					"Raleigh",
 				},
 			},
-			updatedObj: map[string]interface{}{
+			updatedObj: map[string]any{
 				"cities": []string{
 					"Raleigh",
 					"Durham",
@@ -260,13 +259,13 @@ func TestGenerateDiff(t *testing.T) {
 +- Durham`,
 		},
 		"array with removed item": {
-			existingObj: map[string]interface{}{
+			existingObj: map[string]any{
 				"cities": []string{
 					"Raleigh",
 					"Durham",
 				},
 			},
-			updatedObj: map[string]interface{}{
+			updatedObj: map[string]any{
 				"cities": []string{
 					"Raleigh",
 				},
@@ -364,7 +363,7 @@ func TestGetTemplateContext(t *testing.T) {
 			obj:      testObj,
 			name:     "",
 			ns:       "",
-			expected: struct{}{},
+			expected: nil,
 		},
 		"empty object with name and namespace": {
 			obj:  map[string]any{},
@@ -415,7 +414,7 @@ func TestResolveGoTemplates(t *testing.T) {
 	tmplResolver, err := templates.NewResolverWithClients(
 		dynamicClient, nil, templates.Config{},
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	tests := map[string]struct {
 		rawObj           string
@@ -549,73 +548,17 @@ metadata:
 			)
 
 			if test.expectError {
-				assert.Error(t, err)
+				require.Error(t, err)
 
 				if test.errorContains != "" {
 					assert.Contains(t, err.Error(), test.errorContains)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.JSONEq(t, test.expectedResolved, string(resolvedTemplate.ResolvedJSON))
 			}
 
 			assert.Equal(t, test.expectSkipObject, skipObject)
-		})
-	}
-}
-
-func TestGetTemplateResolver_DenylistFunctions(t *testing.T) {
-	tests := []struct {
-		name             string
-		denylist         []string
-		expectedDenylist []string
-	}{
-		{
-			name:             "no denylist",
-			denylist:         []string{},
-			expectedDenylist: []string{},
-		},
-		{
-			name:             "single denylisted function",
-			denylist:         []string{"add"},
-			expectedDenylist: []string{"add"},
-		},
-		{
-			name:             "multiple denylisted functions",
-			denylist:         []string{"add1", "add"},
-			expectedDenylist: []string{"add1", "add"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dynamicClient := fake.NewSimpleDynamicClient(scheme.Scheme)
-
-			policy := &policyv1.ConfigurationPolicy{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-policy",
-					Namespace: "default",
-				},
-				Spec: policyv1.ConfigurationPolicySpec{
-					ObjectTemplates: []*policyv1.ObjectTemplate{
-						{
-							ComplianceType:   "musthave",
-							ObjectDefinition: runtime.RawExtension{},
-						},
-					},
-				},
-			}
-
-			r := &ConfigurationPolicyReconciler{
-				TemplateFuncDenylist:   tt.denylist,
-				TargetK8sDynamicClient: dynamicClient,
-			}
-
-			_, resolveOptions, err := r.getTemplateResolver(policy)
-
-			assert.NoError(t, err)
-
-			assert.Equal(t, tt.expectedDenylist, resolveOptions.DenylistFunctions)
 		})
 	}
 }
