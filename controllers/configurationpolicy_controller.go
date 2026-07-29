@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -228,7 +229,7 @@ func (r *ConfigurationPolicyReconciler) Reconcile(ctx context.Context, request c
 
 	policy := &policyv1.ConfigurationPolicy{}
 
-	cleanup, err := r.cleanupImmediately()
+	cleanup, err := r.cleanupImmediately(ctx)
 	if !cleanup && err != nil {
 		log.Error(err, "Failed to determine if it's time to cleanup immediately")
 
@@ -272,7 +273,7 @@ func (r *ConfigurationPolicyReconciler) Reconcile(ctx context.Context, request c
 		nonCompliantWithWatch := policy.Status.ComplianceState != policyv1.Compliant &&
 			policy.Spec.EvaluationInterval.IsWatchForNonCompliant()
 
-		if !(compliantWithWatch || nonCompliantWithWatch) && !cleanup {
+		if (!compliantWithWatch && !nonCompliantWithWatch) && !cleanup {
 			err := r.DynamicWatcher.RemoveWatcher(policy.ObjectIdentifier())
 			if err != nil {
 				log.Error(err, "Failed to remove any watches related to this ConfigurationPolicy. Will ignore.")
@@ -296,13 +297,13 @@ func (r *ConfigurationPolicyReconciler) Reconcile(ctx context.Context, request c
 				r.recordInfoEvent(policy, true)
 			}
 
-			r.addForUpdate(policy, statusChanged)
+			r.addForUpdate(ctx, policy, statusChanged)
 
 			return reconcile.Result{}, err
 		}
 	}
 
-	if err := r.manageDeletionFinalizer(policy, cleanup); err != nil {
+	if err := r.manageDeletionFinalizer(ctx, policy, cleanup); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -318,7 +319,7 @@ func (r *ConfigurationPolicyReconciler) Reconcile(ctx context.Context, request c
 
 	before := time.Now().UTC()
 
-	handleErr := r.handleObjectTemplates(policy)
+	handleErr := r.handleObjectTemplates(ctx, policy)
 
 	duration := time.Now().UTC().Sub(before)
 	seconds := float64(duration) / float64(time.Second)
@@ -383,7 +384,7 @@ func (r *ConfigurationPolicyReconciler) Reconcile(ctx context.Context, request c
 	// policy.
 	removeWatcherErr := r.DynamicWatcher.RemoveWatcher(policy.ObjectIdentifier())
 	if removeWatcherErr != nil {
-		log.Error(err, "Failed to remove any watches related to this ConfigurationPolicy. Will ignore.")
+		log.Error(removeWatcherErr, "Failed to remove any watches related to this ConfigurationPolicy. Will ignore.")
 	}
 
 	if getIntervalErr != nil {
@@ -448,7 +449,7 @@ func (r *ConfigurationPolicyReconciler) shouldEvaluatePolicy(
 		}
 	}
 
-	if policy.ObjectMeta.DeletionTimestamp != nil {
+	if policy.DeletionTimestamp != nil {
 		log.V(1).Info("The policy has been deleted and is waiting for object cleanup. Will evaluate it now.")
 
 		return true, 0
@@ -555,6 +556,7 @@ func (r *ConfigurationPolicyReconciler) shouldEvaluatePolicy(
 // `newRelated` list, compared to what is currently in the policy. It does not delete anything in
 // inform mode, and it obeys the pruneObjectBehavior setting.
 func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(
+	ctx context.Context,
 	plc *policyv1.ConfigurationPolicy, newRelated []policyv1.RelatedObject, usingWatch bool,
 ) []string {
 	deletionFailures := []string{}
@@ -564,8 +566,8 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(
 	}
 
 	// PruneObjectBehavior = none case fall in here
-	if !(string(plc.Spec.PruneObjectBehavior) == "DeleteAll" ||
-		string(plc.Spec.PruneObjectBehavior) == "DeleteIfCreated") {
+	if string(plc.Spec.PruneObjectBehavior) != "DeleteAll" &&
+		string(plc.Spec.PruneObjectBehavior) != "DeleteIfCreated" {
 		return deletionFailures
 	}
 
@@ -613,7 +615,7 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(
 			)
 
 			if errors.Is(err, depclient.ErrResourceUnwatchable) {
-				existing, err = getObject(
+				existing, err = getObject(ctx,
 					object.Object.Metadata.Namespace,
 					object.Object.Metadata.Name,
 					scopedGVR,
@@ -621,7 +623,7 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(
 				)
 			}
 		} else {
-			existing, err = getObject(
+			existing, err = getObject(ctx,
 				object.Object.Metadata.Namespace,
 				object.Object.Metadata.Name,
 				scopedGVR,
@@ -678,7 +680,7 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(
 				res = r.TargetK8sDynamicClient.Resource(scopedGVR.GroupVersionResource)
 			}
 
-			if completed, err := deleteObject(res, object.Object.Metadata.Name,
+			if completed, err := deleteObject(ctx, res, object.Object.Metadata.Name,
 				object.Object.Metadata.Namespace); !completed {
 				deletionFailures = append(deletionFailures, gvk.String()+fmt.Sprintf(` "%s" in namespace %s`,
 					object.Object.Metadata.Name, object.Object.Metadata.Namespace))
@@ -687,7 +689,7 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(
 			} else {
 				// Don't use the cache here to avoid race conditions since this is to verify that the deletion was
 				// successful. The cache is dependent on the watch updating.
-				obj, err := getObject(
+				obj, err := getObject(ctx,
 					object.Object.Metadata.Namespace,
 					object.Object.Metadata.Name,
 					scopedGVR,
@@ -723,9 +725,9 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(
 // cleanupImmediately returns true when the cluster is in a state where configurationpolicies
 // should be removed as soon as possible, ignoring the pruneObjectBehavior of the policies. This
 // is the case when the controller is being uninstalled or the CRD is being deleted.
-func (r *ConfigurationPolicyReconciler) cleanupImmediately() (cleanup bool, err error) {
-	beingUninstalled, beingUninstalledErr := IsBeingUninstalled(r.Client)
-	crdDeleting, defErr := r.definitionIsDeleting()
+func (r *ConfigurationPolicyReconciler) cleanupImmediately(ctx context.Context) (cleanup bool, err error) {
+	beingUninstalled, beingUninstalledErr := IsBeingUninstalled(ctx, r.Client)
+	crdDeleting, defErr := r.definitionIsDeleting(ctx)
 
 	switch {
 	case beingUninstalledErr != nil && defErr != nil:
@@ -739,13 +741,13 @@ func (r *ConfigurationPolicyReconciler) cleanupImmediately() (cleanup bool, err 
 	return (beingUninstalled || crdDeleting), err
 }
 
-func (r *ConfigurationPolicyReconciler) definitionIsDeleting() (bool, error) {
+func (r *ConfigurationPolicyReconciler) definitionIsDeleting(ctx context.Context) (bool, error) {
 	key := types.NamespacedName{Name: CRDName}
 	v1def := extensionsv1.CustomResourceDefinition{}
 
-	err := r.Get(context.TODO(), key, &v1def)
+	err := r.Get(ctx, key, &v1def)
 	if err == nil {
-		return (v1def.ObjectMeta.DeletionTimestamp != nil), nil
+		return (v1def.DeletionTimestamp != nil), nil
 	}
 
 	if k8serrors.IsNotFound(err) {
@@ -786,6 +788,7 @@ func getFormattedTemplateErr(err error) (complianceMsg string, formattedErr erro
 }
 
 func (r *ConfigurationPolicyReconciler) resolveObjectTemplatesRaw(
+	ctx context.Context,
 	plc *policyv1.ConfigurationPolicy,
 	tmplResolver *templates.TemplateResolver,
 	resolveOptions *templates.ResolveOptions,
@@ -809,7 +812,7 @@ func (r *ConfigurationPolicyReconciler) resolveObjectTemplatesRaw(
 
 			// Note: don't clean up child objects when there is a template violation
 
-			r.addForUpdate(plc, statusChanged)
+			r.addForUpdate(ctx, plc, statusChanged)
 
 			return fmt.Errorf("%w: failed parsing object-templates-raw YAML: %w", ErrPolicyInvalid, err)
 		}
@@ -840,7 +843,7 @@ func (r *ConfigurationPolicyReconciler) resolveObjectTemplatesRaw(
 
 		// Note: don't clean up child objects when there is a template violation
 
-		r.addForUpdate(plc, statusChanged)
+		r.addForUpdate(ctx, plc, statusChanged)
 
 		return formattedErr
 	}
@@ -861,7 +864,9 @@ func (r *ConfigurationPolicyReconciler) resolveObjectTemplatesRaw(
 	return nil
 }
 
-func (r *ConfigurationPolicyReconciler) getTemplateResolver(plc *policyv1.ConfigurationPolicy) (
+func (r *ConfigurationPolicyReconciler) getTemplateResolver(
+	ctx context.Context, plc *policyv1.ConfigurationPolicy,
+) (
 	*templates.TemplateResolver,
 	*templates.ResolveOptions,
 	error,
@@ -898,7 +903,7 @@ func (r *ConfigurationPolicyReconciler) getTemplateResolver(plc *policyv1.Config
 		var encryptionConfig templates.EncryptionConfig
 		var err error
 
-		encryptionConfig, err = r.getEncryptionConfig(context.TODO(), plc)
+		encryptionConfig, err = r.getEncryptionConfig(ctx, plc)
 		if err != nil {
 			statusChanged := addConditionToStatus(
 				plc, -1, false, "Template encryption configuration error", err.Error(),
@@ -911,7 +916,7 @@ func (r *ConfigurationPolicyReconciler) getTemplateResolver(plc *policyv1.Config
 
 			// Note: don't clean up child objects when there is a template violation
 
-			r.addForUpdate(plc, parentStatusUpdateNeeded)
+			r.addForUpdate(ctx, plc, parentStatusUpdateNeeded)
 
 			return tmplResolver, resolveOptions, err
 		}
@@ -924,11 +929,13 @@ func (r *ConfigurationPolicyReconciler) getTemplateResolver(plc *policyv1.Config
 
 // handleObjectTemplates iterates through all policy templates in a given policy and processes them. If fields are
 // missing on the policy (excluding objectDefinition), an error of type ErrPolicyInvalid is returned.
-func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc *policyv1.ConfigurationPolicy) error {
+func (r *ConfigurationPolicyReconciler) handleObjectTemplates(
+	ctx context.Context, plc *policyv1.ConfigurationPolicy,
+) error {
 	log := log.WithValues("policy", plc.GetName())
 	log.V(1).Info("Processing object templates")
 
-	if err := r.validateConfigPolicy(plc); err != nil {
+	if err := r.validateConfigPolicy(ctx, plc); err != nil {
 		return err
 	}
 
@@ -956,8 +963,8 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc *policyv1.Conf
 		}()
 	}
 
-	if plc.ObjectMeta.DeletionTimestamp != nil {
-		return r.handleDeletion(plc, usingWatch)
+	if plc.DeletionTimestamp != nil {
+		return r.handleDeletion(ctx, plc, usingWatch)
 	}
 
 	disableTemplates := false
@@ -982,13 +989,13 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc *policyv1.Conf
 	if !disableTemplates {
 		var err error
 
-		tmplResolver, resolveOptions, err = r.getTemplateResolver(plc)
+		tmplResolver, resolveOptions, err = r.getTemplateResolver(ctx, plc)
 		if err != nil {
 			return err
 		}
 
 		if plc.Spec.ObjectTemplatesRaw != "" {
-			err := r.resolveObjectTemplatesRaw(plc, tmplResolver, resolveOptions)
+			err := r.resolveObjectTemplatesRaw(ctx, plc, tmplResolver, resolveOptions)
 			if err != nil {
 				return err
 			}
@@ -1019,12 +1026,12 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc *policyv1.Conf
 
 		updatedRelated := r.updatedRelatedObjects(plc, relatedObjects)
 		if !gocmp.Equal(updatedRelated, plc.Status.RelatedObjects) {
-			r.cleanUpChildObjects(plc, updatedRelated, usingWatch)
+			r.cleanUpChildObjects(ctx, plc, updatedRelated, usingWatch)
 
 			plc.Status.RelatedObjects = updatedRelated
 		}
 
-		r.addForUpdate(plc, statusUpdateNeeded)
+		r.addForUpdate(ctx, plc, statusUpdateNeeded)
 
 		return nil
 	}
@@ -1042,7 +1049,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc *policyv1.Conf
 		}
 
 		desiredObjects, scopedGVR, determinedRelatedObjects, errEvent, err := r.determineDesiredObjects(
-			plc, index, objectT, resolverToUse, resolveOptions,
+			ctx, plc, index, objectT, resolverToUse, resolveOptions,
 		)
 
 		// Merge the related objects returned from determineDesiredObjects into the outer relatedObjects
@@ -1074,7 +1081,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc *policyv1.Conf
 			log.V(1).Info("Handling the object template for the relevant namespace",
 				"namespace", ns, "desiredName", name, "index", index)
 
-			related, result := r.handleObjects(objectT, desiredObj, index, plc, *scopedGVR, usingWatch)
+			related, result := r.handleObjects(ctx, objectT, desiredObj, index, plc, *scopedGVR, usingWatch)
 
 			if result.apiErr != nil {
 				errs = append(errs, result.apiErr)
@@ -1131,7 +1138,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc *policyv1.Conf
 
 				log.Info("Sending an update policy status event for the object template",
 					"policy", plc.Name, "index", index)
-				r.addForUpdate(plc, true)
+				r.addForUpdate(ctx, plc, true)
 			}
 		}
 	}
@@ -1139,20 +1146,22 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(plc *policyv1.Conf
 	updatedRelated := r.updatedRelatedObjects(plc, relatedObjects)
 	if !gocmp.Equal(updatedRelated, plc.Status.RelatedObjects) {
 		if !skipCleanupChildObjects {
-			r.cleanUpChildObjects(plc, updatedRelated, usingWatch)
+			r.cleanUpChildObjects(ctx, plc, updatedRelated, usingWatch)
 		}
 
 		plc.Status.RelatedObjects = updatedRelated
 	}
 
-	r.addForUpdate(plc, parentStatusUpdateNeeded)
+	r.addForUpdate(ctx, plc, parentStatusUpdateNeeded)
 
 	return apimachineryerrors.NewAggregate(errs)
 }
 
 // validateConfigPolicy returns an error and increments the "invalid-template" error counter metric
 // if the configuration is invalid.
-func (r *ConfigurationPolicyReconciler) validateConfigPolicy(plc *policyv1.ConfigurationPolicy) error {
+func (r *ConfigurationPolicyReconciler) validateConfigPolicy(
+	ctx context.Context, plc *policyv1.ConfigurationPolicy,
+) error {
 	log := log.WithValues("policy", plc.GetName())
 
 	var invalidMessage string
@@ -1172,7 +1181,7 @@ func (r *ConfigurationPolicyReconciler) validateConfigPolicy(plc *policyv1.Confi
 
 	// Note: don't change related objects while the policy is invalid
 
-	r.addForUpdate(plc, statusChanged)
+	r.addForUpdate(ctx, plc, statusChanged)
 
 	parent := ""
 	if len(plc.OwnerReferences) > 0 {
@@ -1187,13 +1196,13 @@ func (r *ConfigurationPolicyReconciler) validateConfigPolicy(plc *policyv1.Confi
 // manageDeletionFinalizer sets or removes the finalizer on the ConfigurationPolicy based on the
 // pruneObjectBehavior setting and current `cleanup` state.
 func (r *ConfigurationPolicyReconciler) manageDeletionFinalizer(
-	plc *policyv1.ConfigurationPolicy, cleanup bool,
+	ctx context.Context, plc *policyv1.ConfigurationPolicy, cleanup bool,
 ) (err error) {
 	if cleanup {
 		if objHasFinalizer(plc, pruneObjectFinalizer) {
 			patch := removeObjFinalizerPatch(plc, pruneObjectFinalizer)
 
-			err = r.Patch(context.TODO(), plc, client.RawPatch(types.JSONPatchType, patch))
+			err = r.Patch(ctx, plc, client.RawPatch(types.JSONPatchType, patch))
 			if err != nil {
 				log.Error(err, "Error removing finalizer for configuration policy")
 
@@ -1213,7 +1222,7 @@ func (r *ConfigurationPolicyReconciler) manageDeletionFinalizer(
 				patch = `[{"op":"add","path":"/metadata/finalizers","value":["` + pruneObjectFinalizer + `"]}]`
 			}
 
-			err := r.Patch(context.TODO(), plc, client.RawPatch(types.JSONPatchType, []byte(patch)))
+			err := r.Patch(ctx, plc, client.RawPatch(types.JSONPatchType, []byte(patch)))
 			if err != nil {
 				log.Error(err, "Error setting finalizer for configuration policy")
 
@@ -1224,7 +1233,7 @@ func (r *ConfigurationPolicyReconciler) manageDeletionFinalizer(
 		// if pruneObjectBehavior is none, no finalizer is needed
 		patch := removeObjFinalizerPatch(plc, pruneObjectFinalizer)
 
-		err := r.Patch(context.TODO(), plc, client.RawPatch(types.JSONPatchType, patch))
+		err := r.Patch(ctx, plc, client.RawPatch(types.JSONPatchType, patch))
 		if err != nil {
 			log.Error(err, "Error removing finalizer for configuration policy")
 
@@ -1237,8 +1246,10 @@ func (r *ConfigurationPolicyReconciler) manageDeletionFinalizer(
 
 // handleDeletion cleans up the child objects, based on the pruneObjectBehavior setting. If all of
 // the required child objects are fully removed, it will remove the finalizer.
-func (r *ConfigurationPolicyReconciler) handleDeletion(plc *policyv1.ConfigurationPolicy, usingWatch bool) error {
-	if !(plc.Spec.PruneObjectBehavior == "DeleteIfCreated" || plc.Spec.PruneObjectBehavior == "DeleteAll") {
+func (r *ConfigurationPolicyReconciler) handleDeletion(
+	ctx context.Context, plc *policyv1.ConfigurationPolicy, usingWatch bool,
+) error {
+	if plc.Spec.PruneObjectBehavior != "DeleteIfCreated" && plc.Spec.PruneObjectBehavior != "DeleteAll" {
 		return nil
 	}
 
@@ -1248,14 +1259,14 @@ func (r *ConfigurationPolicyReconciler) handleDeletion(plc *policyv1.Configurati
 
 	log.Info("Config policy has been deleted, handling child objects")
 
-	failures := r.cleanUpChildObjects(plc, nil, usingWatch)
+	failures := r.cleanUpChildObjects(ctx, plc, nil, usingWatch)
 
 	if len(failures) == 0 {
 		log.Info("Objects have been successfully cleaned up, removing finalizer")
 
 		patch := removeObjFinalizerPatch(plc, pruneObjectFinalizer)
 
-		err := r.Patch(context.TODO(), plc, client.RawPatch(types.JSONPatchType, patch))
+		err := r.Patch(ctx, plc, client.RawPatch(types.JSONPatchType, patch))
 		if err != nil {
 			log.Error(err, "Error removing finalizer for configuration policy")
 
@@ -1276,7 +1287,7 @@ func (r *ConfigurationPolicyReconciler) handleDeletion(plc *policyv1.Configurati
 
 		// Note: don't change related objects while deletion is in progress
 
-		r.addForUpdate(plc, parentStatusUpdateNeeded)
+		r.addForUpdate(ctx, plc, parentStatusUpdateNeeded)
 
 		return fmt.Errorf("failed to delete objects %s", failuresStr)
 	}
@@ -1321,6 +1332,7 @@ func (m minimumMetadata) GroupVersionKind() schema.GroupVersionKind {
 // occurs during this process, it returns an evaluation event with more details about the error. The
 // list of desired objects is returned.
 func (r *ConfigurationPolicyReconciler) determineDesiredObjects(
+	ctx context.Context,
 	plc *policyv1.ConfigurationPolicy,
 	index int,
 	objectT *policyv1.ObjectTemplate,
@@ -1479,7 +1491,7 @@ func (r *ConfigurationPolicyReconciler) determineDesiredObjects(
 					existingObj, _ = r.getObjectFromCache(plc, ns, desiredName, objGVK)
 				} else {
 					// We can ignore errors here because if we can't fetch the object, we just won't include it.
-					existingObj, _ = getObject(ns, desiredName, scopedGVR, r.TargetK8sDynamicClient)
+					existingObj, _ = getObject(ctx, ns, desiredName, scopedGVR, r.TargetK8sDynamicClient)
 				}
 
 				if existingObj != nil {
@@ -1554,7 +1566,7 @@ func (r *ConfigurationPolicyReconciler) determineDesiredObjects(
 				return nil, &scopedGVR, nil, errEvent, err
 			}
 		} else {
-			existingObj, _ = getObject(desiredNs, desiredName, scopedGVR, r.TargetK8sDynamicClient)
+			existingObj, _ = getObject(ctx, desiredNs, desiredName, scopedGVR, r.TargetK8sDynamicClient)
 		}
 
 		if existingObj != nil {
@@ -1597,10 +1609,10 @@ func (r *ConfigurationPolicyReconciler) determineDesiredObjects(
 				filteredObjects, err = r.DynamicWatcher.List(plc.ObjectIdentifier(), objGVK, ns, objSelector)
 			} else {
 				var filteredObjectList *unstructured.UnstructuredList
+
 				filteredObjectList, err = r.TargetK8sDynamicClient.Resource(
 					scopedGVR.GroupVersionResource,
-				).Namespace(ns).List(context.TODO(), listOpts)
-
+				).Namespace(ns).List(ctx, listOpts)
 				if err == nil {
 					filteredObjects = filteredObjectList.Items
 				}
@@ -1862,14 +1874,10 @@ func (r *ConfigurationPolicyReconciler) determineDesiredObjects(
 			unnamedObj := d.DeepCopy()
 			unnamedObj.SetName("")
 
-			matchingNames, _ := r.getMatchingNames(plc, unnamedObj, scopedGVR, objectT)
+			matchingNames, _ := r.getMatchingNames(ctx, plc, unnamedObj, scopedGVR, objectT)
 
-			for _, n := range matchingNames {
-				if n == d.GetName() {
-					targetedObjects = append(targetedObjects, d)
-
-					break
-				}
+			if slices.Contains(matchingNames, d.GetName()) {
+				targetedObjects = append(targetedObjects, d)
 			}
 		}
 
@@ -2099,6 +2107,7 @@ func addConditionToStatus(
 
 // handleObjects controls the processing of each individual object template within a configurationpolicy
 func (r *ConfigurationPolicyReconciler) handleObjects(
+	ctx context.Context,
 	objectT *policyv1.ObjectTemplate,
 	desiredObj *unstructured.Unstructured,
 	index int,
@@ -2161,7 +2170,9 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 				return []policyv1.RelatedObject{}, result
 			}
 		} else {
-			existingObj, getErr = getObject(desiredObjNamespace, desiredObjName, scopedGVR, r.TargetK8sDynamicClient)
+			existingObj, getErr = getObject(
+				ctx, desiredObjNamespace, desiredObjName, scopedGVR, r.TargetK8sDynamicClient,
+			)
 		}
 
 		exists = existingObj != nil
@@ -2173,7 +2184,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 			"The object template does not specify a name. Will search for matching objects in the namespace.",
 		)
 
-		objNames, allResourceNames = r.getMatchingNames(policy, desiredObj, scopedGVR, objectT)
+		objNames, allResourceNames = r.getMatchingNames(ctx, policy, desiredObj, scopedGVR, objectT)
 
 		// we do not support enforce on unnamed templates
 		if !remediation.IsInform() {
@@ -2188,7 +2199,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 		if len(objNames) == 0 {
 			exists = false
 		} else if len(objNames) == 1 {
-			existingObj, getErr = getObject(desiredObjNamespace, objNames[0], scopedGVR, r.TargetK8sDynamicClient)
+			existingObj, getErr = getObject(ctx, desiredObjNamespace, objNames[0], scopedGVR, r.TargetK8sDynamicClient)
 			exists = existingObj != nil
 		}
 	}
@@ -2233,7 +2244,7 @@ func (r *ConfigurationPolicyReconciler) handleObjects(
 
 		var objectProperties *policyv1.ObjectProperties
 
-		result, objectProperties = r.handleSingleObj(singObj, remediation, exists, objectT)
+		result, objectProperties = r.handleSingleObj(ctx, singObj, remediation, exists, objectT)
 
 		if len(result.events) != 0 {
 			event := result.events[len(result.events)-1]
@@ -2343,6 +2354,7 @@ type objectTmplEvalResultWithEvent struct {
 // handleSingleObj takes in an object template (for a named object) and its data and determines whether
 // the object on the cluster is compliant or not
 func (r *ConfigurationPolicyReconciler) handleSingleObj(
+	ctx context.Context,
 	obj singleObject,
 	remediation policyv1.RemediationAction,
 	exists bool,
@@ -2367,7 +2379,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 		// it is a musthave and it does not exist, so it must be created
 		if remediation.IsEnforce() {
 			var uid string
-			completed, reason, msg, uid, err := r.enforceByCreating(obj)
+			completed, reason, msg, uid, err := r.enforceByCreating(ctx, obj)
 
 			hasStatus := false
 			if tmplObj, err := unmarshalFromJSON(objectT.ObjectDefinition.Raw); err == nil {
@@ -2401,7 +2413,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 	if exists && !obj.shouldExist {
 		// it is a mustnothave but it exist, so it must be deleted
 		if remediation.IsEnforce() {
-			completed, reason, msg, err := r.enforceByDeleting(obj)
+			completed, reason, msg, err := r.enforceByDeleting(ctx, obj)
 			if err != nil {
 				objLog.Error(err, "Could not handle existing mustnothave object")
 				result.apiErr = err
@@ -2451,7 +2463,7 @@ func (r *ConfigurationPolicyReconciler) handleSingleObj(
 			msg = cachedMsg
 		} else {
 			throwSpecViolation, msg, diff, triedUpdate, updatedObj, matchesAfterDryRun = r.checkAndUpdateResource(
-				obj, objectT, remediation,
+				ctx, obj, objectT, remediation,
 			)
 
 			if updatedObj != nil && string(updatedObj.GetUID()) != uid {
@@ -2582,6 +2594,7 @@ func buildNameList(
 // which match the given GVR and the object selector on the template (if present). The
 // first slice additionally filters by the other fields in the object template.
 func (r *ConfigurationPolicyReconciler) getMatchingNames(
+	ctx context.Context,
 	plc *policyv1.ConfigurationPolicy,
 	desiredObj *unstructured.Unstructured,
 	scopedGVR depclient.ScopedGVR,
@@ -2605,10 +2618,10 @@ func (r *ConfigurationPolicyReconciler) getMatchingNames(
 		resList = &unstructured.UnstructuredList{Items: returnedItems}
 	case scopedGVR.Namespaced:
 		res := r.TargetK8sDynamicClient.Resource(scopedGVR.GroupVersionResource).Namespace(ns)
-		resList, err = res.List(context.TODO(), metav1.ListOptions{LabelSelector: sel.String()})
+		resList, err = res.List(ctx, metav1.ListOptions{LabelSelector: sel.String()})
 	default:
 		res := r.TargetK8sDynamicClient.Resource(scopedGVR.GroupVersionResource)
-		resList, err = res.List(context.TODO(), metav1.ListOptions{LabelSelector: sel.String()})
+		resList, err = res.List(ctx, metav1.ListOptions{LabelSelector: sel.String()})
 	}
 
 	if err != nil {
@@ -2628,7 +2641,9 @@ func (r *ConfigurationPolicyReconciler) getMatchingNames(
 
 // enforceByCreating handles the situation where a musthave or mustonlyhave object is
 // completely missing (as opposed to existing, but not matching the desired state)
-func (r *ConfigurationPolicyReconciler) enforceByCreating(obj singleObject) (
+func (r *ConfigurationPolicyReconciler) enforceByCreating(
+	ctx context.Context, obj singleObject,
+) (
 	completed bool, reason string, msg string, uid string, err error,
 ) {
 	log := log.WithValues(
@@ -2650,7 +2665,7 @@ func (r *ConfigurationPolicyReconciler) enforceByCreating(obj singleObject) (
 
 	var createdObj *unstructured.Unstructured
 
-	if createdObj, err = r.createObject(res, obj.desiredObj); createdObj == nil {
+	if createdObj, err = r.createObject(ctx, res, obj.desiredObj); createdObj == nil {
 		reason = "K8s creation error"
 		msg = fmt.Sprintf(
 			"%v %v is missing, and cannot be created, reason: `%v`", obj.scopedGVR.Resource, idStr, err,
@@ -2692,7 +2707,9 @@ func (r *ConfigurationPolicyReconciler) enforceByCreating(obj singleObject) (
 }
 
 // enforceByDeleting handles the case where a mustnothave object exists.
-func (r *ConfigurationPolicyReconciler) enforceByDeleting(obj singleObject) (
+func (r *ConfigurationPolicyReconciler) enforceByDeleting(
+	ctx context.Context, obj singleObject,
+) (
 	completed bool, reason string, msg string, err error,
 ) {
 	log := log.WithValues(
@@ -2712,7 +2729,7 @@ func (r *ConfigurationPolicyReconciler) enforceByDeleting(obj singleObject) (
 
 	log.Info("Enforcing the policy by deleting the object")
 
-	if completed, err = deleteObject(res, obj.name, obj.namespace); !completed {
+	if completed, err = deleteObject(ctx, res, obj.name, obj.namespace); !completed {
 		reason = "K8s deletion error"
 		msg = fmt.Sprintf(
 			"%v %v exists, and cannot be deleted, reason: `%v`", obj.scopedGVR.Resource, idStr, err,
@@ -2727,6 +2744,7 @@ func (r *ConfigurationPolicyReconciler) enforceByDeleting(obj singleObject) (
 
 // getObject gets the object with the dynamic client and returns the object if found.
 func getObject(
+	ctx context.Context,
 	namespace string,
 	name string,
 	scopedGVR depclient.ScopedGVR,
@@ -2742,7 +2760,7 @@ func getObject(
 		res = dclient.Resource(scopedGVR.GroupVersionResource)
 	}
 
-	object, err = res.Get(context.TODO(), name, metav1.GetOptions{})
+	object, err = res.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			objLog.V(2).Info("Got 'Not Found' response for object from the API server")
@@ -2791,12 +2809,12 @@ func (r *ConfigurationPolicyReconciler) getObjectFromCache(
 }
 
 func (r *ConfigurationPolicyReconciler) createObject(
-	res dynamic.ResourceInterface, unstruct *unstructured.Unstructured,
+	ctx context.Context, res dynamic.ResourceInterface, unstruct *unstructured.Unstructured,
 ) (object *unstructured.Unstructured, err error) {
 	objLog := log.WithValues("name", unstruct.GetName(), "namespace", unstruct.GetNamespace())
 	objLog.V(2).Info("Entered createObject", "unstruct", unstruct)
 
-	object, err = res.Create(context.TODO(), unstruct, metav1.CreateOptions{
+	object, err = res.Create(ctx, unstruct, metav1.CreateOptions{
 		FieldValidation: metav1.FieldValidationStrict,
 	})
 	if err != nil {
@@ -2816,11 +2834,13 @@ func (r *ConfigurationPolicyReconciler) createObject(
 	return object, nil
 }
 
-func deleteObject(res dynamic.ResourceInterface, name, namespace string) (deleted bool, err error) {
+func deleteObject(
+	ctx context.Context, res dynamic.ResourceInterface, name, namespace string,
+) (deleted bool, err error) {
 	objLog := log.WithValues("name", name, "namespace", namespace)
 	objLog.V(2).Info("Entered deleteObject")
 
-	err = res.Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err = res.Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			objLog.V(2).Info("Got 'Not Found' response while deleting object")
@@ -2840,15 +2860,15 @@ func deleteObject(res dynamic.ResourceInterface, name, namespace string) (delete
 
 // mergeSpecs is a wrapper for the recursive function to merge 2 maps.
 func mergeSpecs(
-	templateVal, existingVal interface{}, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
-) (interface{}, bool, error) {
+	templateVal, existingVal any, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
+) (any, bool, error) {
 	// Copy templateVal since it will be modified in mergeSpecsHelper
 	data1, err := json.Marshal(templateVal)
 	if err != nil {
 		return nil, false, err
 	}
 
-	var j1 interface{}
+	var j1 any
 
 	err = json.Unmarshal(data1, &j1)
 	if err != nil {
@@ -2866,11 +2886,11 @@ func mergeSpecs(
 // This function uses recursion to check mismatches in nested objects and is the basis for most
 // comparisons the controller makes.
 func mergeSpecsHelper(
-	templateVal, existingVal interface{}, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
-) (merged interface{}, missingKey bool) {
+	templateVal, existingVal any, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
+) (merged any, missingKey bool) {
 	switch templateVal := templateVal.(type) {
-	case map[string]interface{}:
-		existingVal, ok := existingVal.(map[string]interface{})
+	case map[string]any:
+		existingVal, ok := existingVal.(map[string]any)
 		if !ok {
 			// if one field is a map and the other isn't, don't bother merging -
 			// just returning the template value will still generate noncompliant
@@ -2893,8 +2913,8 @@ func mergeSpecsHelper(
 			// template specifies something that isn't in the current object
 			missingKey = true
 		}
-	case []interface{}: // list nested in map
-		existingVal, ok := existingVal.([]interface{})
+	case []any: // list nested in map
+		existingVal, ok := existingVal.([]any)
 		if !ok {
 			// if one field is a list and the other isn't, don't bother merging
 			return templateVal, false
@@ -2907,7 +2927,7 @@ func mergeSpecsHelper(
 		}
 	case nil:
 		// if template value is nil, pull data from existing, since the template does not care about it
-		existingVal, ok := existingVal.(map[string]interface{})
+		existingVal, ok := existingVal.(map[string]any)
 		if ok {
 			return existingVal, false
 		}
@@ -2922,7 +2942,7 @@ func mergeSpecsHelper(
 }
 
 type countedVal struct {
-	value interface{}
+	value any
 	count int
 }
 
@@ -2936,13 +2956,13 @@ type countedVal struct {
 // It returns the merged list, and indicates whether any of the nested maps were
 // considered equivalent due to "zero values".
 func mergeArrays(
-	desiredArr []interface{}, existingArr []interface{}, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
-) (result []interface{}, missingKey bool) {
+	desiredArr []any, existingArr []any, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
+) (result []any, missingKey bool) {
 	if ctype.IsMustOnlyHave() {
 		return desiredArr, false
 	}
 
-	desiredArrCopy := append([]interface{}{}, desiredArr...)
+	desiredArrCopy := append([]any{}, desiredArr...)
 	idxWritten := map[int]bool{}
 
 	for i := range desiredArrCopy {
@@ -2981,16 +3001,16 @@ func mergeArrays(
 				continue
 			}
 
-			var mergedObj interface{}
+			var mergedObj any
 			// Stores if val1 and val2 are maps with the same "name" key value. In the case of the containers array
 			// in a Deployment object, the value should be merged and not appended if the name is the same in both.
 			var sameNamedObjects bool
 
 			switch val2 := val2.(type) {
-			case map[string]interface{}:
+			case map[string]any:
 				// If the policy value and the current value are different types, use the same logic
 				// as the default case.
-				val1, ok := val1.(map[string]interface{})
+				val1, ok := val1.(map[string]any)
 				if !ok {
 					mergedObj = val1
 
@@ -3046,15 +3066,15 @@ func mergeArrays(
 // It returns the merged object, and indicates if it introduced data for "zero
 // values" from `newSpec` that were not present in `oldSpec`.
 func mergeMaps(
-	newSpec, oldSpec map[string]interface{}, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
-) (updatedSpec map[string]interface{}, missingKey bool, err error) {
+	newSpec, oldSpec map[string]any, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
+) (updatedSpec map[string]any, missingKey bool, err error) {
 	if ctype.IsMustOnlyHave() {
 		return newSpec, false, nil
 	}
 	// if compliance type is musthave, create merged object to compare on
 	merged, missing, err := mergeSpecs(newSpec, oldSpec, ctype, zeroValueEqualsNil)
 
-	return merged.(map[string]interface{}), missing, err
+	return merged.(map[string]any), missing, err
 }
 
 // handleSingleKey compares and merges a single field in the given objects. It
@@ -3072,7 +3092,7 @@ func handleSingleKey(
 	existingObj *unstructured.Unstructured,
 	complianceType policyv1.ComplianceType,
 	zeroValueEqualsNil bool,
-) (errormsg string, update bool, merged interface{}, skip bool, missingKey bool) {
+) (errormsg string, update bool, merged any, skip bool, missingKey bool) {
 	log := log.WithValues("name", existingObj.GetName(), "namespace", existingObj.GetNamespace())
 	var err error
 	var missing bool
@@ -3095,12 +3115,12 @@ func handleSingleKey(
 	// merged into the existing object to avoid erroring on fields that are not in the template
 	// but have been automatically added to the object.
 	// For the mustOnlyHave complianceType, this object is identical to the field in the template.
-	var mergedValue interface{}
+	var mergedValue any
 
 	switch desiredValue := desiredValue.(type) {
-	case []interface{}:
+	case []any:
 		switch existingValue := existingValue.(type) {
-		case []interface{}:
+		case []any:
 			mergedValue, missing = mergeArrays(desiredValue, existingValue, complianceType, zeroValueEqualsNil)
 			missingKey = missingKey || missing
 		case nil:
@@ -3110,9 +3130,9 @@ func handleSingleKey(
 				"Error merging changes into key \"%s\": object type of template and existing do not match",
 				key)
 		}
-	case map[string]interface{}:
+	case map[string]any:
 		switch existingValue := existingValue.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			mergedValue, missing, err = mergeMaps(desiredValue, existingValue, complianceType, zeroValueEqualsNil)
 			missingKey = missingKey || missing
 		case nil:
@@ -3141,8 +3161,8 @@ func handleSingleKey(
 
 		// metadata has some special cases that need to be considered
 		mergedValue, existingValue = fmtMetadataForCompare(
-			mergedValue.(map[string]interface{}),
-			existingValue.(map[string]interface{}),
+			mergedValue.(map[string]any),
+			existingValue.(map[string]any),
 			isNamespace,
 		)
 	}
@@ -3156,7 +3176,7 @@ func handleSingleKey(
 			return message, false, mergedValue, false, missingKey
 		}
 
-		decodedValue := make(map[string]interface{}, len(encodedValue))
+		decodedValue := make(map[string]any, len(encodedValue))
 
 		for k, encoded := range encodedValue {
 			decoded, err := base64.StdEncoding.DecodeString(encoded)
@@ -3195,6 +3215,7 @@ type cachedEvaluationResult struct {
 // function tried to update the child object and updateSucceeded indicates whether the update was applied
 // successfully.
 func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
+	ctx context.Context,
 	obj singleObject, objectT *policyv1.ObjectTemplate, remediation policyv1.RemediationAction,
 ) (
 	throwViolation bool,
@@ -3289,7 +3310,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 	// There are situations where updateNeeded is wrong in either direction: an update might not be
 	// needed if the policy specifies an empty map and the API server omits it from the return value,
 	// or an update might be needed if some "empty" fields really do need to be set.
-	dryRunUpdatedObj, err := res.Update(context.TODO(), obj.existingObj, metav1.UpdateOptions{
+	dryRunUpdatedObj, err := res.Update(ctx, obj.existingObj, metav1.UpdateOptions{
 		FieldValidation: metav1.FieldValidationStrict,
 		DryRun:          []string{metav1.DryRunAll},
 	})
@@ -3298,11 +3319,11 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		if k8serrors.IsConflict(err) {
 			log.Info("The object was updating during the evaluation. Trying again.")
 
-			rv, getErr := res.Get(context.TODO(), obj.existingObj.GetName(), metav1.GetOptions{})
+			rv, getErr := res.Get(ctx, obj.existingObj.GetName(), metav1.GetOptions{})
 			if getErr == nil {
 				obj.existingObj = rv
 
-				return r.checkAndUpdateResource(obj, objectT, remediation)
+				return r.checkAndUpdateResource(ctx, obj, objectT, remediation)
 			}
 		}
 
@@ -3330,7 +3351,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		// specified, then the update may proceed when enforced.
 		needsRecreate = true
 
-		if isInform || !(objectT.RecreateOption == policyv1.Always || objectT.RecreateOption == policyv1.IfRequired) {
+		if isInform || (objectT.RecreateOption != policyv1.Always && objectT.RecreateOption != policyv1.IfRequired) {
 			log.Info("Dry run update failed with error: " + err.Error())
 
 			// Remove noisy fields such as managedFields from the diff
@@ -3395,7 +3416,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		log.Info("Deleting and recreating the object based on the template definition",
 			"recreateOption", objectT.RecreateOption)
 
-		err = res.Delete(context.TODO(), obj.name, metav1.DeleteOptions{})
+		err = res.Delete(ctx, obj.name, metav1.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
 			message = fmt.Sprintf(`%s failed to delete when recreating with the error %v`, getMsgPrefix(&obj), err)
 
@@ -3405,7 +3426,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		attempts := 0
 
 		for {
-			updatedObj, err = res.Create(context.TODO(), obj.desiredObj, metav1.CreateOptions{})
+			updatedObj, err = res.Create(ctx, obj.desiredObj, metav1.CreateOptions{})
 			if !k8serrors.IsAlreadyExists(err) {
 				// If there is no error or the error is unexpected, break for the error handling below
 				break
@@ -3425,7 +3446,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 	} else {
 		log.Info("Updating the object based on the template definition")
 
-		updatedObj, err = res.Update(context.TODO(), obj.existingObj, metav1.UpdateOptions{
+		updatedObj, err = res.Update(ctx, obj.existingObj, metav1.UpdateOptions{
 			FieldValidation: metav1.FieldValidationStrict,
 		})
 	}
@@ -3434,11 +3455,11 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		if k8serrors.IsConflict(err) {
 			log.Info("The object updated during the evaluation. Trying again.")
 
-			rv, getErr := res.Get(context.TODO(), obj.existingObj.GetName(), metav1.GetOptions{})
+			rv, getErr := res.Get(ctx, obj.existingObj.GetName(), metav1.GetOptions{})
 			if getErr == nil {
 				obj.existingObj = rv
 
-				return r.checkAndUpdateResource(obj, objectT, remediation)
+				return r.checkAndUpdateResource(ctx, obj, objectT, remediation)
 			}
 		}
 
@@ -3703,7 +3724,9 @@ func getUpdateErrorMsg(err error, kind string, name string) string {
 // addForUpdate calculates the compliance status of a configurationPolicy and updates the status field. The sendEvent
 // argument determines if a status update event should be sent on the parent policy and configuration policy.
 // Regardless of the sendEvent parameter, events will be sent if the compliance or policy generation changes.
-func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.ConfigurationPolicy, sendEvent bool) {
+func (r *ConfigurationPolicyReconciler) addForUpdate(
+	ctx context.Context, policy *policyv1.ConfigurationPolicy, sendEvent bool,
+) {
 	compliant := true
 
 	for index := range policy.Status.CompliancyDetails {
@@ -3717,7 +3740,7 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 	previousComplianceState := policy.Status.ComplianceState
 
 	switch {
-	case policy.ObjectMeta.DeletionTimestamp != nil:
+	case policy.DeletionTimestamp != nil:
 		policy.Status.ComplianceState = policyv1.Terminating
 	case len(policy.Status.CompliancyDetails) == 0:
 		policy.Status.ComplianceState = policyv1.UnknownCompliancy
@@ -3742,7 +3765,7 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 
 	policyLog := log.WithValues("name", policy.Name, "namespace", policy.Namespace)
 
-	err := r.updatePolicyStatus(policy, sendEvent)
+	err := r.updatePolicyStatus(ctx, policy, sendEvent)
 
 	switch {
 	case k8serrors.IsConflict(err):
@@ -3766,7 +3789,7 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(policy *policyv1.Configurat
 // updatePolicyStatus updates the status of the configurationPolicy if new conditions are added and generates an event
 // on the parent policy and configuration policy with the compliance decision if the sendEvent argument is true.
 func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
-	policy *policyv1.ConfigurationPolicy, sendEvent bool,
+	ctx context.Context, policy *policyv1.ConfigurationPolicy, sendEvent bool,
 ) error {
 	updateTime := time.Now()
 	message := r.customComplianceMessage(policy)
@@ -3782,7 +3805,7 @@ func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
 
 		// If the compliance event can't be created, then don't update the ConfigurationPolicy
 		// status. As long as that hasn't been updated, everything will be retried next loop.
-		if err := r.sendComplianceEvent(policy, updateTime, message); err != nil {
+		if err := r.sendComplianceEvent(ctx, policy, updateTime, message); err != nil {
 			log.Error(err, "Failed to send compliance event", "policy", policy.GetName(), "message", message)
 
 			return err
@@ -3819,7 +3842,7 @@ func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
 
 	maxRetries := 3
 	for i := 1; i <= maxRetries; i++ {
-		err := r.Get(context.TODO(), types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}, policy)
+		err := r.Get(ctx, types.NamespacedName{Namespace: policy.Namespace, Name: policy.Name}, policy)
 		if err != nil {
 			log.Info(fmt.Sprintf("Failed to refresh policy; using previously fetched version: %s", err))
 		} else {
@@ -3839,7 +3862,7 @@ func (r *ConfigurationPolicyReconciler) updatePolicyStatus(
 			}
 		}
 
-		err = r.Status().Update(context.TODO(), policy)
+		err = r.Status().Update(ctx, policy)
 		if err != nil {
 			if i == maxRetries {
 				return err
@@ -3902,9 +3925,7 @@ func (r *ConfigurationPolicyReconciler) recordInfoEvent(plc *policyv1.Configurat
 }
 
 func (r *ConfigurationPolicyReconciler) sendComplianceEvent(
-	instance *policyv1.ConfigurationPolicy,
-	updateTime time.Time,
-	message string,
+	ctx context.Context, instance *policyv1.ConfigurationPolicy, updateTime time.Time, message string,
 ) error {
 	if len(instance.OwnerReferences) == 0 {
 		return nil // there is nothing to do, since no owner is set
@@ -3951,7 +3972,7 @@ func (r *ConfigurationPolicyReconciler) sendComplianceEvent(
 		event.Type = "Warning"
 	}
 
-	return r.Create(context.TODO(), event)
+	return r.Create(ctx, event)
 }
 
 // defaultComplianceMessage looks through the policy's Compliance and CompliancyDetails and formats
@@ -4082,7 +4103,7 @@ messageTemplating:
 
 // getDeployment gets the Deployment object associated with this controller. If the controller is running outside of
 // a cluster, no Deployment object or error will be returned.
-func getDeployment(client client.Client) (*appsv1.Deployment, error) {
+func getDeployment(ctx context.Context, client client.Client) (*appsv1.Deployment, error) {
 	key, err := common.GetOperatorNamespacedName()
 	if err != nil {
 		// Running locally
@@ -4094,15 +4115,15 @@ func getDeployment(client client.Client) (*appsv1.Deployment, error) {
 	}
 
 	deployment := appsv1.Deployment{}
-	if err := client.Get(context.TODO(), key, &deployment); err != nil {
+	if err := client.Get(ctx, key, &deployment); err != nil {
 		return nil, err
 	}
 
 	return &deployment, nil
 }
 
-func IsBeingUninstalled(client client.Client) (bool, error) {
-	deployment, err := getDeployment(client)
+func IsBeingUninstalled(ctx context.Context, client client.Client) (bool, error) {
+	deployment, err := getDeployment(ctx, client)
 	if deployment == nil || err != nil {
 		return false, err
 	}
