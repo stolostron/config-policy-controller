@@ -659,7 +659,7 @@ func (r *OperatorPolicyReconciler) checkSubOverlap(
 				continue
 			}
 
-			if !(otherPolicy.Name == policy.Name && otherPolicy.Namespace == policy.Namespace) {
+			if otherPolicy.Name != policy.Name || otherPolicy.Namespace != policy.Namespace {
 				overlappers = append(overlappers, otherPolicy.Name+"."+otherPolicy.Namespace)
 			}
 		}
@@ -770,7 +770,7 @@ func (r *OperatorPolicyReconciler) applySubscriptionDefaults(
 		channels, _, _ := unstructured.NestedSlice(packageManifest.Object, "status", "channels")
 
 		for _, channel := range channels {
-			chanObj, ok := channel.(map[string]interface{})
+			chanObj, ok := channel.(map[string]any)
 			if !ok {
 				continue
 			}
@@ -891,7 +891,7 @@ func canonicalizeVersions(policy *policyv1beta1.OperatorPolicy) {
 	nonEmptyVersions := make([]string, 0)
 
 	for _, entry := range policy.Spec.Versions {
-		for _, version := range strings.Split(entry, ",") {
+		for version := range strings.SplitSeq(entry, ",") {
 			trimmedVersion := strings.TrimSpace(version)
 
 			if trimmedVersion != "" {
@@ -944,7 +944,7 @@ func buildSubscription(
 		rawSub = resolvedTmpl.ResolvedJSON
 	}
 
-	sub := make(map[string]interface{})
+	sub := make(map[string]any)
 
 	err := json.Unmarshal(rawSub, &sub)
 	if err != nil {
@@ -990,8 +990,8 @@ func buildSubscription(
 	}
 
 	subscription.SetGroupVersionKind(subscriptionGVK)
-	subscription.ObjectMeta.Name = spec.Package
-	subscription.ObjectMeta.Namespace = ns
+	subscription.Name = spec.Package
+	subscription.Namespace = ns
 	subscription.Spec = spec
 
 	if spec.InstallPlanApproval != "" {
@@ -1021,8 +1021,8 @@ func buildOperatorGroup(
 
 	// Create a default OperatorGroup if one wasn't specified in the policy
 	if policy.Spec.OperatorGroup == nil {
-		operatorGroup.ObjectMeta.SetNamespace(namespace)
-		operatorGroup.ObjectMeta.SetGenerateName(namespace + "-") // This matches what the console creates
+		operatorGroup.SetNamespace(namespace)
+		operatorGroup.SetGenerateName(namespace + "-") // This matches what the console creates
 		operatorGroup.Spec.TargetNamespaces = []string{}
 
 		return operatorGroup, nil
@@ -1041,7 +1041,7 @@ func buildOperatorGroup(
 		rawOG = resolvedTmpl.ResolvedJSON
 	}
 
-	opGroup := make(map[string]interface{})
+	opGroup := make(map[string]any)
 
 	if err := json.Unmarshal(rawOG, &opGroup); err != nil {
 		return nil, fmt.Errorf("the policy spec.operatorGroup is invalid: %w", err)
@@ -1078,8 +1078,8 @@ func buildOperatorGroup(
 		return nil, fmt.Errorf("the policy spec.operatorGroup is invalid: %w", err)
 	}
 
-	operatorGroup.ObjectMeta.SetName(name)
-	operatorGroup.ObjectMeta.SetNamespace(namespace)
+	operatorGroup.SetName(name)
+	operatorGroup.SetNamespace(namespace)
 	operatorGroup.Spec = *spec
 
 	return operatorGroup, nil
@@ -1157,7 +1157,7 @@ func (r *OperatorPolicyReconciler) musthaveOpGroup(
 
 		emptyNameMatch := desiredOpGroup.Name == "" && opGroup.GetGenerateName() == desiredOpGroup.GenerateName
 
-		if !(opGroup.GetName() == desiredOpGroup.Name || emptyNameMatch) {
+		if opGroup.GetName() != desiredOpGroup.Name && !emptyNameMatch {
 			if policy.Spec.OperatorGroup == nil {
 				// The policy doesn't specify what the OperatorGroup should look like, but what is already
 				// there is not the default one the policy would create.
@@ -1340,7 +1340,7 @@ func (r *OperatorPolicyReconciler) mustnothaveOpGroup(
 
 	emptyNameMatch := desiredOpGroup.Name == "" && foundOpGroup.GetGenerateName() == desiredOpGroup.GenerateName
 
-	if !(foundOpGroup.GetName() == desiredOpGroup.Name || emptyNameMatch) {
+	if foundOpGroup.GetName() != desiredOpGroup.Name && !emptyNameMatch {
 		// no found OperatorGroup matches what the policy is looking for, report Compliance.
 		changed := updateStatus(policy, missingNotWantedCond("OperatorGroup"), missingNotWantedObj(desiredOpGroup))
 
@@ -1595,7 +1595,7 @@ func (r *OperatorPolicyReconciler) updateDeprecationStatus(ctx context.Context,
 
 	// Check for deprecation in the selected channel
 	for _, channel := range channels {
-		channelMap, ok := channel.(map[string]interface{})
+		channelMap, ok := channel.(map[string]any)
 		if !ok {
 			return fmt.Errorf("failed to parse channel in PackageManifest %q: %w", desiredSub.Spec.Package, err)
 		}
@@ -1606,7 +1606,7 @@ func (r *OperatorPolicyReconciler) updateDeprecationStatus(ctx context.Context,
 		}
 
 		// Check if the channel is deprecated
-		if channelDep, ok := channelMap["deprecation"].(map[string]interface{}); ok {
+		if channelDep, ok := channelMap["deprecation"].(map[string]any); ok {
 			message, _, _ := unstructured.NestedString(channelDep, "message")
 			updateStatus(policy, deprecationCond(channelName, Channel, message))
 
@@ -1627,7 +1627,7 @@ func (r *OperatorPolicyReconciler) updateDeprecationStatus(ctx context.Context,
 		}
 
 		for i, entry := range entries {
-			entryMap, ok := entry.(map[string]interface{})
+			entryMap, ok := entry.(map[string]any)
 			if !ok {
 				return fmt.Errorf(
 					"failed to parse entry index [%d] in channel %q of PackageManifest %q: %w",
@@ -1637,7 +1637,7 @@ func (r *OperatorPolicyReconciler) updateDeprecationStatus(ctx context.Context,
 
 			entryName, _, _ := unstructured.NestedString(entryMap, "name")
 			if entryName == csvName {
-				if bundleDeprecation, ok := entryMap["deprecation"].(map[string]interface{}); ok {
+				if bundleDeprecation, ok := entryMap["deprecation"].(map[string]any); ok {
 					message, _, _ := unstructured.NestedString(bundleDeprecation, "message")
 					updateStatus(policy, deprecationCond(entryName, Bundle, message))
 
@@ -3040,7 +3040,9 @@ func (r *OperatorPolicyReconciler) mergeObjects(
 	removeFieldsForComparison(existingObjectCopy)
 
 	//nolint:dogsled
-	_, errMsg, updateNeeded, _, _ := handleKeys(log, desiredObj, existing, existingObjectCopy, policyv1.MustHave, "")
+	_, errMsg, updateNeeded, _, _ := handleKeys(
+		log, desiredObj, existing, existingObjectCopy, policyv1.MustHave, policyv1.MustHave,
+	)
 	if errMsg != "" {
 		return updateNeeded, false, errors.New(errMsg)
 	}
@@ -3116,7 +3118,7 @@ func (r *OperatorPolicyReconciler) getSelectedChannelName(
 // getNextMinorChannel checks if there are newer minor channels available,
 // assuming channel naming patterns similar to unit tests
 // Returns the newer channel name if found, along with a boolean indicating success.
-func getNextMinorChannel(channels []interface{}, selectedChannelName string) ([]string, bool) {
+func getNextMinorChannel(channels []any, selectedChannelName string) ([]string, bool) {
 	if selectedChannelName == "" || len(channels) == 0 {
 		return nil, false
 	}
@@ -3150,7 +3152,7 @@ func getNextMinorChannel(channels []interface{}, selectedChannelName string) ([]
 	nextChannelNames := make([]string, 0, len(channels))
 
 	for _, channel := range channels {
-		channelMap, ok := channel.(map[string]interface{})
+		channelMap, ok := channel.(map[string]any)
 		if !ok {
 			continue
 		}

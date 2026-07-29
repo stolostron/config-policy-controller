@@ -39,7 +39,7 @@ var _ = Describe("Generate the diff", Ordered, func() {
 		plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 			configPolicyName, testNamespace, true, defaultTimeoutSeconds)
 		Expect(plc).NotTo(BeNil())
-		Eventually(func() interface{} {
+		Eventually(func() any {
 			managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 				configPolicyName, testNamespace, true, defaultTimeoutSeconds)
 
@@ -59,7 +59,7 @@ var _ = Describe("Generate the diff", Ordered, func() {
 		Eventually(func(g Gomega) {
 			events := utils.GetMatchingEvents(clientManaged, testNamespace,
 				configPolicyName,
-				"PolicyUpdate",
+				"Policy updated",
 				regexp.QuoteMeta(
 					`Policy status is Compliant: configmaps [case39-map] was updated successfully in namespace default`,
 				),
@@ -82,14 +82,17 @@ var _ = Describe("Generate the diff", Ordered, func() {
 
 	It("diff should be logged by the controller", func() {
 		By("Checking the controller logs")
+
 		logFile, err := os.Open(logPath)
 		Expect(err).ToNot(HaveOccurred())
+
 		defer logFile.Close()
 
-		diff := ""
+		var diff strings.Builder
 		foundDiff := false
 		logScanner := bufio.NewScanner(logFile)
 		logScanner.Split(bufio.ScanLines)
+
 		for logScanner.Scan() {
 			line := logScanner.Text()
 			if foundDiff && strings.HasPrefix(line, "\t{") {
@@ -100,10 +103,10 @@ var _ = Describe("Generate the diff", Ordered, func() {
 				continue
 			}
 
-			diff += line + "\n"
+			diff.WriteString(line + "\n")
 		}
 
-		Expect(diff).Should(ContainSubstring(`Logging the diff:
+		Expect(diff.String()).Should(ContainSubstring(`Logging the diff:
 --- default/case39-map : existing
 +++ default/case39-map : updated
 @@ -1,8 +1,8 @@
@@ -113,10 +116,10 @@ var _ = Describe("Generate the diff", Ordered, func() {
 +  fieldToUpdate: "2"
  kind: ConfigMap`))
 
-		Expect(diff).Should(ContainSubstring(`"name": "case39-policy-cfgmap-create"`))
-		Expect(diff).Should(ContainSubstring(`"objName": "case39-map"`))
-		Expect(diff).Should(ContainSubstring(`"objNamespace": "default"`))
-		Expect(diff).Should(ContainSubstring(`"resource": "configmaps"`))
+		Expect(diff.String()).Should(ContainSubstring(
+			`{"policy": "case39-policy-cfgmap-create", "name": "case39-map", "namespace": "default", ` +
+				`"resource": "configmaps"}`,
+		))
 	})
 
 	It("configmap and status should be updated properly on the managed cluster", func() {
@@ -133,10 +136,10 @@ var _ = Describe("Generate the diff", Ordered, func() {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(relatedObjects).To(HaveLen(1))
 
-			uid, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]interface{}), "properties", "uid")
+			uid, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]any), "properties", "uid")
 			g.Expect(uid).ToNot(BeEmpty())
 
-			diff, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]interface{}), "properties", "diff")
+			diff, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]any), "properties", "diff")
 
 			g.Expect(diff).Should(HavePrefix(`--- default/case39-map : existing
 +++ default/case39-map : updated

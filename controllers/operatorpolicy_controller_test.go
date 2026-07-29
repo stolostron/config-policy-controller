@@ -9,6 +9,7 @@ import (
 
 	operatorv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,7 +55,7 @@ func TestBuildResources_SubscriptionErrorUpdatesStatus(t *testing.T) {
 
 	_, _, _, changed, returnedErr := r.buildResources(t.Context(), policy) //nolint:dogsled
 	assert.True(t, changed, "expected status to be updated")
-	assert.NoError(t, returnedErr)
+	require.NoError(t, returnedErr)
 
 	_, cond := policy.Status.GetCondition(validPolicyConditionType)
 	assert.Equal(t, metav1.ConditionFalse, cond.Status)
@@ -97,7 +98,7 @@ func TestBuildResources_subInstallPlanApprovalErrorUpdatesStatus(t *testing.T) {
 
 	_, _, _, changed, returnedErr := r.buildResources(t.Context(), policy) //nolint:dogsled
 	assert.True(t, changed, "expected status to be updated")
-	assert.NoError(t, returnedErr)
+	require.NoError(t, returnedErr)
 
 	_, cond := policy.Status.GetCondition(validPolicyConditionType)
 	assert.Equal(t, metav1.ConditionFalse, cond.Status)
@@ -141,7 +142,7 @@ func TestBuildResources_SubDefaultsPkgManifestNotFoundUpdatesStatusAndReturnsErr
 
 	sub, opGroup, packageManifest, changed, returnedErr := r.buildResources(t.Context(), policy)
 	assert.True(t, changed, "expected status to be updated")
-	assert.ErrorIs(t, returnedErr, ErrPackageManifest, "expected returned error to wrap ErrPackageManifest")
+	require.ErrorIs(t, returnedErr, ErrPackageManifest, "expected returned error to wrap ErrPackageManifest")
 
 	_, cond := policy.Status.GetCondition(validPolicyConditionType)
 	assert.Equal(t, metav1.ConditionFalse, cond.Status)
@@ -158,10 +159,10 @@ func TestBuildResources_OperatorGroupErrorUpdatesStatus(t *testing.T) {
 	t.Parallel()
 
 	packageManifest := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "packages.operators.coreos.com/v1",
 			"kind":       "PackageManifest",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "my-operator",
 				"namespace": "default",
 			},
@@ -203,7 +204,7 @@ func TestBuildResources_OperatorGroupErrorUpdatesStatus(t *testing.T) {
 
 	_, _, _, changed, returnedErr := r.buildResources(t.Context(), policy) //nolint:dogsled
 	assert.True(t, changed, "expected status to be updated")
-	assert.NoError(t, returnedErr)
+	require.NoError(t, returnedErr)
 
 	_, cond := policy.Status.GetCondition(validPolicyConditionType)
 	assert.Equal(t, metav1.ConditionFalse, cond.Status)
@@ -242,7 +243,7 @@ func TestBuildResources_TemplateResolverCreationErrorUpdatesStatus(t *testing.T)
 
 	sub, opGroup, packageManifest, changed, returnedErr := r.buildResources(t.Context(), policy)
 	assert.True(t, changed, "expected status to be updated")
-	assert.NoError(t, returnedErr)
+	require.NoError(t, returnedErr)
 	assert.Nil(t, sub, "expected subscription to be nil on early return")
 	assert.Nil(t, opGroup, "expected operator group to be nil on early return")
 	assert.Nil(t, packageManifest, "expected package manifest to be nil on early return")
@@ -287,10 +288,10 @@ func TestBuildSubscription(t *testing.T) {
 
 	// Check values are correctly bootstrapped to the Subscription
 	ret, err := buildSubscription(testPolicy, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, ret.GroupVersionKind(), desiredGVK)
-	assert.Equal(t, "my-operator", ret.ObjectMeta.Name)
-	assert.Equal(t, "default", ret.ObjectMeta.Namespace)
+	assert.Equal(t, "my-operator", ret.Name)
+	assert.Equal(t, "default", ret.Namespace)
 	assert.Equal(t, operatorv1alpha1.ApprovalManual, ret.Spec.InstallPlanApproval)
 }
 
@@ -380,10 +381,10 @@ func TestBuildOperatorGroup(t *testing.T) {
 
 	// Ensure OperatorGroup values are populated correctly
 	ret, err := buildOperatorGroup(testPolicy, "my-operators", nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, ret.GroupVersionKind(), desiredGVK)
-	assert.Equal(t, "my-operators-", ret.ObjectMeta.GetGenerateName())
-	assert.Equal(t, "my-operators", ret.ObjectMeta.GetNamespace())
+	assert.Equal(t, "my-operators-", ret.GetGenerateName())
+	assert.Equal(t, "my-operators", ret.GetNamespace())
 }
 
 func TestMessageIncludesSubscription(t *testing.T) {
@@ -491,7 +492,7 @@ func TestMessageIncludesSubscription(t *testing.T) {
 				}
 
 				match, err := messageIncludesSubscription(subscription, test.message)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, test.expected, match)
 			},
 		)
@@ -827,7 +828,7 @@ func TestUpdateMinorChannelUpgradeStatus_PackageManifestNotFound(t *testing.T) {
 
 	changed, err := r.updateMinorChannelUpgradeStatus(policy, sub, nil)
 	assert.True(t, changed)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	_, cond := policy.Status.GetCondition(minorChannelConditionType)
 	assert.Equal(t, metav1.ConditionTrue, cond.Status)
@@ -860,10 +861,10 @@ func TestUpdateMinorChannelUpgradeStatus_InstallPlanApprovalNotAutomatic(t *test
 	}
 
 	pkgManifest := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"status": map[string]interface{}{
-				"channels": []interface{}{
-					map[string]interface{}{"name": "stable"},
+		Object: map[string]any{
+			"status": map[string]any{
+				"channels": []any{
+					map[string]any{"name": "stable"},
 				},
 			},
 		},
@@ -871,7 +872,7 @@ func TestUpdateMinorChannelUpgradeStatus_InstallPlanApprovalNotAutomatic(t *test
 
 	changed, err := r.updateMinorChannelUpgradeStatus(policy, sub, pkgManifest)
 	assert.True(t, changed)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	_, cond := policy.Status.GetCondition(minorChannelConditionType)
 	assert.Equal(t, metav1.ConditionTrue, cond.Status)
@@ -885,15 +886,15 @@ func TestGetNewMinorChannel(t *testing.T) {
 	tests := []struct {
 		name            string
 		selectedChannel string
-		channels        []interface{}
+		channels        []any
 		expectedNames   []string
 		expectedFound   bool
 	}{
 		{
 			name:            "empty selected channel",
 			selectedChannel: "",
-			channels: []interface{}{
-				map[string]interface{}{"name": "fake-operatorv1.2"},
+			channels: []any{
+				map[string]any{"name": "fake-operatorv1.2"},
 			},
 			expectedNames: nil,
 			expectedFound: false,
@@ -901,7 +902,7 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "nil channel",
 			selectedChannel: "fake-operatorv1.3",
-			channels: []interface{}{
+			channels: []any{
 				nil,
 			},
 			expectedNames: nil,
@@ -910,8 +911,8 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "malformed channel name key",
 			selectedChannel: "fake-operatorv1.3",
-			channels: []interface{}{
-				map[string]interface{}{"notName": "fake-operatorv1.3"},
+			channels: []any{
+				map[string]any{"notName": "fake-operatorv1.3"},
 			},
 			expectedNames: nil,
 			expectedFound: false,
@@ -926,9 +927,9 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "no newer channel available",
 			selectedChannel: "fake-operatorv1.3",
-			channels: []interface{}{
-				map[string]interface{}{"name": "fake-operatorv1.2"},
-				map[string]interface{}{"name": "fake-operatorv1.3"},
+			channels: []any{
+				map[string]any{"name": "fake-operatorv1.2"},
+				map[string]any{"name": "fake-operatorv1.3"},
 			},
 			expectedNames: nil,
 			expectedFound: false,
@@ -936,9 +937,9 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "different channel prefix",
 			selectedChannel: "fake-operator-stablev1.3",
-			channels: []interface{}{
-				map[string]interface{}{"name": "fake-operator-stablev1.3"},
-				map[string]interface{}{"name": "fake-operator-fastv1.4"},
+			channels: []any{
+				map[string]any{"name": "fake-operator-stablev1.3"},
+				map[string]any{"name": "fake-operator-fastv1.4"},
 			},
 			expectedNames: nil,
 			expectedFound: false,
@@ -946,9 +947,9 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "no minor version",
 			selectedChannel: "stable-pg-v13",
-			channels: []interface{}{
-				map[string]interface{}{"name": "stable-pg-v13"},
-				map[string]interface{}{"name": "stable-pg-v14"},
+			channels: []any{
+				map[string]any{"name": "stable-pg-v13"},
+				map[string]any{"name": "stable-pg-v14"},
 			},
 			expectedNames: nil,
 			expectedFound: false,
@@ -956,9 +957,9 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "major version only",
 			selectedChannel: "stable-2.x",
-			channels: []interface{}{
-				map[string]interface{}{"name": "stable-2.x"},
-				map[string]interface{}{"name": "stable-3.x"},
+			channels: []any{
+				map[string]any{"name": "stable-2.x"},
+				map[string]any{"name": "stable-3.x"},
 			},
 			expectedNames: nil,
 			expectedFound: false,
@@ -966,9 +967,9 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "bad minor version",
 			selectedChannel: "v1.bad.x",
-			channels: []interface{}{
-				map[string]interface{}{"name": "v1.1.x"},
-				map[string]interface{}{"name": "v1.2.x"},
+			channels: []any{
+				map[string]any{"name": "v1.1.x"},
+				map[string]any{"name": "v1.2.x"},
 			},
 			expectedNames: nil,
 			expectedFound: false,
@@ -976,10 +977,10 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "happy path: v2026.30 to v2026.40",
 			selectedChannel: "Fake-Operatorv2026.30",
-			channels: []interface{}{
-				map[string]interface{}{"name": "Fake-Operatorv2026.30"},
-				map[string]interface{}{"name": "Fake-Operatorv2026.40"},
-				map[string]interface{}{"name": "Fake-Operatorv2026.50"},
+			channels: []any{
+				map[string]any{"name": "Fake-Operatorv2026.30"},
+				map[string]any{"name": "Fake-Operatorv2026.40"},
+				map[string]any{"name": "Fake-Operatorv2026.50"},
 			},
 			expectedNames: []string{"Fake-Operatorv2026.40", "Fake-Operatorv2026.50"},
 			expectedFound: true,
@@ -987,10 +988,10 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "happy path: unsorted -1.2 to -1.3",
 			selectedChannel: "openshift-virt-1.2",
-			channels: []interface{}{
-				map[string]interface{}{"name": "openshift-virt-1.2"},
-				map[string]interface{}{"name": "openshift-virt-1.4"},
-				map[string]interface{}{"name": "openshift-virt-1.3"},
+			channels: []any{
+				map[string]any{"name": "openshift-virt-1.2"},
+				map[string]any{"name": "openshift-virt-1.4"},
+				map[string]any{"name": "openshift-virt-1.3"},
 			},
 			expectedNames: []string{"openshift-virt-1.3", "openshift-virt-1.4"},
 			expectedFound: true,
@@ -998,9 +999,9 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "happy path: version only",
 			selectedChannel: "1.1.x",
-			channels: []interface{}{
-				map[string]interface{}{"name": "1.1.x"},
-				map[string]interface{}{"name": "1.2.x"},
+			channels: []any{
+				map[string]any{"name": "1.1.x"},
+				map[string]any{"name": "1.2.x"},
 			},
 			expectedNames: []string{"1.2.x"},
 			expectedFound: true,
@@ -1008,9 +1009,9 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "happy path: version with v prefix",
 			selectedChannel: "v1.1.x",
-			channels: []interface{}{
-				map[string]interface{}{"name": "v1.1.x"},
-				map[string]interface{}{"name": "v1.2.x"},
+			channels: []any{
+				map[string]any{"name": "v1.1.x"},
+				map[string]any{"name": "v1.2.x"},
 			},
 			expectedNames: []string{"v1.2.x"},
 			expectedFound: true,
@@ -1018,9 +1019,9 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "happy path: x.y version only",
 			selectedChannel: "3.17",
-			channels: []interface{}{
-				map[string]interface{}{"name": "3.17"},
-				map[string]interface{}{"name": "3.18"},
+			channels: []any{
+				map[string]any{"name": "3.17"},
+				map[string]any{"name": "3.18"},
 			},
 			expectedNames: []string{"3.18"},
 			expectedFound: true,
@@ -1028,9 +1029,9 @@ func TestGetNewMinorChannel(t *testing.T) {
 		{
 			name:            "happy path: x.y version only",
 			selectedChannel: "3.17",
-			channels: []interface{}{
-				map[string]interface{}{"name": "3.17"},
-				map[string]interface{}{"name": "3.18"},
+			channels: []any{
+				map[string]any{"name": "3.17"},
+				map[string]any{"name": "3.18"},
 			},
 			expectedNames: []string{"3.18"},
 			expectedFound: true,
@@ -1054,21 +1055,21 @@ func TestGetSelectedChannelName(t *testing.T) {
 
 	testCases := []struct {
 		name             string
-		packageManifest  map[string]interface{}
+		packageManifest  map[string]any
 		expectedChannel  string
 		expectedError    bool
 		expectedErrorMsg string
 	}{
 		{
 			name: "success with default channel",
-			packageManifest: map[string]interface{}{
+			packageManifest: map[string]any{
 				"apiVersion": "packages.operators.coreos.com/v1",
 				"kind":       "PackageManifest",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "my-operator",
 					"namespace": "default",
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"defaultChannel": "stable",
 				},
 			},
@@ -1077,14 +1078,14 @@ func TestGetSelectedChannelName(t *testing.T) {
 		},
 		{
 			name: "error when defaultChannel is missing",
-			packageManifest: map[string]interface{}{
+			packageManifest: map[string]any{
 				"apiVersion": "packages.operators.coreos.com/v1",
 				"kind":       "PackageManifest",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "my-operator",
 					"namespace": "default",
 				},
-				"status": map[string]interface{}{
+				"status": map[string]any{
 					"notADefaultChannel": "stable",
 				},
 			},
@@ -1117,10 +1118,10 @@ func TestGetSelectedChannelName(t *testing.T) {
 			channelName, err := r.getSelectedChannelName(packageManifest, subscription)
 
 			if tc.expectedError {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Equal(t, tc.expectedErrorMsg, err.Error())
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tc.expectedChannel, channelName)
 			}
 		})

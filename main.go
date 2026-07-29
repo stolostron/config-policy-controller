@@ -175,7 +175,7 @@ func main() {
 	cfg.Burst = int(opts.clientBurst)
 	cfg.QPS = opts.clientQPS
 
-	nsTransform := func(obj interface{}) (interface{}, error) {
+	nsTransform := func(obj any) (any, error) {
 		ns := obj.(*corev1.Namespace)
 		guttedNS := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -344,7 +344,7 @@ func main() {
 	if err != nil {
 		log.Error(err, "Failed to determine if the controller is being uninstalled at startup. Will assume it's not.")
 	} else {
-		beingUninstalled, err = controllers.IsBeingUninstalled(uninstallingCtx, uninstallCheckClient)
+		beingUninstalled, err = controllers.IsBeingUninstalled(context.Background(), uninstallCheckClient)
 		if err != nil {
 			log.Error(
 				err,
@@ -385,8 +385,8 @@ func main() {
 
 		configFiles = append(configFiles, opts.targetKubeConfig)
 
-		if targetK8sConfig.TLSClientConfig.CertFile != "" {
-			configFiles = append(configFiles, targetK8sConfig.TLSClientConfig.CertFile)
+		if targetK8sConfig.CertFile != "" {
+			configFiles = append(configFiles, targetK8sConfig.CertFile)
 		}
 
 		targetK8sConfig.Burst = int(opts.clientBurst)
@@ -518,7 +518,7 @@ func main() {
 		DecryptionConcurrency:  opts.decryptionConcurrency,
 		DynamicWatcher:         dynamicWatcher,
 		Scheme:                 mgr.GetScheme(),
-		Recorder:               mgr.GetEventRecorder(controllers.ControllerName),
+		Recorder:               mgr.GetEventRecorderFor(controllers.ControllerName),
 		InstanceName:           instanceName,
 		TargetK8sClient:        targetK8sClient,
 		TargetK8sDynamicClient: targetK8sDynamicClient,
@@ -640,7 +640,7 @@ func main() {
 				leaseUpdater = leaseUpdater.WithHubLeaseConfig(hubCfg, opts.clusterName)
 			}
 
-			go leaseUpdater.Start(managerCtx)
+			go leaseUpdater.Start(context.TODO())
 
 			if standaloneHubCfg != nil {
 				log.Info("Starting lease controller for governance-standalone-hub-templating")
@@ -649,12 +649,12 @@ func main() {
 					leaseClientset, "governance-standalone-hub-templating", operatorNs,
 				).WithHubLeaseConfig(standaloneHubCfg, opts.clusterName)
 
-				go standaloneLeaseUpdater.Start(managerCtx)
+				go standaloneLeaseUpdater.Start(context.TODO())
 
 				configFiles = append(configFiles, opts.standaloneHubTemplateKubeConfigPath)
 
-				if standaloneHubCfg.TLSClientConfig.CertFile != "" {
-					configFiles = append(configFiles, standaloneHubCfg.TLSClientConfig.CertFile)
+				if standaloneHubCfg.CertFile != "" {
+					configFiles = append(configFiles, standaloneHubCfg.CertFile)
 				}
 			}
 		}
@@ -665,8 +665,8 @@ func main() {
 	if hubCfg != nil {
 		configFiles = append(configFiles, opts.hubConfigPath)
 
-		if hubCfg.TLSClientConfig.CertFile != "" {
-			configFiles = append(configFiles, hubCfg.TLSClientConfig.CertFile)
+		if hubCfg.CertFile != "" {
+			configFiles = append(configFiles, hubCfg.CertFile)
 		}
 	}
 
@@ -701,9 +701,7 @@ func main() {
 	var wg sync.WaitGroup
 	var errorExit bool
 
-	wg.Add(1)
-
-	go func() {
+	wg.Go(func() {
 		if err := mgr.Start(managerCtx); err != nil {
 			log.Error(err, "Problem running manager")
 
@@ -711,14 +709,10 @@ func main() {
 
 			errorExit = true
 		}
-
-		wg.Done()
-	}()
+	})
 
 	if !beingUninstalled && opts.targetKubeConfig != "" { // "hosted mode"
-		wg.Add(1)
-
-		go func() {
+		wg.Go(func() {
 			// Use the uninstallingCtx so that this shuts down when the controller is being uninstalled. This is
 			// important since the managed cluster's API server may become unavailable at this time when in hosted mdoe.
 			if err := nsSelMgr.Start(uninstallingCtx); err != nil {
@@ -728,9 +722,7 @@ func main() {
 
 				errorExit = true
 			}
-
-			wg.Done()
-		}()
+		})
 	}
 
 	wg.Wait()

@@ -57,6 +57,7 @@ var _ = Describe("Test multiple obj template handling", Ordered, func() {
 			pod1 := utils.GetWithTimeout(clientManagedDynamic, gvrPod,
 				podName1, "default", true, defaultTimeoutSeconds)
 			Expect(pod1).NotTo(BeNil())
+
 			pod2 := utils.GetWithTimeout(clientManagedDynamic, gvrPod,
 				podName2, "default", true, defaultTimeoutSeconds)
 			Expect(pod2).NotTo(BeNil())
@@ -90,6 +91,7 @@ var _ = Describe("Test multiple obj template handling", Ordered, func() {
 			deleteConfigPolicies(policies)
 
 			By("Delete pods")
+
 			pods := []string{podName1, podName2}
 			namespaces := []string{"default"}
 			deletePods(pods, namespaces)
