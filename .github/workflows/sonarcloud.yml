@@ -9,6 +9,6 @@ on:
 
 jobs:
   sonarcloud:
-    uses: stolostron/governance-policy-framework/.github/workflows/sonarcloud.yml@main
+    uses: stolostron/governance-policy-framework/.github/workflows/sonarcloud.yml@dedb66750d308ddc111793f6e418ddc2f738393a # main
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
