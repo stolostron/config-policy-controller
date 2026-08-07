@@ -514,10 +514,11 @@ func main() {
 	}
 
 	reconciler := controllers.ConfigurationPolicyReconciler{
-		Client:                 mgr.GetClient(),
-		DecryptionConcurrency:  opts.decryptionConcurrency,
-		DynamicWatcher:         dynamicWatcher,
-		Scheme:                 mgr.GetScheme(),
+		Client:                mgr.GetClient(),
+		DecryptionConcurrency: opts.decryptionConcurrency,
+		DynamicWatcher:        dynamicWatcher,
+		Scheme:                mgr.GetScheme(),
+		//nolint:staticcheck // SA1019: release-2.17 uses record.EventRecorder
 		Recorder:               mgr.GetEventRecorderFor(controllers.ControllerName),
 		InstanceName:           instanceName,
 		TargetK8sClient:        targetK8sClient,
