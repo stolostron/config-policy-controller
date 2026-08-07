@@ -153,20 +153,20 @@ func addOrUpdateRelatedObject(
 //
 // It returns whether the first two inputs are equivalent, and if any of the
 // nested maps were considered equivalent due to "zero values".
-func deeplyEquivalent(mergedObj interface{}, oldObj interface{}, zeroValueEqualsNil bool) (areEqual, missingKey bool) {
+func deeplyEquivalent(mergedObj any, oldObj any, zeroValueEqualsNil bool) (areEqual, missingKey bool) {
 	switch mergedObj := mergedObj.(type) {
-	case map[string]interface{}:
-		if oldObjMap, ok := oldObj.(map[string]interface{}); ok {
+	case map[string]any:
+		if oldObjMap, ok := oldObj.(map[string]any); ok {
 			return checkFieldsAreEquivalent(mergedObj, oldObjMap, zeroValueEqualsNil)
 		}
 		// this includes the case where oldObj is nil
 		return false, false
-	case []interface{}:
+	case []any:
 		if len(mergedObj) == 0 && oldObj == nil {
 			return true, false
 		}
 
-		if oldObjList, ok := oldObj.([]interface{}); ok {
+		if oldObjList, ok := oldObj.([]any); ok {
 			return checkListsAreEquivalent(mergedObj, oldObjList)
 		}
 
@@ -203,7 +203,7 @@ func deeplyEquivalent(mergedObj interface{}, oldObj interface{}, zeroValueEquals
 // It returns whether the two maps are considered equivalent, and if there are
 // "extra" fields in `mergedObj` that are just "zero values".
 func checkFieldsAreEquivalent(
-	mergedObj map[string]interface{}, oldObj map[string]interface{}, zeroValueEqualsNil bool,
+	mergedObj map[string]any, oldObj map[string]any, zeroValueEqualsNil bool,
 ) (matches, missingKey bool) {
 	// needed to compare lists, since merge messes up the order
 	if len(mergedObj) < len(oldObj) {
@@ -212,9 +212,9 @@ func checkFieldsAreEquivalent(
 
 	for i, mVal := range mergedObj {
 		switch mVal := mVal.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			// if field is a map, recurse to check for a match
-			oVal, ok := oldObj[i].(map[string]interface{})
+			oVal, ok := oldObj[i].(map[string]any)
 			if !ok {
 				if zeroValueEqualsNil && len(mVal) == 0 {
 					break
@@ -229,9 +229,9 @@ func checkFieldsAreEquivalent(
 			if !match {
 				return false, missingKey
 			}
-		case []interface{}:
+		case []any:
 			// if field is a generic list, sort and iterate through them to make sure each value matches
-			oVal, ok := oldObj[i].([]interface{})
+			oVal, ok := oldObj[i].([]any)
 			if !ok {
 				if len(mVal) == 0 {
 					break
@@ -295,9 +295,9 @@ func checkFieldsAreEquivalent(
 }
 
 // sortAndSprint sorts any lists in the input, and formats the resulting object as a string
-func sortAndSprint(item interface{}) string {
+func sortAndSprint(item any) string {
 	switch item := item.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		sorted := make(map[string]string, len(item))
 
 		for key, val := range item {
@@ -305,16 +305,14 @@ func sortAndSprint(item interface{}) string {
 		}
 
 		return fmt.Sprintf("%v", sorted)
-	case []interface{}:
+	case []any:
 		sorted := make([]string, len(item))
 
 		for i, val := range item {
 			sorted[i] = sortAndSprint(val)
 		}
 
-		sort.Slice(sorted, func(x, y int) bool {
-			return sorted[x] < sorted[y]
-		})
+		slices.Sort(sorted)
 
 		return fmt.Sprintf("%v", sorted)
 	default:
@@ -329,7 +327,7 @@ func sortAndSprint(item interface{}) string {
 //
 // It returns whether the two lists are considered equivalent, and if there are
 // "extra" fields in items of the `mergedVal` list which are just "zero values".
-func checkListsAreEquivalent(oldVal []interface{}, mergedVal []interface{}) (matches, missingKey bool) {
+func checkListsAreEquivalent(oldVal []any, mergedVal []any) (matches, missingKey bool) {
 	if (oldVal == nil && mergedVal != nil) || (oldVal != nil && mergedVal == nil) {
 		return false, false
 	}
@@ -339,8 +337,8 @@ func checkListsAreEquivalent(oldVal []interface{}, mergedVal []interface{}) (mat
 	}
 
 	// Make copies of the lists, so we can sort them without mutating this function's inputs
-	oVal := append([]interface{}{}, oldVal...)
-	mVal := append([]interface{}{}, mergedVal...)
+	oVal := append([]any{}, oldVal...)
+	mVal := append([]any{}, mergedVal...)
 
 	sort.Slice(oVal, func(i, j int) bool {
 		return sortAndSprint(oVal[i]) < sortAndSprint(oVal[j])
@@ -351,9 +349,9 @@ func checkListsAreEquivalent(oldVal []interface{}, mergedVal []interface{}) (mat
 
 	for idx, oNestedVal := range oVal {
 		switch oNestedVal := oNestedVal.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			// if list contains maps, recurse on those maps to check for a match
-			if mVal, ok := mVal[idx].(map[string]interface{}); ok {
+			if mVal, ok := mVal[idx].(map[string]any); ok {
 				match, miss := checkFieldsAreEquivalent(mVal, oNestedVal, true)
 				missingKey = missingKey || miss
 
@@ -376,8 +374,8 @@ func checkListsAreEquivalent(oldVal []interface{}, mergedVal []interface{}) (mat
 	return true, missingKey
 }
 
-func filterUnwantedAnnotations(input map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{})
+func filterUnwantedAnnotations(input map[string]any) map[string]any {
+	out := make(map[string]any)
 
 	for key, val := range input {
 		// This could use a denylist if we need to filter more annotations in the future.
@@ -390,9 +388,9 @@ func filterUnwantedAnnotations(input map[string]interface{}) map[string]interfac
 }
 
 // formatTemplate returns the value of the input key in a manner that the controller can use for comparisons.
-func formatTemplate(unstruct *unstructured.Unstructured, key string) (obj interface{}) {
+func formatTemplate(unstruct *unstructured.Unstructured, key string) (obj any) {
 	if key == "metadata" {
-		metadata, ok := unstruct.Object[key].(map[string]interface{})
+		metadata, ok := unstruct.Object[key].(map[string]any)
 		if !ok {
 			return metadata // it will just be empty
 		}
@@ -406,15 +404,15 @@ func formatTemplate(unstruct *unstructured.Unstructured, key string) (obj interf
 // formatMetadata takes the input object metadata and returns a slimmed down version which just includes the "labels"
 // and "annotations" values. Deny listed annotations are excluded. This allows the controller to compare only the
 // metadata fields it supports.
-func formatMetadata(metadata map[string]interface{}) (formatted map[string]interface{}) {
-	md := map[string]interface{}{}
+func formatMetadata(metadata map[string]any) (formatted map[string]any) {
+	md := map[string]any{}
 
 	if labels, ok := metadata["labels"]; ok {
 		md["labels"] = labels
 	}
 
 	if annosTemp, ok := metadata["annotations"]; ok {
-		if annos, ok := annosTemp.(map[string]interface{}); ok {
+		if annos, ok := annosTemp.(map[string]any); ok {
 			md["annotations"] = filterUnwantedAnnotations(annos)
 		} else {
 			// When a non-map is provided, set the value directly
@@ -426,8 +424,8 @@ func formatMetadata(metadata map[string]interface{}) (formatted map[string]inter
 }
 
 func fmtMetadataForCompare(
-	merged, existing map[string]interface{}, keepSCC bool,
-) (formattedMerged, formattedExisting map[string]interface{}) {
+	merged, existing map[string]any, keepSCC bool,
+) (formattedMerged, formattedExisting map[string]any) {
 	formattedMerged = formatMetadata(merged)
 	formattedExisting = formatMetadata(existing)
 
@@ -445,12 +443,12 @@ func fmtMetadataForCompare(
 		return formattedMerged, formattedExisting
 	}
 
-	existingAnnos, ok := formattedExisting["annotations"].(map[string]interface{})
+	existingAnnos, ok := formattedExisting["annotations"].(map[string]any)
 	if !ok {
 		return formattedMerged, formattedExisting
 	}
 
-	mergedAnnos, ok := formattedMerged["annotations"].(map[string]interface{})
+	mergedAnnos, ok := formattedMerged["annotations"].(map[string]any)
 	if !ok {
 		return formattedMerged, formattedExisting
 	}
@@ -552,15 +550,7 @@ func createStatus(
 	otherReasons := []string{}
 
 	for reason := range reasonToNsNameToEvent {
-		found := false
-
-		for _, orderedReason := range orderedReasons {
-			if orderedReason == reason {
-				found = true
-
-				break
-			}
-		}
+		found := slices.Contains(orderedReasons, reason)
 
 		if !found {
 			otherReasons = append(otherReasons, reason)
@@ -772,13 +762,7 @@ func generateMessageWithReason(sortedObjectNamesStrs []string,
 }
 
 func objHasFinalizer(obj metav1.Object, finalizer string) bool {
-	for _, existingFinalizer := range obj.GetFinalizers() {
-		if existingFinalizer == finalizer {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(obj.GetFinalizers(), finalizer)
 }
 
 func removeObjFinalizerPatch(obj metav1.Object, finalizer string) []byte {
