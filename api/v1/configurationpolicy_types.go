@@ -17,6 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// NonEmptyString is a string with a minimum length of one character.
+//
 // +kubebuilder:validation:MinLength=1
 type NonEmptyString string
 
@@ -69,7 +71,7 @@ type Severity string
 // +kubebuilder:validation:Enum=DeleteAll;DeleteIfCreated;None
 type PruneObjectBehavior string
 
-type Target struct {
+type Target struct { //nolint:recvcheck // kubebuilder-generated methods use mixed receivers
 	*metav1.LabelSelector `json:",inline"`
 
 	// Include is an array of filepath expressions to include objects by name.
@@ -93,7 +95,7 @@ func (t Target) IsEmpty() bool {
 	return t.LabelSelector == nil && len(t.Include) == 0
 }
 
-// Define String() so that the LabelSelector is dereferenced in the logs
+// String returns a string representation of the Target for logging.
 func (t Target) String() string {
 	fmtSelectorStr := "{include:%s,exclude:%s,matchLabels:%+v,matchExpressions:%+v,terminatingInclusion:%s}"
 
@@ -108,7 +110,7 @@ func (t Target) String() string {
 // reevaluated. The default value is `watch` to leverage Kubernetes API watches instead of polling the Kubernetes API
 // server. If the policy spec is changed or if the list of namespaces selected by the policy changes, the policy might
 // be evaluated regardless of the settings here.
-type EvaluationInterval struct {
+type EvaluationInterval struct { //nolint:recvcheck // kubebuilder-generated methods use mixed receivers
 	// Compliant is the minimum elapsed time before a configuration policy is reevaluated when in the
 	// compliant state. Set this to `never` to disable reevaluation when in the compliant state. The default value is
 	// `watch`.
@@ -129,6 +131,8 @@ var (
 
 // parseInterval converts the input string to a duration. ErrIsNever is returned when the string is set to `never`.
 // ErrIsWatch is returned when the string is unset or set to `watch`.
+//
+//nolint:funcorder // helper is grouped with EvaluationInterval methods
 func (e EvaluationInterval) parseInterval(interval string) (time.Duration, error) {
 	if interval == "" || interval == "watch" {
 		return 0, ErrIsWatch
@@ -191,6 +195,8 @@ func (c ComplianceType) IsMustNotHave() bool {
 	return strings.EqualFold(string(c), string(MustNotHave))
 }
 
+// RecordDiff configures whether configuration differences are recorded.
+//
 // +kubebuilder:validation:Enum=Log;InStatus;None
 type RecordDiff string
 
@@ -198,10 +204,12 @@ const (
 	RecordDiffLog      RecordDiff = "Log"
 	RecordDiffInStatus RecordDiff = "InStatus"
 	RecordDiffNone     RecordDiff = "None"
-	// Censored is only used as an internal value to indicate a diff shouldn't be automatically generated.
+	// RecordDiffCensored is only used as an internal value to indicate a diff shouldn't be automatically generated.
 	RecordDiffCensored RecordDiff = "Censored"
 )
 
+// RecreateOption configures when objects should be recreated during enforcement.
+//
 // +kubebuilder:validation:Enum=None;IfRequired;Always
 type RecreateOption string
 
@@ -310,13 +318,13 @@ type ConfigurationPolicySpec struct {
 	// such as `range` loops and `if` conditionals, use `object-templates-raw`. Only one of
 	// `object-templates` and `object-templates-raw` can be set in a configuration policy. For more on
 	// the Go templates, see https://github.com/stolostron/go-template-utils/blob/main/README.md.
-	ObjectTemplates []*ObjectTemplate `json:"object-templates,omitempty"`
+	ObjectTemplates []*ObjectTemplate `json:"object-templates,omitempty"` //nolint:tagliatelle // API contract
 
 	// The `object-templates-raw` is a string containing Go templates that must ultimately produce an
 	// array of object configurations in YAML format to be used as `object-templates`. Only one of
 	// `object-templates` and `object-templates-raw` can be set in a configuration policy. For more on
 	// the Go templates, see https://github.com/stolostron/go-template-utils/blob/main/README.md.
-	ObjectTemplatesRaw string `json:"object-templates-raw,omitempty"`
+	ObjectTemplatesRaw string `json:"object-templates-raw,omitempty"` //nolint:tagliatelle // API contract
 }
 
 // ComplianceState reports the observed status from the definitions of the policy.
@@ -362,7 +370,7 @@ type Validity struct { // UNUSED (attached to a field marked as deprecated)
 
 // TemplateStatus reports the compliance details from the definitions in an `object-template`.
 type TemplateStatus struct {
-	ComplianceState ComplianceState `json:"Compliant,omitempty"`
+	ComplianceState ComplianceState `json:"Compliant,omitempty"` //nolint:tagliatelle // API contract
 
 	// Conditions contains the details from the latest evaluation of the `object-template`.
 	//
@@ -372,7 +380,7 @@ type TemplateStatus struct {
 	Conditions []Condition `json:"conditions,omitempty"`
 
 	// Deprecated
-	Validity Validity `json:"Validity,omitempty"`
+	Validity Validity `json:"Validity,omitempty"` //nolint:tagliatelle // API contract
 }
 
 // ObjectMetadata contains the metadata for an object matched by the configuration policy.
@@ -413,7 +421,7 @@ func ObjectResourceFromObj(obj client.Object) ObjectResource {
 	}
 }
 
-// Properties are additional properties of the related object relevant to the configuration policy.
+// ObjectProperties are additional properties of the related object relevant to the configuration policy.
 type ObjectProperties struct {
 	// CreatedByPolicy reports whether the object was created by the configuration policy, which is
 	// important when pruning is configured.
@@ -498,7 +506,7 @@ func (c ConfigurationPolicy) ObjectIdentifier() depclient.ObjectIdentifier {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Compliance state",type="string",JSONPath=".status.compliant"
-type ConfigurationPolicy struct {
+type ConfigurationPolicy struct { //nolint:recvcheck // kubebuilder-generated methods use mixed receivers
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
