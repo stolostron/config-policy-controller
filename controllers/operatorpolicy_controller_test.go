@@ -9,6 +9,7 @@ import (
 
 	operatorv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -49,10 +50,10 @@ func TestBuildSubscription(t *testing.T) {
 
 	// Check values are correctly bootstrapped to the Subscription
 	ret, err := buildSubscription(testPolicy, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, ret.GroupVersionKind(), desiredGVK)
-	assert.Equal(t, "my-operator", ret.ObjectMeta.Name)
-	assert.Equal(t, "default", ret.ObjectMeta.Namespace)
+	assert.Equal(t, "my-operator", ret.Name)
+	assert.Equal(t, "default", ret.Namespace)
 	assert.Equal(t, operatorv1alpha1.ApprovalManual, ret.Spec.InstallPlanApproval)
 }
 
@@ -142,10 +143,10 @@ func TestBuildOperatorGroup(t *testing.T) {
 
 	// Ensure OperatorGroup values are populated correctly
 	ret, err := buildOperatorGroup(testPolicy, "my-operators", nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, ret.GroupVersionKind(), desiredGVK)
-	assert.Equal(t, "my-operators-", ret.ObjectMeta.GetGenerateName())
-	assert.Equal(t, "my-operators", ret.ObjectMeta.GetNamespace())
+	assert.Equal(t, "my-operators-", ret.GetGenerateName())
+	assert.Equal(t, "my-operators", ret.GetNamespace())
 }
 
 func TestMessageIncludesSubscription(t *testing.T) {
@@ -253,7 +254,7 @@ func TestMessageIncludesSubscription(t *testing.T) {
 				}
 
 				match, err := messageIncludesSubscription(subscription, test.message)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, test.expected, match)
 			},
 		)
