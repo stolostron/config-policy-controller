@@ -30,7 +30,7 @@ var _ = Describe("Custom compliance messages", Ordered, func() {
 		createObjWithParent(parentYAML, parentName, cfgPolicyYAML, testNamespace, gvrPolicy, gvrConfigPolicy)
 
 		By("Verifying the ConfigurationPolicy starts NonCompliant")
-		Eventually(func() interface{} {
+		Eventually(func() any {
 			managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "case41", testNamespace, true, 5)
 
 			return utils.GetComplianceState(managedPlc)
@@ -53,7 +53,7 @@ var _ = Describe("Custom compliance messages", Ordered, func() {
 		utils.EnforceConfigurationPolicy(policyName, testNamespace)
 
 		By("Verifying the ConfigurationPolicy becomes Compliant")
-		Eventually(func() interface{} {
+		Eventually(func() any {
 			managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy, "case41", testNamespace, true, 5)
 
 			return utils.GetComplianceState(managedPlc)
@@ -73,6 +73,7 @@ var _ = Describe("Custom compliance messages", Ordered, func() {
 
 	It("Should work with a range over the related objects", func() {
 		By("Patching the custom compliance message")
+
 		template := `{{ range .Policy.status.relatedObjects -}} the {{.object.kind}} ` +
 			`{{.object.metadata.name}} is {{.compliant}} in namespace {{.object.metadata.namespace}} ` +
 			`because '{{.reason}}'; {{ end }}`
@@ -93,6 +94,7 @@ var _ = Describe("Custom compliance messages", Ordered, func() {
 
 	It("Should be able to access specific fields inside the related objects in event-driven mode", func() {
 		By("Patching the custom compliance message")
+
 		template := ` {{ range .Policy.status.relatedObjects }}{{ if eq .object.kind \"Pod\" -}}` +
 			`Pod {{.object.metadata.name}} is in phase '{{.object.status.phase}}'; {{ end }}{{ end }}`
 		utils.Kubectl("patch", "configurationpolicy", policyName, "-n", testNamespace, "--type=json", "-p",
@@ -127,6 +129,7 @@ var _ = Describe("Custom compliance messages", Ordered, func() {
 
 	It("Should be able to access a diff when one is available", func() {
 		By("Patching the policy")
+
 		template := ` {{ range .Policy.status.relatedObjects }}{{ if eq .compliant \"NonCompliant\" -}}` +
 			`{{.object.kind}} {{.object.metadata.name}} is NonCompliant, ` +
 			`with diff '{{.properties.diff}}'; {{ end }}{{ end }}`
@@ -150,6 +153,7 @@ var _ = Describe("Custom compliance messages", Ordered, func() {
 
 	It("Should be able to access the default message", func() {
 		By("Patching the policy")
+
 		template := `Customized! But the default is good too: {{.DefaultMessage}}`
 		utils.Kubectl("patch", "configurationpolicy", policyName, "-n", testNamespace, "--type=json", "-p",
 			`[{"op": "replace", "path": "/spec/remediationAction", "value": "enforce"},
@@ -170,6 +174,7 @@ var _ = Describe("Custom compliance messages", Ordered, func() {
 
 	It("Should be able to use sprig functions", func() {
 		By("Patching the policy")
+
 		template := `{{upper .DefaultMessage}}`
 		utils.Kubectl("patch", "configurationpolicy", policyName, "-n", testNamespace, "--type=json", "-p",
 			`[{"op": "replace", "path": "/spec/customMessage/compliant", "value": "`+template+`"}]`)

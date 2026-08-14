@@ -29,13 +29,13 @@ var _ = Describe("Test compliance events of enforced policies that define a stat
 		createObjWithParent(policyYAML, policyName, cfgPlcYAML, testNamespace, gvrPolicy, gvrConfigPolicy)
 
 		By("Checking there is a NonCompliant event on the policy")
-		Eventually(func() interface{} {
+		Eventually(func() any {
 			return utils.GetMatchingEvents(clientManaged, testNamespace,
 				policyName, cfgPlcName, "^NonCompliant;", defaultTimeoutSeconds)
 		}, defaultTimeoutSeconds, 5).ShouldNot(BeEmpty())
 
 		By("Checking there are no Compliant events on the policy")
-		Consistently(func() interface{} {
+		Consistently(func() any {
 			return utils.GetMatchingEvents(clientManaged, testNamespace,
 				policyName, cfgPlcName, "^Compliant;", defaultTimeoutSeconds)
 		}, defaultConsistentlyDuration, 5).Should(BeEmpty())
@@ -44,7 +44,7 @@ var _ = Describe("Test compliance events of enforced policies that define a stat
 		utils.Kubectl("apply", "-f", updatedCfgPlc, "-n", testNamespace)
 
 		By("Checking there are no Compliant events created during the update flow")
-		Consistently(func() interface{} {
+		Consistently(func() any {
 			return utils.GetMatchingEvents(clientManaged, testNamespace,
 				policyName, cfgPlcName, "^Compliant;", defaultTimeoutSeconds)
 		}, defaultConsistentlyDuration, 5).Should(BeEmpty())
@@ -64,7 +64,7 @@ var _ = Describe("Test compliance events of enforced policies that define a stat
 		utils.Kubectl("delete", "ns", nsName, "--wait=false")
 
 		By("Checking there is now a Compliant event on the policy")
-		Eventually(func() interface{} {
+		Eventually(func() any {
 			return utils.GetMatchingEvents(clientManaged, testNamespace,
 				policyName, cfgPlcName, "^Compliant;", defaultTimeoutSeconds)
 		}, defaultTimeoutSeconds, 5).ShouldNot(BeEmpty())
@@ -76,6 +76,7 @@ var _ = Describe("Test compliance events of enforced policies that define a stat
 				policyName, ".*", ".*", defaultTimeoutSeconds)
 
 			By("Test failed, printing compliance events for debugging, event count = " + strconv.Itoa(len(events)))
+
 			for _, ev := range events {
 				GinkgoWriter.Println("---")
 				GinkgoWriter.Println("Name:", ev.Name)
@@ -90,6 +91,7 @@ var _ = Describe("Test compliance events of enforced policies that define a stat
 		}
 
 		utils.KubectlDelete("policy", policyName, "-n", "managed")
+
 		configPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 			cfgPlcName, "managed", false, defaultTimeoutSeconds,
 		)
