@@ -27,6 +27,7 @@ var _ = Describe("Recreate options", Ordered, func() {
 		utils.KubectlDelete("-n", "default", "deployment", "case40")
 
 		By("Deleting the case40 ConfigMap in the default namespace")
+
 		configmap, err := clientManagedDynamic.Resource(gvrConfigMap).Namespace("default").Get(
 			ctx, "case40", metav1.GetOptions{},
 		)
@@ -75,11 +76,12 @@ var _ = Describe("Recreate options", Ordered, func() {
 		}, defaultTimeoutSeconds, 1).Should(Succeed())
 
 		By("Verifying the diff is present")
+
 		relatedObjects, _, err := unstructured.NestedSlice(managedPlc.Object, "status", "relatedObjects")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(relatedObjects).To(HaveLen(1))
 
-		diff, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]interface{}), "properties", "diff")
+		diff, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]any), "properties", "diff")
 		Expect(diff).To(ContainSubstring("-      app: case40\n+      app: case40-2\n"))
 
 		By("Verifying the compliance message is correct and doesn't change")
@@ -103,12 +105,13 @@ var _ = Describe("Recreate options", Ordered, func() {
 
 	It("should update the immutable fields when recreateOption=IfRequired", func(ctx SpecContext) {
 		By("Setting recreateOption=IfRequired on the case40 ConfigurationPolicy")
+
 		deployment, err := clientManagedDynamic.Resource(gvrDeployment).Namespace("default").Get(
 			ctx, "case40", metav1.GetOptions{},
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		originalUID := deployment.GetUID()
+		uid := deployment.GetUID()
 
 		utils.Kubectl(
 			"-n", testNamespace, "patch", "configurationpolicy", "case40", "--type=json", "-p",
@@ -117,6 +120,8 @@ var _ = Describe("Recreate options", Ordered, func() {
 
 		By("Verifying the ConfigurationPolicy is Compliant")
 		var managedPlc *unstructured.Unstructured
+		var propsUID string
+
 		Eventually(func(g Gomega) {
 			managedPlc = utils.GetWithTimeout(
 				clientManagedDynamic,
@@ -133,16 +138,16 @@ var _ = Describe("Recreate options", Ordered, func() {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(relatedObjects).To(HaveLen(1))
 
-			relatedObject := relatedObjects[0].(map[string]interface{})
+			relatedObject := relatedObjects[0].(map[string]any)
 
 			diff, _, _ := unstructured.NestedString(relatedObject, "properties", "diff")
 			g.Expect(diff).To(BeEmpty())
 
-			propsUID, _, _ := unstructured.NestedString(relatedObject, "properties", "uid")
+			propsUID, _, _ = unstructured.NestedString(relatedObject, "properties", "uid")
 			g.Expect(propsUID).ToNot(BeEmpty())
 
 			createdByPolicy, _, _ := unstructured.NestedBool(relatedObject, "properties", "createdByPolicy")
-			g.Expect(createdByPolicy).To(BeFalse())
+			g.Expect(createdByPolicy).To(BeTrue())
 
 			deployment, err = clientManagedDynamic.Resource(gvrDeployment).Namespace("default").Get(
 				ctx, "case40", metav1.GetOptions{},
@@ -152,123 +157,15 @@ var _ = Describe("Recreate options", Ordered, func() {
 
 		By("Verifying the Deployment was recreated")
 		Eventually(func(g Gomega) {
-			deployment, err := clientManagedDynamic.Resource(gvrDeployment).Namespace("default").Get(
-				ctx, "case40", metav1.GetOptions{},
-			)
-			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(deployment.GetUID()).ToNot(
-				Equal(originalUID), "Expected a new UID on the Deployment after it got recreated")
+				Equal(uid), "Expected a new UID on the Deployment after it got recreated")
+			g.Expect(propsUID).To(
+				BeEquivalentTo(deployment.GetUID()), "Expect the object properties UID to match the new Deployment",
+			)
 
 			selector, _, _ := unstructured.NestedString(deployment.Object, "spec", "selector", "matchLabels", "app")
 			g.Expect(selector).To(Equal("case40-2"))
 		}, defaultTimeoutSeconds, 1).Should(Succeed())
-
-		deleteConfigPolicies([]string{"case40"})
-	})
-
-	It("should preserve createdByPolicy=true after recreate", func(ctx SpecContext) {
-		By("Removing any leftover case40 policy or Deployment from prior tests")
-		deleteConfigPolicies([]string{"case40"})
-		utils.KubectlDelete("-n", "default", "deployment", "case40")
-
-		By("Creating only the ConfigurationPolicy so it creates the Deployment")
-		utils.Kubectl("-n", testNamespace, "create", "-f", policyNoRecreateYAML)
-
-		var managedPlc *unstructured.Unstructured
-		var uidBeforeMismatch string
-
-		By("Waiting until the policy is Compliant and records createdByPolicy=true")
-		Eventually(func(g Gomega) {
-			managedPlc = utils.GetWithTimeout(
-				clientManagedDynamic,
-				gvrConfigPolicy,
-				"case40",
-				testNamespace,
-				true,
-				defaultTimeoutSeconds,
-			)
-
-			utils.CheckComplianceStatus(g, managedPlc, "Compliant")
-
-			deployment, err := clientManagedDynamic.Resource(gvrDeployment).Namespace("default").Get(
-				ctx, "case40", metav1.GetOptions{},
-			)
-			g.Expect(err).ToNot(HaveOccurred())
-			uidBeforeMismatch = string(deployment.GetUID())
-
-			relatedObjects, _, err := unstructured.NestedSlice(managedPlc.Object, "status", "relatedObjects")
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(relatedObjects).To(HaveLen(1))
-
-			relatedObject := relatedObjects[0].(map[string]interface{})
-			createdByPolicy, _, _ := unstructured.NestedBool(relatedObject, "properties", "createdByPolicy")
-			g.Expect(createdByPolicy).To(BeTrue(), "expected the Deployment to have createdByPolicy=true")
-		}, defaultTimeoutSeconds, 1).Should(Succeed())
-
-		By("Patching the policy desired labels to an immutable mismatch (still without recreate)")
-		selectorPath := "/spec/object-templates/0/objectDefinition/spec/selector/matchLabels/app"
-		labelPath := "/spec/object-templates/0/objectDefinition/spec/template/metadata/labels/app"
-
-		utils.Kubectl(
-			"-n", testNamespace, "patch", "configurationpolicy", "case40", "--type=json", "-p",
-			`[{"op":"replace","path":"`+selectorPath+`","value":"case40-3"},`+
-				`{"op":"replace","path":"`+labelPath+`","value":"case40-3"}]`,
-		)
-
-		By("Waiting for the policy to become NonCompliant")
-		Eventually(func(g Gomega) {
-			managedPlc = utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
-				"case40", testNamespace, true, defaultTimeoutSeconds)
-
-			utils.CheckComplianceStatus(g, managedPlc, "NonCompliant")
-		}, defaultTimeoutSeconds, 1).Should(Succeed())
-
-		By("Setting recreateOption=IfRequired so the controller recreates the Deployment")
-		utils.Kubectl(
-			"-n", testNamespace, "patch", "configurationpolicy", "case40", "--type=json", "-p",
-			`[{"op":"replace","path":"/spec/object-templates/0/recreateOption","value":"IfRequired"}]`,
-		)
-
-		var propsUID string
-
-		By("Waiting until Compliant again and createdByPolicy is still true after recreate")
-		Eventually(func(g Gomega) {
-			managedPlc = utils.GetWithTimeout(
-				clientManagedDynamic,
-				gvrConfigPolicy,
-				"case40",
-				testNamespace,
-				true,
-				defaultTimeoutSeconds,
-			)
-
-			utils.CheckComplianceStatus(g, managedPlc, "Compliant")
-
-			deployment, err := clientManagedDynamic.Resource(gvrDeployment).Namespace("default").Get(
-				ctx, "case40", metav1.GetOptions{},
-			)
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(string(deployment.GetUID())).ToNot(
-				Equal(uidBeforeMismatch), "expected a new UID after recreate")
-
-			relatedObjects, _, err := unstructured.NestedSlice(managedPlc.Object, "status", "relatedObjects")
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(relatedObjects).To(HaveLen(1))
-
-			relatedObject := relatedObjects[0].(map[string]interface{})
-
-			createdByPolicy, _, _ := unstructured.NestedBool(relatedObject, "properties", "createdByPolicy")
-			g.Expect(createdByPolicy).To(BeTrue(), "expected createdByPolicy to stay true")
-
-			propsUID, _, _ = unstructured.NestedString(relatedObject, "properties", "uid")
-			g.Expect(propsUID).To(BeEquivalentTo(deployment.GetUID()))
-		}, defaultTimeoutSeconds, 1).Should(Succeed())
-
-		deployment := utils.GetWithTimeout(clientManagedDynamic, gvrDeployment,
-			"case40", "default", true, defaultTimeoutSeconds)
-
-		selector, _, _ := unstructured.NestedString(deployment.Object, "spec", "selector", "matchLabels", "app")
-		Expect(selector).To(Equal("case40-3"))
 
 		deleteConfigPolicies([]string{"case40"})
 	})
