@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -269,7 +270,7 @@ func (r *ConfigurationPolicyReconciler) Reconcile(ctx context.Context, request c
 		nonCompliantWithWatch := policy.Status.ComplianceState != policyv1.Compliant &&
 			policy.Spec.EvaluationInterval.IsWatchForNonCompliant()
 
-		if !(compliantWithWatch || nonCompliantWithWatch) && !cleanup {
+		if (!compliantWithWatch && !nonCompliantWithWatch) && !cleanup {
 			err := r.DynamicWatcher.RemoveWatcher(policy.ObjectIdentifier())
 			if err != nil {
 				log.Error(err, "Failed to remove any watches related to this ConfigurationPolicy. Will ignore.")
@@ -380,7 +381,7 @@ func (r *ConfigurationPolicyReconciler) Reconcile(ctx context.Context, request c
 	// policy.
 	removeWatcherErr := r.DynamicWatcher.RemoveWatcher(policy.ObjectIdentifier())
 	if removeWatcherErr != nil {
-		log.Error(err, "Failed to remove any watches related to this ConfigurationPolicy. Will ignore.")
+		log.Error(removeWatcherErr, "Failed to remove any watches related to this ConfigurationPolicy. Will ignore.")
 	}
 
 	if getIntervalErr != nil {
@@ -443,7 +444,7 @@ func (r *ConfigurationPolicyReconciler) shouldEvaluatePolicy(
 		}
 	}
 
-	if policy.ObjectMeta.DeletionTimestamp != nil {
+	if policy.DeletionTimestamp != nil {
 		log.V(1).Info("The policy has been deleted and is waiting for object cleanup. Will evaluate it now.")
 
 		return true, 0
@@ -559,8 +560,8 @@ func (r *ConfigurationPolicyReconciler) cleanUpChildObjects(
 	}
 
 	// PruneObjectBehavior = none case fall in here
-	if !(string(plc.Spec.PruneObjectBehavior) == "DeleteAll" ||
-		string(plc.Spec.PruneObjectBehavior) == "DeleteIfCreated") {
+	if string(plc.Spec.PruneObjectBehavior) != "DeleteAll" &&
+		string(plc.Spec.PruneObjectBehavior) != "DeleteIfCreated" {
 		return deletionFailures
 	}
 
@@ -743,7 +744,7 @@ func (r *ConfigurationPolicyReconciler) definitionIsDeleting(ctx context.Context
 
 	err := r.Get(ctx, key, &v1def)
 	if err == nil {
-		return (v1def.ObjectMeta.DeletionTimestamp != nil), nil
+		return (v1def.DeletionTimestamp != nil), nil
 	}
 
 	if k8serrors.IsNotFound(err) {
@@ -957,7 +958,7 @@ func (r *ConfigurationPolicyReconciler) handleObjectTemplates(
 		}()
 	}
 
-	if plc.ObjectMeta.DeletionTimestamp != nil {
+	if plc.DeletionTimestamp != nil {
 		return r.handleDeletion(ctx, plc, usingWatch)
 	}
 
@@ -1234,7 +1235,7 @@ func (r *ConfigurationPolicyReconciler) handleDeletion(
 	plc *policyv1.ConfigurationPolicy,
 	usingWatch bool,
 ) error {
-	if !(plc.Spec.PruneObjectBehavior == "DeleteIfCreated" || plc.Spec.PruneObjectBehavior == "DeleteAll") {
+	if plc.Spec.PruneObjectBehavior != "DeleteIfCreated" && plc.Spec.PruneObjectBehavior != "DeleteAll" {
 		return nil
 	}
 
@@ -1592,10 +1593,10 @@ func (r *ConfigurationPolicyReconciler) determineDesiredObjects(
 				filteredObjects, err = r.DynamicWatcher.List(plc.ObjectIdentifier(), objGVK, ns, objSelector)
 			} else {
 				var filteredObjectList *unstructured.UnstructuredList
+
 				filteredObjectList, err = r.TargetK8sDynamicClient.Resource(
 					scopedGVR.GroupVersionResource,
 				).Namespace(ns).List(ctx, listOpts)
-
 				if err == nil {
 					filteredObjects = filteredObjectList.Items
 				}
@@ -1859,12 +1860,8 @@ func (r *ConfigurationPolicyReconciler) determineDesiredObjects(
 
 			matchingNames, _ := r.getMatchingNames(ctx, plc, unnamedObj, scopedGVR, objectT)
 
-			for _, n := range matchingNames {
-				if n == d.GetName() {
-					targetedObjects = append(targetedObjects, d)
-
-					break
-				}
+			if slices.Contains(matchingNames, d.GetName()) {
+				targetedObjects = append(targetedObjects, d)
 			}
 		}
 
@@ -2875,15 +2872,15 @@ func deleteObject(
 
 // mergeSpecs is a wrapper for the recursive function to merge 2 maps.
 func mergeSpecs(
-	templateVal, existingVal interface{}, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
-) (interface{}, bool, error) {
+	templateVal, existingVal any, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
+) (any, bool, error) {
 	// Copy templateVal since it will be modified in mergeSpecsHelper
 	data1, err := json.Marshal(templateVal)
 	if err != nil {
 		return nil, false, err
 	}
 
-	var j1 interface{}
+	var j1 any
 
 	err = json.Unmarshal(data1, &j1)
 	if err != nil {
@@ -2901,11 +2898,11 @@ func mergeSpecs(
 // This function uses recursion to check mismatches in nested objects and is the basis for most
 // comparisons the controller makes.
 func mergeSpecsHelper(
-	templateVal, existingVal interface{}, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
-) (merged interface{}, missingKey bool) {
+	templateVal, existingVal any, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
+) (merged any, missingKey bool) {
 	switch templateVal := templateVal.(type) {
-	case map[string]interface{}:
-		existingVal, ok := existingVal.(map[string]interface{})
+	case map[string]any:
+		existingVal, ok := existingVal.(map[string]any)
 		if !ok {
 			// if one field is a map and the other isn't, don't bother merging -
 			// just returning the template value will still generate noncompliant
@@ -2928,8 +2925,8 @@ func mergeSpecsHelper(
 			// template specifies something that isn't in the current object
 			missingKey = true
 		}
-	case []interface{}: // list nested in map
-		existingVal, ok := existingVal.([]interface{})
+	case []any: // list nested in map
+		existingVal, ok := existingVal.([]any)
 		if !ok {
 			// if one field is a list and the other isn't, don't bother merging
 			return templateVal, false
@@ -2942,7 +2939,7 @@ func mergeSpecsHelper(
 		}
 	case nil:
 		// if template value is nil, pull data from existing, since the template does not care about it
-		existingVal, ok := existingVal.(map[string]interface{})
+		existingVal, ok := existingVal.(map[string]any)
 		if ok {
 			return existingVal, false
 		}
@@ -2957,7 +2954,7 @@ func mergeSpecsHelper(
 }
 
 type countedVal struct {
-	value interface{}
+	value any
 	count int
 }
 
@@ -2971,13 +2968,13 @@ type countedVal struct {
 // It returns the merged list, and indicates whether any of the nested maps were
 // considered equivalent due to "zero values".
 func mergeArrays(
-	desiredArr []interface{}, existingArr []interface{}, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
-) (result []interface{}, missingKey bool) {
+	desiredArr []any, existingArr []any, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
+) (result []any, missingKey bool) {
 	if ctype.IsMustOnlyHave() {
 		return desiredArr, false
 	}
 
-	desiredArrCopy := append([]interface{}{}, desiredArr...)
+	desiredArrCopy := append([]any{}, desiredArr...)
 	idxWritten := map[int]bool{}
 
 	for i := range desiredArrCopy {
@@ -3016,16 +3013,16 @@ func mergeArrays(
 				continue
 			}
 
-			var mergedObj interface{}
+			var mergedObj any
 			// Stores if val1 and val2 are maps with the same "name" key value. In the case of the containers array
 			// in a Deployment object, the value should be merged and not appended if the name is the same in both.
 			var sameNamedObjects bool
 
 			switch val2 := val2.(type) {
-			case map[string]interface{}:
+			case map[string]any:
 				// If the policy value and the current value are different types, use the same logic
 				// as the default case.
-				val1, ok := val1.(map[string]interface{})
+				val1, ok := val1.(map[string]any)
 				if !ok {
 					mergedObj = val1
 
@@ -3081,15 +3078,15 @@ func mergeArrays(
 // It returns the merged object, and indicates if it introduced data for "zero
 // values" from `newSpec` that were not present in `oldSpec`.
 func mergeMaps(
-	newSpec, oldSpec map[string]interface{}, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
-) (updatedSpec map[string]interface{}, missingKey bool, err error) {
+	newSpec, oldSpec map[string]any, ctype policyv1.ComplianceType, zeroValueEqualsNil bool,
+) (updatedSpec map[string]any, missingKey bool, err error) {
 	if ctype.IsMustOnlyHave() {
 		return newSpec, false, nil
 	}
 	// if compliance type is musthave, create merged object to compare on
 	merged, missing, err := mergeSpecs(newSpec, oldSpec, ctype, zeroValueEqualsNil)
 
-	return merged.(map[string]interface{}), missing, err
+	return merged.(map[string]any), missing, err
 }
 
 // handleSingleKey compares and merges a single field in the given objects. It
@@ -3107,7 +3104,7 @@ func handleSingleKey(
 	existingObj *unstructured.Unstructured,
 	complianceType policyv1.ComplianceType,
 	zeroValueEqualsNil bool,
-) (errormsg string, update bool, merged interface{}, skip bool, missingKey bool) {
+) (errormsg string, update bool, merged any, skip bool, missingKey bool) {
 	var err error
 	var missing bool
 
@@ -3127,12 +3124,12 @@ func handleSingleKey(
 	// merged into the existing object to avoid erroring on fields that are not in the template
 	// but have been automatically added to the object.
 	// For the mustOnlyHave complianceType, this object is identical to the field in the template.
-	var mergedValue interface{}
+	var mergedValue any
 
 	switch desiredValue := desiredValue.(type) {
-	case []interface{}:
+	case []any:
 		switch existingValue := existingValue.(type) {
-		case []interface{}:
+		case []any:
 			mergedValue, missing = mergeArrays(desiredValue, existingValue, complianceType, zeroValueEqualsNil)
 			missingKey = missingKey || missing
 		case nil:
@@ -3142,9 +3139,9 @@ func handleSingleKey(
 				"Error merging changes into key \"%s\": object type of template and existing do not match",
 				key)
 		}
-	case map[string]interface{}:
+	case map[string]any:
 		switch existingValue := existingValue.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			mergedValue, missing, err = mergeMaps(desiredValue, existingValue, complianceType, zeroValueEqualsNil)
 			missingKey = missingKey || missing
 		case nil:
@@ -3173,8 +3170,8 @@ func handleSingleKey(
 
 		// metadata has some special cases that need to be considered
 		mergedValue, existingValue = fmtMetadataForCompare(
-			mergedValue.(map[string]interface{}),
-			existingValue.(map[string]interface{}),
+			mergedValue.(map[string]any),
+			existingValue.(map[string]any),
 			isNamespace,
 		)
 	}
@@ -3188,7 +3185,7 @@ func handleSingleKey(
 			return message, false, mergedValue, false, missingKey
 		}
 
-		decodedValue := make(map[string]interface{}, len(encodedValue))
+		decodedValue := make(map[string]any, len(encodedValue))
 
 		for k, encoded := range encodedValue {
 			decoded, err := base64.StdEncoding.DecodeString(encoded)
@@ -3370,7 +3367,7 @@ func (r *ConfigurationPolicyReconciler) checkAndUpdateResource(
 		// specified, then the update may proceed when enforced.
 		needsRecreate = true
 
-		if isInform || !(objectT.RecreateOption == policyv1.Always || objectT.RecreateOption == policyv1.IfRequired) {
+		if isInform || (objectT.RecreateOption != policyv1.Always && objectT.RecreateOption != policyv1.IfRequired) {
 			log.Info("Dry run update failed with error: " + err.Error())
 
 			// Remove noisy fields such as managedFields from the diff
@@ -3760,7 +3757,7 @@ func (r *ConfigurationPolicyReconciler) addForUpdate(
 	previousComplianceState := policy.Status.ComplianceState
 
 	switch {
-	case policy.ObjectMeta.DeletionTimestamp != nil:
+	case policy.DeletionTimestamp != nil:
 		policy.Status.ComplianceState = policyv1.Terminating
 	case len(policy.Status.CompliancyDetails) == 0:
 		policy.Status.ComplianceState = policyv1.UnknownCompliancy
