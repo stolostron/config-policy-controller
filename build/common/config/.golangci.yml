@@ -70,6 +70,19 @@ linters:
       locale: US
       ignore-rules:
         - cancelled
+    tagliatelle:
+      case:
+        rules:
+          json: camel
+        # These JSON names are the published ConfigurationPolicy API and must not be rewritten.
+        # nolint comments cannot be used here because they leak into CRD field descriptions.
+        overrides:
+          - pkg: open-cluster-management.io/config-policy-controller/api/v1
+            ignored-fields:
+              - ObjectTemplates
+              - ObjectTemplatesRaw
+              - ComplianceState
+              - Validity
     unparam:
       check-exported: false
     wsl_v5:
@@ -99,6 +112,12 @@ linters:
           - forbidgo
         path: _test\.go$|^test/
         source: fmt\.Print
+      # Add exceptions to API level tagliatelle violations. Can't use nolint comments since
+      # that affects the CRD descriptions of the fields.
+      - linters:
+          - tagliatelle
+        path: ^api/
+        source: json:"object-templates|json:"Validity|json:"Compliant
       - linters:
           - ireturn
         path: _test\.go$|^test/
