@@ -6,6 +6,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -99,9 +100,7 @@ func (r *NamespaceSelectorReconciler) Reconcile(ctx context.Context, _ ctrl.Requ
 
 	r.lock.RLock()
 
-	for name, selection := range r.selections {
-		oldSelections[name] = selection
-	}
+	maps.Copy(oldSelections, r.selections)
 
 	r.lock.RUnlock()
 
@@ -294,10 +293,10 @@ func (r *NamespaceSelectorReconciler) update(namespace string, name string, sel 
 
 	if r.updateChannel != nil {
 		policy := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": policyv1.GroupVersion.String(),
 				"kind":       "ConfigurationPolicy",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      name,
 					"namespace": namespace,
 				},

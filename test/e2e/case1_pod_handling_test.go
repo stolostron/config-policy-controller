@@ -165,6 +165,7 @@ var _ = Describe("Test pod obj template handling", Ordered, func() {
 			deleteConfigPolicies(policies)
 
 			By("Delete pods")
+
 			pods := []string{podName, podName + "-empty", podName + "-multi"}
 			namespaces := []string{testNamespace, "default"}
 			deletePods(pods, namespaces)
@@ -193,7 +194,7 @@ var _ = Describe("Test pod obj template handling", Ordered, func() {
 			}, defaultTimeoutSeconds, 1).Should(Succeed())
 
 			By("Verifying the status message reflects that the namespace does not exist")
-			Eventually(func() interface{} {
+			Eventually(func() any {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					configPolicyName, testNamespace, true, defaultTimeoutSeconds)
 
@@ -256,7 +257,7 @@ var _ = Describe("Test pod obj template handling", Ordered, func() {
 			}, defaultTimeoutSeconds, 1).Should(Succeed())
 
 			By("Verifying the status message reflects it could not be created")
-			Eventually(func() interface{} {
+			Eventually(func() any {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					configPolicyName, testNamespace, true, defaultTimeoutSeconds)
 
@@ -356,6 +357,7 @@ var _ = Describe("Test pod obj template handling", Ordered, func() {
 			utils.KubectlDelete("ns", ocmNs)
 
 			By("Delete pods")
+
 			pods := []string{podName}
 			namespaces := []string{"default"}
 			deletePods(pods, namespaces)
