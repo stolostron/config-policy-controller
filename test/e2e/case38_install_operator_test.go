@@ -45,7 +45,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 		ns string,
 		timeoutSeconds int,
 		comp policyv1.ComplianceState,
-		consistencyArgs ...interface{},
+		consistencyArgs ...any,
 	) {
 		GinkgoHelper()
 
@@ -169,6 +169,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 					for _, actualRelObj := range matchingRelated {
 						if unnamed || actualRelObj.Object.Metadata.Name == expectedRelObj.Object.Metadata.Name {
 							foundMatchingName = true
+
 							g.Expect(actualRelObj.Compliant).To(Equal(expectedRelObj.Compliant))
 							g.Expect(actualRelObj.Reason).To(Equal(expectedRelObj.Reason))
 						}
@@ -190,7 +191,6 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 			if strings.Contains(actualCondition.Message, cnfPrefix) &&
 				strings.Contains(expectedCondition.Message, cnfPrefix) {
 				// need to sort message before checking
-
 				expectedMessage := strings.TrimPrefix(expectedCondition.Message, cnfPrefix)
 				actualMessage := strings.TrimPrefix(actualCondition.Message, cnfPrefix)
 
@@ -224,6 +224,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 
 	preFunc := func() {
 		GinkgoHelper()
+
 		opPolTestNS := getOpPolTestNS()
 		parentPolicyName := getParentPolicyName()
 
@@ -252,6 +253,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 
 	patchSingleField := func(patchFilepath, applyNs, fieldPath, value string) string {
 		GinkgoHelper()
+
 		patch := fmt.Sprintf(`[{"op": "replace", "path": %s, "value": %s}]`, fieldPath, value)
 
 		return utils.KubectlJSONPatchToFile(patch, "-n", applyNs, "-f", patchFilepath)
@@ -262,6 +264,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 	// the caller should run os.Remove() on the returned filepath when done
 	parallelizeOpPol := func(opPolYAML, desiredPolName string) string {
 		GinkgoHelper()
+
 		filesToClean := []string{}
 		defer func() {
 			for _, file := range filesToClean {
@@ -269,10 +272,11 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 			}
 		}()
 
-		getSpecObj := func(parsedYAML *unstructured.Unstructured, field string) (map[string]interface{}, bool) {
+		getSpecObj := func(parsedYAML *unstructured.Unstructured, field string) (map[string]any, bool) {
 			GinkgoHelper()
-			obj := parsedYAML.Object["spec"].(map[string]interface{})[field]
-			mapObj, objExists := obj.(map[string]interface{})
+
+			obj := parsedYAML.Object["spec"].(map[string]any)[field]
+			mapObj, objExists := obj.(map[string]any)
 
 			return mapObj, objExists
 		}
@@ -281,6 +285,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 		// returns true if a new filepath was created with the patched namespace
 		patchSubNsIfExists := func(filepath string, parsedYAML *unstructured.Unstructured) (string, bool) {
 			GinkgoHelper()
+
 			opPolTestNS := getOpPolTestNS()
 
 			sub, exists := getSpecObj(parsedYAML, "subscription")
@@ -306,6 +311,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 		// returns true if a new filepath was created with the patched namespace(s)
 		patchOperatorGroupFields := func(filepath string, parsedYAML *unstructured.Unstructured) (string, bool) {
 			GinkgoHelper()
+
 			opPolTestNS := getOpPolTestNS()
 
 			operatorGroup, exists := getSpecObj(parsedYAML, "operatorGroup")
@@ -331,6 +337,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 
 				patchedTargetNs = patchSingleField(patchedTargetNs, testNamespace,
 					fmt.Sprintf("/spec/operatorGroup/targetNamespaces/%d", i), opPolTestNS)
+
 				os.Remove(patchedOpGroupNs)
 
 				return patchedTargetNs, true
@@ -340,6 +347,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 		}
 
 		opPolObj := utils.ParseYaml(opPolYAML)
+
 		patchSubNs, found := patchSubNsIfExists(opPolYAML, opPolObj)
 		if found {
 			filesToClean = append(filesToClean, patchSubNs)
@@ -363,6 +371,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 
 	setupPolicy := func(opPolYAML, opPolName, parentPolicyName string) {
 		GinkgoHelper()
+
 		patchedParentYAML := patchSingleField(parentPolicyYAML, testNamespace, "/metadata/name", parentPolicyName)
 		patchedOpPolYAML := parallelizeOpPol(opPolYAML, opPolName)
 
@@ -446,6 +455,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 			)
 
 			By("Verifying the subscription has the correct defaults")
+
 			sub, err := targetK8sDynamic.Resource(gvrSubscription).Namespace(suggestedNS).
 				Get(ctx, subName, metav1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
@@ -1371,7 +1381,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 		})
 
 		It("Should initially report the ConstraintsNotSatisfiable Subscription", func(ctx SpecContext) {
-			Eventually(func(ctx SpecContext) interface{} {
+			Eventually(func(ctx SpecContext) any {
 				sub, _ := targetK8sDynamic.Resource(gvrSubscription).Namespace(opPolTestNS).
 					Get(ctx, subName, metav1.GetOptions{})
 
@@ -1381,7 +1391,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 
 				conditions, _, _ := unstructured.NestedSlice(sub.Object, "status", "conditions")
 				for _, cond := range conditions {
-					condMap, ok := cond.(map[string]interface{})
+					condMap, ok := cond.(map[string]any)
 					if !ok {
 						continue
 					}
@@ -1446,6 +1456,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 		})
 		It("Should report an available install when informing", func(ctx SpecContext) {
 			goodVersion := "strimzi-cluster-operator.v0.36.0"
+
 			Eventually(func(ctx SpecContext) int {
 				utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
 					`[{"op": "replace", "path": "/spec/subscription/startingCSV", "value": "`+goodVersion+`"},`+
@@ -2378,6 +2389,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 					`the policy specifies to keep the CustomResourceDefinition`,
 				)
 			}
+
 			It("Should report resources differently when told to keep them", func() {
 				// Change the removal behaviors from Delete to Keep
 				utils.Kubectl("patch", "operatorpolicy", opPolName, "-n", testNamespace, "--type=json", "-p",
@@ -2497,6 +2509,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 			})
 			It("Should report a special status when the resources are stuck", func(ctx SpecContext) {
 				By("Adding a finalizer to each of the resources")
+
 				pol, err := clientManagedDynamic.Resource(gvrOperatorPolicy).
 					Namespace(testNamespace).Get(ctx, opPolName, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -2510,7 +2523,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 				crdNames := make([]string, 0)
 
 				for _, relatedObject := range relatedObjects {
-					relatedObj, ok := relatedObject.(map[string]interface{})
+					relatedObj, ok := relatedObject.(map[string]any)
 					Expect(ok).To(BeTrue())
 
 					objKind, found, err := unstructured.NestedString(relatedObj, "object", "kind")
@@ -2646,6 +2659,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 					},
 					regexp.QuoteMeta("the ClusterServiceVersion ("+csvName+") was deleted"),
 				)
+
 				desiredCRDObjects := make([]policyv1.RelatedObject, 0)
 				for _, name := range crdNames {
 					desiredCRDObjects = append(desiredCRDObjects, policyv1.RelatedObject{
@@ -2660,6 +2674,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 						Reason:    "The object is being deleted but has not been removed yet",
 					})
 				}
+
 				check(
 					opPolName,
 					false,
@@ -2877,6 +2892,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 				if k8serrors.IsNotFound(err) {
 					return
 				}
+
 				Expect(crd).NotTo(BeNil())
 
 				KubectlTarget("patch", "crd", crdName, "--type=json", "-p",
@@ -3423,6 +3439,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 				`controller=\"operator-policy-controller\"`)
 
 			totalReconciles := 0
+
 			for _, metric := range recMetrics {
 				val, err := strconv.Atoi(metric)
 				Expect(err).NotTo(HaveOccurred())
@@ -3435,6 +3452,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 					`controller=\"operator-policy-controller\"`)
 
 				loopReconciles := 0
+
 				for _, metric := range loopMetrics {
 					val, err := strconv.Atoi(metric)
 					g.Expect(err).NotTo(HaveOccurred())
@@ -3501,6 +3519,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 				`controller=\"operator-policy-controller\"`)
 
 			totalReconciles := 0
+
 			for _, metric := range recMetrics {
 				val, err := strconv.Atoi(metric)
 				Expect(err).NotTo(HaveOccurred())
@@ -3513,6 +3532,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 					`controller=\"operator-policy-controller\"`)
 
 				loopReconciles := 0
+
 				for _, metric := range loopMetrics {
 					val, err := strconv.Atoi(metric)
 					g.Expect(err).NotTo(HaveOccurred())
@@ -3614,6 +3634,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 			)
 
 			By("Verifying the targetNamespaces in the OperatorGroup")
+
 			og, err := targetK8sDynamic.Resource(gvrOperatorGroup).Namespace(opPolTestNS).
 				Get(ctx, opGroupName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
@@ -3625,6 +3646,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 			Expect(targetNamespaces).To(HaveExactElements("foo", "bar", opPolTestNS))
 
 			By("Verifying the Subscription channel")
+
 			sub, err := targetK8sDynamic.Resource(gvrSubscription).Namespace(opPolTestNS).
 				Get(ctx, subName, metav1.GetOptions{})
 			Expect(err).NotTo(HaveOccurred())
@@ -3862,6 +3884,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 				checkCompliance(ctx, opPolName, testNamespace, olmWaitTimeout*2, policyv1.Compliant)
 
 				By("Periodically deleting the subscription and checking the status")
+
 				scenarioDeadline := time.Now().Add(40 * time.Second)
 
 			scenarioTriggerLoop:
@@ -3877,7 +3900,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 
 					subConds, _, _ := unstructured.NestedSlice(sub.Object, "status", "conditions")
 					for _, cond := range subConds {
-						condMap, ok := cond.(map[string]interface{})
+						condMap, ok := cond.(map[string]any)
 						if !ok {
 							continue
 						}
@@ -3892,6 +3915,7 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 						}
 
 						condMessage, _, _ := unstructured.NestedString(condMap, "message")
+
 						notRefRgx := regexp.MustCompile(`clusterserviceversion (\S*) exists and is not referenced`)
 						if notRefRgx.MatchString(condMessage) {
 							scenarioTriggered = true
@@ -3934,12 +3958,12 @@ var _ = Describe("Testing OperatorPolicy", Label("supports-hosted"), func() {
 			})
 
 			It("Should start compliant", func(ctx SpecContext) {
-				Eventually(func(ctx SpecContext) (map[string]interface{}, error) {
+				Eventually(func(ctx SpecContext) (map[string]any, error) {
 					csv, err := targetK8sDynamic.Resource(gvrClusterServiceVersion).Namespace(opPolTestNS).
 						Get(ctx, latestExample, metav1.GetOptions{})
 
 					if csv == nil || err != nil {
-						return map[string]interface{}{}, err
+						return map[string]any{}, err
 					}
 
 					status, _, _ := unstructured.NestedMap(csv.Object, "status")
