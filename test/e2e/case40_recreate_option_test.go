@@ -27,6 +27,7 @@ var _ = Describe("Recreate options", Ordered, func() {
 		utils.KubectlDelete("-n", "default", "deployment", "case40")
 
 		By("Deleting the case40 ConfigMap in the default namespace")
+
 		configmap, err := clientManagedDynamic.Resource(gvrConfigMap).Namespace("default").Get(
 			ctx, "case40", metav1.GetOptions{},
 		)
@@ -75,11 +76,12 @@ var _ = Describe("Recreate options", Ordered, func() {
 		}, defaultTimeoutSeconds, 1).Should(Succeed())
 
 		By("Verifying the diff is present")
+
 		relatedObjects, _, err := unstructured.NestedSlice(managedPlc.Object, "status", "relatedObjects")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(relatedObjects).To(HaveLen(1))
 
-		diff, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]interface{}), "properties", "diff")
+		diff, _, _ := unstructured.NestedString(relatedObjects[0].(map[string]any), "properties", "diff")
 		Expect(diff).To(ContainSubstring("-      app: case40\n+      app: case40-2\n"))
 
 		By("Verifying the compliance message is correct and doesn't change")
@@ -103,6 +105,7 @@ var _ = Describe("Recreate options", Ordered, func() {
 
 	It("should update the immutable fields when recreateOption=IfRequired", func(ctx SpecContext) {
 		By("Setting recreateOption=IfRequired on the case40 ConfigurationPolicy")
+
 		deployment, err := clientManagedDynamic.Resource(gvrDeployment).Namespace("default").Get(
 			ctx, "case40", metav1.GetOptions{},
 		)
@@ -132,11 +135,12 @@ var _ = Describe("Recreate options", Ordered, func() {
 		}, defaultTimeoutSeconds, 1).Should(Succeed())
 
 		By("Verifying the diff is not set")
+
 		relatedObjects, _, err := unstructured.NestedSlice(managedPlc.Object, "status", "relatedObjects")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(relatedObjects).To(HaveLen(1))
 
-		relatedObject := relatedObjects[0].(map[string]interface{})
+		relatedObject := relatedObjects[0].(map[string]any)
 
 		diff, _, _ := unstructured.NestedString(relatedObject, "properties", "diff")
 		Expect(diff).To(BeEmpty())

@@ -22,7 +22,7 @@ const (
 )
 
 var _ = Describe("Test policy compliance with namespace selection", Ordered, func() {
-	checkRelated := func(policy *unstructured.Unstructured) []interface{} {
+	checkRelated := func(policy *unstructured.Unstructured) []any {
 		related, _, err := unstructured.NestedSlice(policy.Object, "status", "relatedObjects")
 		if err != nil {
 			panic(err)
@@ -52,6 +52,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 
 	BeforeAll(func() {
 		By("Create Namespaces if needed")
+
 		namespaces := clientManaged.CoreV1().Namespaces()
 		for _, ns := range testNamespaces {
 			if _, err := namespaces.Get(context.TODO(), ns, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
@@ -61,6 +62,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 					},
 				}, metav1.CreateOptions{})).NotTo(BeNil())
 			}
+
 			Expect(namespaces.Get(context.TODO(), ns, metav1.GetOptions{})).NotTo(BeNil())
 		}
 	})
@@ -70,10 +72,12 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 			By("Deleting " + policy.name + " on managed")
 			utils.KubectlDelete("-f", policy.yamlFile, "-n", testNamespace)
 		}
+
 		for _, ns := range testNamespaces {
 			By("Deleting " + case14LimitRangeName + " on " + ns)
 			utils.KubectlDelete("-f", case14LimitRangeFile, "-n", ns)
 		}
+
 		for _, ns := range append(testNamespaces, newNs) {
 			By("Deleting namespace " + ns)
 			utils.KubectlDelete("namespace", ns)
@@ -100,6 +104,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 	It("should stay noncompliant when limitrange is in one matching namespace", func() {
 		By("Creating limitrange " + case14LimitRangeName + " on range1")
 		utils.Kubectl("apply", "-f", case14LimitRangeFile, "-n", "range1")
+
 		for _, policy := range policyTests {
 			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 				policy.name, testNamespace, true, defaultTimeoutSeconds)
@@ -110,7 +115,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 
 				utils.CheckComplianceStatus(g, managedPlc, "NonCompliant")
 			}, defaultTimeoutSeconds, 1).Should(Succeed())
-			Consistently(func() interface{} {
+			Consistently(func() any {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					policy.name, testNamespace, true, defaultTimeoutSeconds)
 
@@ -122,6 +127,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 	It("should be compliant with limitrange in all matching namespaces", func() {
 		By("Creating " + case14LimitRangeName + " on range2")
 		utils.Kubectl("apply", "-f", case14LimitRangeFile, "-n", "range2")
+
 		for _, policy := range policyTests {
 			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 				policy.name, testNamespace, true, defaultTimeoutSeconds)
@@ -137,6 +143,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 
 	It("should be noncompliant after adding new matching namespace", func() {
 		By("Creating namespace " + newNs)
+
 		namespaces := clientManaged.CoreV1().Namespaces()
 		Expect(namespaces.Create(context.TODO(), &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -144,6 +151,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 			},
 		}, metav1.CreateOptions{})).NotTo(BeNil())
 		Expect(namespaces.Get(context.TODO(), newNs, metav1.GetOptions{})).NotTo(BeNil())
+
 		for _, policy := range policyTests {
 			By("Checking that " + policy.name + " is NonCompliant")
 			Eventually(func(g Gomega) {
@@ -152,7 +160,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 
 				utils.CheckComplianceStatus(g, managedPlc, "NonCompliant")
 			}, defaultTimeoutSeconds, 1).Should(Succeed())
-			Consistently(func() interface{} {
+			Consistently(func() any {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					policy.name, testNamespace, true, defaultTimeoutSeconds)
 
@@ -240,6 +248,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 
 	It("should update relatedObjects after deleting a namespace", func() {
 		By("Deleting namespace " + newNs)
+
 		namespaces := clientManaged.CoreV1().Namespaces()
 		Expect(namespaces.Delete(context.TODO(), newNs, metav1.DeleteOptions{})).To(Succeed())
 		Eventually(func() bool {
@@ -247,6 +256,7 @@ var _ = Describe("Test policy compliance with namespace selection", Ordered, fun
 
 			return errors.IsNotFound(err)
 		}, defaultTimeoutSeconds, 1).Should(BeTrue())
+
 		for _, policy := range policyTests {
 			By("Checking that " + policy.name + " is Compliant")
 			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,

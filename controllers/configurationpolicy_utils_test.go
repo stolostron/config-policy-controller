@@ -14,8 +14,8 @@ import (
 func TestFormatTemplateAnnotation(t *testing.T) {
 	t.Parallel()
 
-	policyTemplate := map[string]interface{}{
-		"annotations": map[string]interface{}{
+	policyTemplate := map[string]any{
+		"annotations": map[string]any{
 			"annotation1": "one!",
 			"annotation2": "two!",
 		},
@@ -32,7 +32,7 @@ func TestFormatTemplateAnnotation(t *testing.T) {
 func TestFormatTemplateNullAnnotation(t *testing.T) {
 	t.Parallel()
 
-	policyTemplate := map[string]interface{}{
+	policyTemplate := map[string]any{
 		"annotations": nil,
 		"labels": map[string]string{
 			"label1": "yes",
@@ -47,7 +47,7 @@ func TestFormatTemplateNullAnnotation(t *testing.T) {
 func TestFormatTemplateStringAnnotation(t *testing.T) {
 	t.Parallel()
 
-	policyTemplate := map[string]interface{}{
+	policyTemplate := map[string]any{
 		"annotations": "not-an-annotation",
 		"labels": map[string]string{
 			"label1": "yes",
@@ -103,19 +103,19 @@ func TestAddConditionToStatusNeverEvalInterval(t *testing.T) {
 }
 
 func TestCheckFieldsAreEquivalentEmptyMap(t *testing.T) {
-	oldObj := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"storage": map[string]interface{}{
-				"s3": map[string]interface{}{
+	oldObj := map[string]any{
+		"spec": map[string]any{
+			"storage": map[string]any{
+				"s3": map[string]any{
 					"bucket": "some-bucket",
 				},
 			},
 		},
 	}
-	mergedObj := map[string]interface{}{
-		"spec": map[string]interface{}{
-			"storage": map[string]interface{}{
-				"emptyDir": map[string]interface{}{},
+	mergedObj := map[string]any{
+		"spec": map[string]any{
+			"storage": map[string]any{
+				"emptyDir": map[string]any{},
 			},
 		},
 	}
@@ -130,15 +130,15 @@ func TestCheckFieldsAreEquivalentEmptyMap(t *testing.T) {
 func TestCheckFieldsAreEquivalent(t *testing.T) {
 	t.Parallel()
 
-	oldObj := map[string]interface{}{
+	oldObj := map[string]any{
 		"nonResourceURLs": []string{"/version", "/healthz"},
 		"verbs":           []string{"get"},
 	}
-	mergedObj := map[string]interface{}{
+	mergedObj := map[string]any{
 		"nonResourceURLs": []string{"/version", "/healthz"},
 		"verbs":           []string{"get"},
-		"apiGroups":       []interface{}{},
-		"resources":       []interface{}{},
+		"apiGroups":       []any{},
+		"resources":       []any{},
 	}
 
 	check, _ := checkFieldsAreEquivalent(mergedObj, oldObj, false)
@@ -150,11 +150,11 @@ func TestCheckFieldsAreEquivalent(t *testing.T) {
 	check, _ = checkFieldsAreEquivalent(mergedObj, nil, true)
 	assert.False(t, check)
 
-	mergedObj = map[string]interface{}{
+	mergedObj = map[string]any{
 		"nonResourceURLs": []string{"/version", "/healthz"},
 		"verbs":           []string{"post"},
-		"apiGroups":       []interface{}{},
-		"resources":       []interface{}{},
+		"apiGroups":       []any{},
+		"resources":       []any{},
 	}
 
 	check, _ = checkFieldsAreEquivalent(mergedObj, oldObj, true)
@@ -177,12 +177,12 @@ func TestDeeplyEquivalentString(t *testing.T) {
 func TestDeeplyEquivalentEmptyMap(t *testing.T) {
 	t.Parallel()
 
-	oldObj := map[string]interface{}{
-		"cities": map[string]interface{}{},
+	oldObj := map[string]any{
+		"cities": map[string]any{},
 	}
-	mergedObj := map[string]interface{}{
-		"cities": map[string]interface{}{
-			"raleigh": map[string]interface{}{},
+	mergedObj := map[string]any{
+		"cities": map[string]any{
+			"raleigh": map[string]any{},
 		},
 	}
 
@@ -196,25 +196,25 @@ func TestGenerateDiff(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
-		existingObj  map[string]interface{}
-		updatedObj   map[string]interface{}
+		existingObj  map[string]any
+		updatedObj   map[string]any
 		expectedDiff string
 	}{
 		"same object generates no diff": {
-			existingObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
+			existingObj: map[string]any{
+				"cities": map[string]any{},
 			},
-			updatedObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
+			updatedObj: map[string]any{
+				"cities": map[string]any{},
 			},
 		},
 		"object with new child key": {
-			existingObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
+			existingObj: map[string]any{
+				"cities": map[string]any{},
 			},
-			updatedObj: map[string]interface{}{
-				"cities": map[string]interface{}{
-					"raleigh": map[string]interface{}{},
+			updatedObj: map[string]any{
+				"cities": map[string]any{
+					"raleigh": map[string]any{},
 				},
 			},
 			expectedDiff: `
@@ -224,12 +224,12 @@ func TestGenerateDiff(t *testing.T) {
 +  raleigh: {}`,
 		},
 		"object with new key": {
-			existingObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
+			existingObj: map[string]any{
+				"cities": map[string]any{},
 			},
-			updatedObj: map[string]interface{}{
-				"cities": map[string]interface{}{},
-				"states": map[string]interface{}{},
+			updatedObj: map[string]any{
+				"cities": map[string]any{},
+				"states": map[string]any{},
 			},
 			expectedDiff: `
 @@ -1,2 +1,3 @@
@@ -237,12 +237,12 @@ func TestGenerateDiff(t *testing.T) {
 +states: {}`,
 		},
 		"array with added item": {
-			existingObj: map[string]interface{}{
+			existingObj: map[string]any{
 				"cities": []string{
 					"Raleigh",
 				},
 			},
-			updatedObj: map[string]interface{}{
+			updatedObj: map[string]any{
 				"cities": []string{
 					"Raleigh",
 					"Durham",
@@ -255,13 +255,13 @@ func TestGenerateDiff(t *testing.T) {
 +- Durham`,
 		},
 		"array with removed item": {
-			existingObj: map[string]interface{}{
+			existingObj: map[string]any{
 				"cities": []string{
 					"Raleigh",
 					"Durham",
 				},
 			},
-			updatedObj: map[string]interface{}{
+			updatedObj: map[string]any{
 				"cities": []string{
 					"Raleigh",
 				},

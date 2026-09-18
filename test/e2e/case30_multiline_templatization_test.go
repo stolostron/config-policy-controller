@@ -39,6 +39,7 @@ var _ = Describe("Test multiline templatization", Ordered, func() {
 		It("configmap should be created properly on the managed cluster", func() {
 			By("Creating config maps on managed")
 			utils.Kubectl("apply", "-f", case30ConfigMapsYaml, "-n", "default")
+
 			for _, cfgMapName := range []string{"30config1", "30config2"} {
 				cfgmap := utils.GetWithTimeout(clientManagedDynamic, gvrConfigMap,
 					cfgMapName, "default", true, defaultTimeoutSeconds)
@@ -67,9 +68,10 @@ var _ = Describe("Test multiline templatization", Ordered, func() {
 			}, defaultTimeoutSeconds, 1).Should(Succeed())
 
 			By("Verifying that both configmaps have the updated data")
+
 			for _, cfgMapName := range []string{"30config1", "30config2"} {
 				Eventually(
-					func() interface{} {
+					func() any {
 						configMap, err := clientManaged.CoreV1().ConfigMaps("default").Get(
 							context.TODO(), cfgMapName, v1.GetOptions{},
 						)
@@ -118,6 +120,7 @@ var _ = Describe("Test multiline templatization", Ordered, func() {
 		It("configmap should be created properly on the managed cluster", func() {
 			By("Creating config maps on managed")
 			utils.Kubectl("apply", "-f", case30ConfigMapsYaml, "-n", "default")
+
 			for _, cfgMapName := range []string{"30config1", "30config2"} {
 				cfgmap := utils.GetWithTimeout(clientManagedDynamic, gvrConfigMap,
 					cfgMapName, "default", true, defaultTimeoutSeconds)
@@ -132,7 +135,7 @@ var _ = Describe("Test multiline templatization", Ordered, func() {
 			Expect(plc).NotTo(BeNil())
 
 			By("Verifying that the " + case30RangePolicyName + " policy is compliant")
-			Eventually(func(g Gomega) interface{} {
+			Eventually(func(g Gomega) any {
 				managedPlc := utils.GetWithTimeout(
 					clientManagedDynamic,
 					gvrConfigPolicy,
@@ -157,7 +160,7 @@ var _ = Describe("Test multiline templatization", Ordered, func() {
 			plc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 				case30Unterminated, testNamespace, true, defaultTimeoutSeconds)
 			Expect(plc).NotTo(BeNil())
-			Eventually(func(g Gomega) interface{} {
+			Eventually(func(g Gomega) any {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					case30Unterminated, testNamespace, true, defaultTimeoutSeconds)
 
@@ -167,7 +170,7 @@ var _ = Describe("Test multiline templatization", Ordered, func() {
 
 				return utils.GetComplianceState(managedPlc)
 			}, defaultTimeoutSeconds, 1).Should(Equal("NonCompliant"))
-			Eventually(func() interface{} {
+			Eventually(func() any {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					case30Unterminated, testNamespace, true, defaultTimeoutSeconds)
 
@@ -187,7 +190,7 @@ var _ = Describe("Test multiline templatization", Ordered, func() {
 
 				utils.CheckComplianceStatus(g, managedPlc, "NonCompliant")
 			}, defaultTimeoutSeconds, 1).Should(Succeed())
-			Eventually(func() interface{} {
+			Eventually(func() any {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					case30WrongArgs, testNamespace, true, defaultTimeoutSeconds)
 
@@ -210,7 +213,7 @@ var _ = Describe("Test multiline templatization", Ordered, func() {
 
 				utils.CheckComplianceStatus(g, managedPlc, "Compliant")
 			}, defaultTimeoutSeconds, 1).Should(Succeed())
-			Eventually(func() interface{} {
+			Eventually(func() any {
 				managedPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 					case30NoObject, testNamespace, true, defaultTimeoutSeconds)
 

@@ -43,7 +43,7 @@ func (ra RemovalAction) IsDeleteIfUnused() bool {
 	return strings.EqualFold(string(ra), string(DeleteIfUnused))
 }
 
-type RemovalBehavior struct {
+type RemovalBehavior struct { //nolint:recvcheck // kubebuilder-generated methods use mixed receivers
 	// Use the `operatorGroups` parameter to specify whether to delete the OperatorGroup. The default
 	// value is `DeleteIfUnused`, which only deletes the OperatorGroup if there is not another
 	// resource using it.
@@ -211,7 +211,7 @@ type OperatorPolicySpec struct {
 
 // OperatorPolicyStatus is the observed state of the operators from the specifications given in the
 // operator policy.
-type OperatorPolicyStatus struct {
+type OperatorPolicyStatus struct { //nolint:recvcheck // kubebuilder-generated methods use mixed receivers
 	// ComplianceState reports the most recent compliance state of the operator policy.
 	ComplianceState policyv1.ComplianceState `json:"compliant,omitempty"`
 
@@ -271,7 +271,7 @@ func (status OperatorPolicyStatus) GetCondition(condType string) (int, metav1.Co
 	return -1, metav1.Condition{}
 }
 
-// Returns true if the SubscriptionInterventionTime is far enough in the past
+// SubscriptionInterventionExpired returns true if the SubscriptionInterventionTime is far enough in the past
 // to be considered expired, and therefore should be removed from the status.
 func (status OperatorPolicyStatus) SubscriptionInterventionExpired() bool {
 	if status.SubscriptionInterventionTime == nil {
@@ -281,13 +281,13 @@ func (status OperatorPolicyStatus) SubscriptionInterventionExpired() bool {
 	return status.SubscriptionInterventionTime.Time.Before(time.Now().Add(-10 * time.Second))
 }
 
-// Returns true if the SubscriptionInterventionTime is in the future.
+// SubscriptionInterventionWaiting returns true if the SubscriptionInterventionTime is in the future.
 func (status OperatorPolicyStatus) SubscriptionInterventionWaiting() bool {
 	if status.SubscriptionInterventionTime == nil {
 		return false
 	}
 
-	return status.SubscriptionInterventionTime.Time.After(time.Now())
+	return status.SubscriptionInterventionTime.After(time.Now())
 }
 
 // OperatorPolicy is the schema for the operatorpolicies API. You can use the operator policy to

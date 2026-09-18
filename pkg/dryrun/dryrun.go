@@ -108,7 +108,7 @@ func (d *DryRunner) dryRun(cmd *cobra.Command, args []string) error {
 		}
 
 		// Manually convert resources from the dynamic client to the runtime client
-		err = rec.Client.Create(ctx, obj)
+		err = rec.Create(ctx, obj)
 		if err != nil && !k8serrors.IsAlreadyExists(err) {
 			return err
 		}
@@ -445,10 +445,10 @@ func (d *DryRunner) setupReconciler(
 	nsSelReconciler := common.NewNamespaceSelectorReconciler(runtimeClient, nsSelUpdatesChan)
 
 	defaultNs := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "v1",
 			"kind":       "Namespace",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name": "default",
 			},
 		},
@@ -522,7 +522,7 @@ func (d *DryRunner) compareStatus(cmd *cobra.Command, status policyv1.Configurat
 		return err
 	}
 
-	inputMap := map[string]interface{}{}
+	inputMap := map[string]any{}
 
 	if err := yaml.Unmarshal(configBytes, &inputMap); err != nil {
 		return err
@@ -615,11 +615,11 @@ func (d *DryRunner) outputDiffs(cmd *cobra.Command, status policyv1.Configuratio
 
 func sanitizeForCreation(obj *unstructured.Unstructured) {
 	// Remove fields that should not be set during creation
-	delete(obj.Object["metadata"].(map[string]interface{}), "resourceVersion")
-	delete(obj.Object["metadata"].(map[string]interface{}), "generatedName")
-	delete(obj.Object["metadata"].(map[string]interface{}), "creationTimestamp")
-	delete(obj.Object["metadata"].(map[string]interface{}), "selfLink")
-	delete(obj.Object["metadata"].(map[string]interface{}), "uid")
+	delete(obj.Object["metadata"].(map[string]any), "resourceVersion")
+	delete(obj.Object["metadata"].(map[string]any), "generatedName")
+	delete(obj.Object["metadata"].(map[string]any), "creationTimestamp")
+	delete(obj.Object["metadata"].(map[string]any), "selfLink")
+	delete(obj.Object["metadata"].(map[string]any), "uid")
 }
 
 func addSupportedResources(clientset *clientsetfake.Clientset) {

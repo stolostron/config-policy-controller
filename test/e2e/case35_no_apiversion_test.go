@@ -27,14 +27,14 @@ var _ = Describe("Test a policy with an objectDefinition with an invalid apiVers
 		createObjWithParent(policyYAML, policyName, cfgPlcYAML, testNamespace, gvrPolicy, gvrConfigPolicy)
 
 		By("Checking there is a NonCompliant event on the policy")
-		Eventually(func() interface{} {
+		Eventually(func() any {
 			return utils.GetMatchingEvents(
 				clientManaged, testNamespace, policyName, cfgPlcName, complianceMsg, defaultTimeoutSeconds,
 			)
 		}, defaultTimeoutSeconds, 5).ShouldNot(BeEmpty())
 
 		By("Checking there are no Compliant events on the policy")
-		Consistently(func() interface{} {
+		Consistently(func() any {
 			return utils.GetMatchingEvents(clientManaged, testNamespace,
 				policyName, cfgPlcName, "^Compliant;", defaultTimeoutSeconds)
 		}, defaultConsistentlyDuration, 5).Should(BeEmpty())
@@ -42,6 +42,7 @@ var _ = Describe("Test a policy with an objectDefinition with an invalid apiVers
 
 	AfterEach(func() {
 		utils.KubectlDelete("policy", policyName, "-n", "managed")
+
 		configPlc := utils.GetWithTimeout(clientManagedDynamic, gvrConfigPolicy,
 			cfgPlcName, "managed", false, defaultTimeoutSeconds,
 		)

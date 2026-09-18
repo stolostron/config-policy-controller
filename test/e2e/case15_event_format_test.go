@@ -94,6 +94,7 @@ var _ = Describe("Testing compliance event formatting", Ordered, func() {
 		}, defaultTimeoutSeconds, 1).Should(Succeed())
 
 		By("Checking events on the configurationpolicy")
+
 		compPlcEvents := utils.GetMatchingEvents(clientManaged, testNamespace,
 			case15NeverCompliantName, "", "Policy status is Compliant", defaultTimeoutSeconds)
 		Expect(compPlcEvents).To(BeEmpty())
@@ -103,6 +104,7 @@ var _ = Describe("Testing compliance event formatting", Ordered, func() {
 		}, defaultTimeoutSeconds, 1).ShouldNot(BeEmpty())
 
 		By("Checking events on the parent policy")
+
 		compParentEvents := utils.GetMatchingEvents(clientManaged, testNamespace,
 			case15NeverCompliantParentName, "policy: "+testNamespace+"/"+case15NeverCompliantName,
 			"^Compliant;", defaultTimeoutSeconds)
@@ -219,6 +221,7 @@ var _ = Describe("Testing compliance event formatting", Ordered, func() {
 		}
 
 		By("Delete pods")
+
 		pods := []string{case15PodNoncompliantName, case15PodCompliantName}
 		namespaces := []string{"default"}
 		deletePods(pods, namespaces)
