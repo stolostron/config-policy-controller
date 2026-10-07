@@ -9,4 +9,4 @@ on:
 jobs:
   fw-kind-tests:
     name: KinD
-    uses: stolostron/governance-policy-framework/.github/workflows/kind.yml@main
+    uses: stolostron/governance-policy-framework/.github/workflows/kind.yml@3f6b15d8426304e337bd7b93efe8fd09873f1cee # main
